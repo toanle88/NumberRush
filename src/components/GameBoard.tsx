@@ -47,6 +47,14 @@ const GameBoard: React.FC<GameBoardProps> = ({ question, currentInput, score, ti
         <span className="operand">{question.operandA}</span>
         <span className="operator">{formatOperation(question.operation)}</span>
         <span className="operand">{question.operandB}</span>
+        
+        {question.operandC !== undefined && question.operation2 && (
+          <>
+            <span className="operator">{formatOperation(question.operation2)}</span>
+            <span className="operand">{question.operandC}</span>
+          </>
+        )}
+
         <span className="equals">=</span>
         <div className="answer-box">
           {currentInput || '?'}
