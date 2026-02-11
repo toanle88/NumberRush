@@ -3,7 +3,8 @@ import { useGame } from './hooks/useGame';
 import type { GameMode } from './hooks/useGame';
 import GameBoard from './components/GameBoard';
 import Numpad from './components/Numpad';
-import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound } from './utils/soundEffects';
+import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects';
+import confetti from 'canvas-confetti';
 import './App.css';
 
 function App() {
@@ -121,6 +122,19 @@ function App() {
       }
     }
   }, [timeLeft, status, mode]);
+
+  // Handle milestone celebrations
+  useEffect(() => {
+    if (streak > 0 && streak % 10 === 0) {
+      playCelebrationSound();
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#6366f1', '#a855f7', '#ec4899']
+      });
+    }
+  }, [streak]);
 
   const correctCount = history.filter(h => h.isCorrect).length;
 

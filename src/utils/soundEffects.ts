@@ -36,3 +36,19 @@ export const playFinishSound = () => {
 export const playTickSound = () => {
   playTone(880, 'sine', 0.05, 0.05); // A5 tick
 };
+export const playCelebrationSound = () => {
+  const now = ctx.currentTime;
+  // Upbeat arpeggio
+  [440, 554.37, 659.25, 880].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + i * 0.1);
+    gain.gain.setValueAtTime(0.1, now + i * 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now + i * 0.1);
+    osc.stop(now + i * 0.1 + 0.3);
+  });
+};
