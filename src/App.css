@@ -409,6 +409,127 @@
   margin-top: 1rem;
 }
 
+/* Planetary Backgrounds */
+body.planet-1 {
+  background: var(--moon-bg);
+  --color-primary: var(--moon-accent);
+}
+
+body.planet-2 {
+  background: var(--mars-bg);
+  --color-primary: var(--mars-accent);
+}
+
+body.planet-3 {
+  background: var(--space-bg);
+  --color-primary: var(--space-accent);
+}
+
+/* Badge Gallery */
+.badge-gallery {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+  padding: 1rem;
+}
+
+.badge-item {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: grayscale(1) opacity(0.3);
+}
+
+.badge-item.unlocked {
+  filter: grayscale(0) opacity(1);
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+  animation: badge-unlock 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.badge-item:hover .badge-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+.badge-tooltip {
+  visibility: hidden;
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: var(--bg-dark);
+  border: 1px solid var(--card-border);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 50;
+  opacity: 0;
+  transition: all 0.2s;
+  pointer-events: none;
+}
+
+@keyframes badge-unlock {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.unlocked-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--bg-dark);
+  border: 1px solid var(--color-primary);
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  animation: toast-in 0.5s forwards, toast-out 0.5s 3.5s forwards;
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateX(120%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(120%);
+  }
+}
+
 header h1 {
   margin-bottom: 0px;
 }

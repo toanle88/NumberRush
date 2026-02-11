@@ -5,39 +5,75 @@ import { generateQuestion } from '../utils/mathLogic';
 export type GameStatus = 'idle' | 'playing' | 'finished';
 export type GameMode = 'blitz' | 'practice';
 
+export interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  condition: (state: GameState) => boolean;
+}
+
 interface GameState {
   score: number;
   streak: number;
   timeLeft: number;
   status: GameStatus;
   mode: GameMode;
-  isAdvanced: boolean; // 3 numbers mode
+  isAdvanced: boolean;
   currentQuestion: MathQuestion | null;
   history: Array<{ question: MathQuestion; playerAnswer: number; isCorrect: boolean }>;
   highScore: number;
   bestStreak: number;
+  unlockedBadges: string[];
 }
 
 const STORAGE_KEYS = {
   HIGH_SCORE: 'numberrush_highscore',
   BEST_STREAK: 'numberrush_beststreak',
+  BADGES: 'numberrush_badges',
 };
 
+export const BADGES: Badge[] = [
+  { id: 'first_blastoff', name: 'First Blastoff', icon: '🚀', description: 'Finish your first game!', condition: state => state.status === 'finished' && state.history.length > 0 },
+  { id: 'streak_king', name: 'Streak King', icon: '🔥', description: 'Get a streak of 10!', condition: state => state.bestStreak >= 10 },
+  { id: 'blitz_pro', name: 'Blitz Pro', icon: '🎯', description: 'Score over 200 points!', condition: state => state.highScore >= 200 },
+  { id: 'chaos_master', name: 'Chaos Master', icon: '🛡️', description: 'Solve 10 chaos questions!', condition: state => state.history.filter(h => h.isCorrect && h.question.operandC).length >= 10 },
+  { id: 'speed_demon', name: 'Speed Demon', icon: '⚡', description: 'Perfect streak of 20!', condition: state => state.bestStreak >= 20 },
+];
+
 export const useGame = (initialTime: number = 10) => {
-  const [state, setState] = useState<GameState>({
-    score: 0,
-    streak: 0,
-    timeLeft: initialTime,
-    status: 'idle',
-    mode: 'blitz',
-    isAdvanced: false,
-    currentQuestion: null,
-    history: [],
-    highScore: parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) || '0', 10),
-    bestStreak: parseInt(localStorage.getItem(STORAGE_KEYS.BEST_STREAK) || '0', 10),
+  const [state, setState] = useState<GameState>(() => {
+    const savedBadges = localStorage.getItem(STORAGE_KEYS.BADGES);
+    return {
+      score: 0,
+      streak: 0,
+      timeLeft: initialTime,
+      status: 'idle',
+      mode: 'blitz',
+      isAdvanced: false,
+      currentQuestion: null,
+      history: [],
+      highScore: parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) || '0', 10),
+      bestStreak: parseInt(localStorage.getItem(STORAGE_KEYS.BEST_STREAK) || '0', 10),
+      unlockedBadges: savedBadges ? JSON.parse(savedBadges) : [],
+    };
   });
 
   const timerRef = useRef<number | null>(null);
+
+  const checkBadges = useCallback((currentState: GameState) => {
+    const newUnlocked = BADGES
+      .filter(badge => !currentState.unlockedBadges.includes(badge.id))
+      .filter(badge => badge.condition(currentState))
+      .map(badge => badge.id);
+
+    if (newUnlocked.length > 0) {
+      const updatedBadges = [...currentState.unlockedBadges, ...newUnlocked];
+      localStorage.setItem(STORAGE_KEYS.BADGES, JSON.stringify(updatedBadges));
+      return updatedBadges;
+    }
+    return currentState.unlockedBadges;
+  }, []);
 
   const startGame = useCallback((level: number = 1, mode: GameMode = 'blitz', isAdvanced: boolean = false) => {
     setState(prev => ({
@@ -68,7 +104,7 @@ export const useGame = (initialTime: number = 10) => {
       if (newHighScore > prev.highScore) localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, newHighScore.toString());
       if (newBestStreak > prev.bestStreak) localStorage.setItem(STORAGE_KEYS.BEST_STREAK, newBestStreak.toString());
 
-      return {
+      const nextState: GameState = {
         ...prev,
         score: newScore,
         streak: newStreak,
@@ -78,15 +114,24 @@ export const useGame = (initialTime: number = 10) => {
         history: [...prev.history, { question: prev.currentQuestion!, playerAnswer, isCorrect }],
         currentQuestion: generateQuestion(Math.min(3, Math.floor(newScore / 100) + 1), prev.isAdvanced),
       };
+
+      // Check badges immediately on answer
+      nextState.unlockedBadges = checkBadges(nextState);
+
+      return nextState;
     });
 
     return isCorrect;
-  }, [state.status, state.currentQuestion, initialTime]);
+  }, [state.status, state.currentQuestion, initialTime, checkBadges]);
 
   const endGame = useCallback(() => {
-    setState(prev => ({ ...prev, status: 'finished' }));
+    setState(prev => {
+      const nextState = { ...prev, status: 'finished' as const };
+      nextState.unlockedBadges = checkBadges(nextState);
+      return nextState;
+    });
     if (timerRef.current) clearInterval(timerRef.current);
-  }, []);
+  }, [checkBadges]);
 
   const resetGame = useCallback(() => {
     setState(prev => ({ ...prev, status: 'idle', timeLeft: initialTime }));
@@ -96,7 +141,13 @@ export const useGame = (initialTime: number = 10) => {
   const resetStats = useCallback(() => {
     localStorage.removeItem(STORAGE_KEYS.HIGH_SCORE);
     localStorage.removeItem(STORAGE_KEYS.BEST_STREAK);
-    setState(prev => ({ ...prev, highScore: 0, bestStreak: 0 }));
+    localStorage.removeItem(STORAGE_KEYS.BADGES);
+    setState(prev => ({ 
+      ...prev, 
+      highScore: 0, 
+      bestStreak: 0, 
+      unlockedBadges: [] 
+    }));
   }, []);
 
   useEffect(() => {
@@ -107,7 +158,9 @@ export const useGame = (initialTime: number = 10) => {
         setState(prev => {
           if (prev.timeLeft <= 1) {
             if (timerRef.current) clearInterval(timerRef.current);
-            return { ...prev, timeLeft: 0, status: 'finished' };
+            const finishedState = { ...prev, timeLeft: 0, status: 'finished' as const };
+            finishedState.unlockedBadges = checkBadges(finishedState);
+            return finishedState;
           }
           return { ...prev, timeLeft: prev.timeLeft - 1 };
         });
@@ -118,7 +171,7 @@ export const useGame = (initialTime: number = 10) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [state.status, state.mode]);
+  }, [state.status, state.mode, checkBadges]);
 
   return {
     ...state,
