@@ -52,15 +52,13 @@ function App() {
   const handleClear = useCallback(() => setInput(''), []);
 
   const handleSubmit = useCallback(() => {
-    setInput(prev => {
-      if (prev === '') return prev;
-      const isCorrect = submitAnswer(parseInt(prev, 10));
-      setFeedback(isCorrect ? 'correct' : 'incorrect');
-      if (isCorrect) playCorrectSound();
-      else playIncorrectSound();
-      return '';
-    });
-  }, [submitAnswer]);
+    if (input === '') return;
+    const isCorrect = submitAnswer(parseInt(input, 10));
+    setFeedback(isCorrect ? 'correct' : 'incorrect');
+    if (isCorrect) playCorrectSound();
+    else playIncorrectSound();
+    setInput('');
+  }, [input, submitAnswer]);
 
   const handleExit = useCallback(() => {
     resetGame();
