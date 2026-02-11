@@ -11,28 +11,31 @@ interface GameBoardProps {
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({ question, currentInput, score, timeLeft, streak }) => {
-  const progress = (timeLeft / 60) * 100;
   
   return (
     <div className="game-board animate-pop">
-      <div className="progress-container">
-        <div 
-          className="progress-bar" 
-          style={{ 
-            width: `${progress}%`,
-            backgroundColor: timeLeft < 10 ? 'var(--color-error)' : 'var(--color-primary)'
-          }}
-        />
-      </div>
+      {timeLeft < 1000 && (
+        <div className="progress-container">
+          <div 
+            className="progress-bar" 
+            style={{ 
+              width: `${(timeLeft / 60) * 100}%`,
+              backgroundColor: timeLeft < 10 ? 'var(--color-error)' : 'var(--color-primary)'
+            }}
+          />
+        </div>
+      )}
       <div className="stats-header">
         <div className="stat-item">
           <span className="label">Score</span>
           <span className="value">{score}</span>
         </div>
-        <div className="stat-item timer">
-          <span className="label">Time</span>
-          <span className="value">{timeLeft}s</span>
-        </div>
+        {timeLeft < 1000 && (
+          <div className="stat-item timer">
+            <span className="label">Time</span>
+            <span className="value">{timeLeft}s</span>
+          </div>
+        )}
         <div className="stat-item streak">
           <span className="label">Streak</span>
           <span className="value">×{streak}</span>

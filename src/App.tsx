@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGame } from './hooks/useGame';
+import type { GameMode } from './hooks/useGame';
 import GameBoard from './components/GameBoard';
 import Numpad from './components/Numpad';
 import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound } from './utils/soundEffects';
@@ -11,6 +12,7 @@ function App() {
     score, 
     timeLeft, 
     streak, 
+    mode,
     currentQuestion, 
     history,
     startGame, 
@@ -22,8 +24,8 @@ function App() {
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [selectedLevel, setSelectedLevel] = useState(1);
 
-  const handleStart = (lvl: number) => {
-    startGame(lvl);
+  const handleStart = (m: GameMode) => {
+    startGame(selectedLevel, m);
   };
 
   const handleInput = (val: string) => {
@@ -60,14 +62,14 @@ function App() {
 
   // Handle sounds for timer and finish
   useEffect(() => {
-    if (status === 'playing') {
+    if (status === 'playing' && mode === 'blitz') {
       if (timeLeft <= 5 && timeLeft > 0) {
         playTickSound();
       } else if (timeLeft === 0) {
         playFinishSound();
       }
     }
-  }, [timeLeft, status]);
+  }, [timeLeft, status, mode]);
 
   const correctCount = history.filter(h => h.isCorrect).length;
 
@@ -105,9 +107,9 @@ function App() {
                 {selectedLevel === 3 && "Numbers up to 50"}
               </p>
             </div>
-            <div className="mode-selection">
-              <button className="primary" onClick={() => handleStart(selectedLevel)}>Start Blitz Rush! ⚡</button>
-              <button disabled style={{ opacity: 0.5 }}>Practice Mode (Soon) 🧠</button>
+            <div className="mode-selection" style={{ display: 'grid', gap: '1rem' }}>
+              <button className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
+              <button onClick={() => handleStart('practice')}>Practice Mode 🧠</button>
             </div>
           </div>
         )}
@@ -121,7 +123,7 @@ function App() {
               question={currentQuestion}
               currentInput={input}
               score={score}
-              timeLeft={timeLeft}
+              timeLeft={mode === 'practice' ? 9999 : timeLeft}
               streak={streak}
             />
             <Numpad 
@@ -146,7 +148,7 @@ function App() {
               <p>Best Streak: <strong>{streak}</strong></p>
             </div>
             <div style={{ display: 'grid', gap: '1rem' }}>
-              <button className="primary" onClick={() => handleStart(selectedLevel)}>Play Again! 🔄</button>
+              <button className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>
               <button onClick={resetGame}>Change Level 🛠️</button>
             </div>
           </div>

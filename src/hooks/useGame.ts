@@ -3,12 +3,14 @@ import type { MathQuestion } from '../utils/mathLogic';
 import { generateQuestion } from '../utils/mathLogic';
 
 export type GameStatus = 'idle' | 'playing' | 'finished';
+export type GameMode = 'blitz' | 'practice';
 
 interface GameState {
   score: number;
   streak: number;
   timeLeft: number;
   status: GameStatus;
+  mode: GameMode;
   currentQuestion: MathQuestion | null;
   history: Array<{ question: MathQuestion; playerAnswer: number; isCorrect: boolean }>;
 }
@@ -19,18 +21,20 @@ export const useGame = (initialTime: number = 60) => {
     streak: 0,
     timeLeft: initialTime,
     status: 'idle',
+    mode: 'blitz',
     currentQuestion: null,
     history: [],
   });
 
   const timerRef = useRef<number | null>(null);
 
-  const startGame = useCallback((level: number = 1) => {
+  const startGame = useCallback((level: number = 1, mode: GameMode = 'blitz') => {
     setState({
       score: 0,
       streak: 0,
       timeLeft: initialTime,
       status: 'playing',
+      mode,
       currentQuestion: generateQuestion(level),
       history: [],
     });
@@ -70,7 +74,7 @@ export const useGame = (initialTime: number = 60) => {
   useEffect(() => {
     let interval: number | null = null;
 
-    if (state.status === 'playing') {
+    if (state.status === 'playing' && state.mode === 'blitz') {
       interval = setInterval(() => {
         setState(prev => {
           if (prev.timeLeft <= 1) {
