@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGame } from './hooks/useGame';
 import GameBoard from './components/GameBoard';
 import Numpad from './components/Numpad';
@@ -17,6 +17,8 @@ function App() {
   } = useGame(60);
 
   const [input, setInput] = useState('');
+  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState(1);
 
   const handleInput = (val: string) => {
     if (input.length < 3) {
@@ -28,9 +30,18 @@ function App() {
 
   const handleSubmit = () => {
     if (input === '') return;
-    submitAnswer(parseInt(input, 10));
+    const isCorrect = submitAnswer(parseInt(input, 10));
+    setFeedback(isCorrect ? 'correct' : 'incorrect');
     setInput('');
   };
+
+  // Clear feedback after 1 second
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   const correctCount = history.filter(h => h.isCorrect).length;
 
@@ -47,14 +58,36 @@ function App() {
       
       <div className="game-container">
         {status === 'idle' && (
-          <div className="mode-selection">
-            <button className="primary" onClick={startGame}>Start Blitz Rush! ⚡</button>
-            <button disabled style={{ opacity: 0.5 }}>Practice Mode (Soon) 🧠</button>
+          <div className="dashboard animate-pop">
+            <div className="level-selector" style={{ marginBottom: '2rem' }}>
+              <p style={{ marginBottom: '1rem', fontWeight: 600 }}>Choose Your Level:</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                {[1, 2, 3].map(lvl => (
+                  <button 
+                    key={lvl}
+                    className={selectedLevel === lvl ? 'primary' : ''}
+                    onClick={() => setSelectedLevel(lvl)}
+                    style={{ padding: '0.5rem 1.5rem' }}
+                  >
+                    Level {lvl}
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                {selectedLevel === 1 && "Numbers up to 10"}
+                {selectedLevel === 2 && "Numbers up to 20"}
+                {selectedLevel === 3 && "Numbers up to 50"}
+              </p>
+            </div>
+            <div className="mode-selection">
+              <button className="primary" onClick={() => startGame(selectedLevel)}>Start Blitz Rush! ⚡</button>
+              <button disabled style={{ opacity: 0.5 }}>Practice Mode (Soon) 🧠</button>
+            </div>
           </div>
         )}
 
         {status === 'playing' && currentQuestion && (
-          <>
+          <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
             <GameBoard 
               question={currentQuestion}
               currentInput={input}
@@ -67,7 +100,12 @@ function App() {
               onClear={handleClear}
               onSubmit={handleSubmit}
             />
-          </>
+            {feedback && (
+              <div className="feedback-overlay animate-pop">
+                {feedback === 'correct' ? '✅ Correct!' : '❌ Oops!'}
+              </div>
+            )}
+          </div>
         )}
 
         {status === 'finished' && (
@@ -78,7 +116,7 @@ function App() {
               <p>Correct Answers: <strong>{correctCount}</strong></p>
               <p>Best Streak: <strong>{streak}</strong></p>
             </div>
-            <button className="primary" onClick={startGame}>Play Again! 🔄</button>
+            <button className="primary" onClick={() => startGame(selectedLevel)}>Play Again! 🔄</button>
           </div>
         )}
       </div>

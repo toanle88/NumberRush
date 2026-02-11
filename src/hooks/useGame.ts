@@ -25,13 +25,13 @@ export const useGame = (initialTime: number = 60) => {
 
   const timerRef = useRef<number | null>(null);
 
-  const startGame = useCallback(() => {
+  const startGame = useCallback((level: number = 1) => {
     setState({
       score: 0,
       streak: 0,
       timeLeft: initialTime,
       status: 'playing',
-      currentQuestion: generateQuestion(1),
+      currentQuestion: generateQuestion(level),
       history: [],
     });
   }, [initialTime]);

@@ -91,6 +91,82 @@
   grid-column: span 2;
 }
 
+/* Feedback System */
+.game-area {
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.feedback-correct {
+  animation: bg-correct 0.5s ease;
+}
+
+.feedback-incorrect {
+  animation: bg-incorrect 0.5s ease;
+}
+
+@keyframes bg-correct {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes bg-incorrect {
+  0% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  50% {
+    transform: translateX(5px);
+  }
+
+  75% {
+    transform: translateX(-5px);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.feedback-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3rem;
+  font-weight: 800;
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.feedback-correct .feedback-overlay {
+  color: var(--color-success);
+}
+
+.feedback-incorrect .feedback-overlay {
+  color: var(--color-error);
+}
+
+/* Level Selector */
+.level-selector button {
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
 .results-screen h2 {
   margin-bottom: 0px;
 }
