@@ -62,6 +62,11 @@ export const useGame = (initialTime: number = 60) => {
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
+  const resetGame = useCallback(() => {
+    setState(prev => ({ ...prev, status: 'idle', timeLeft: initialTime }));
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, [initialTime]);
+
   useEffect(() => {
     let interval: number | null = null;
 
@@ -87,5 +92,6 @@ export const useGame = (initialTime: number = 60) => {
     startGame,
     submitAnswer,
     endGame,
+    resetGame,
   };
 };

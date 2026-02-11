@@ -14,7 +14,8 @@ function App() {
     currentQuestion, 
     history,
     startGame, 
-    submitAnswer 
+    submitAnswer,
+    resetGame
   } = useGame(60);
 
   const [input, setInput] = useState('');
@@ -40,6 +41,13 @@ function App() {
     if (isCorrect) playCorrectSound();
     else playIncorrectSound();
     setInput('');
+  };
+
+  const handleExit = () => {
+    if (confirm('Are you sure you want to exit the game?')) {
+      resetGame();
+      setInput('');
+    }
   };
 
   // Clear feedback after 0.8 seconds
@@ -106,6 +114,9 @@ function App() {
 
         {status === 'playing' && currentQuestion && (
           <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
+             <button className="exit-btn" onClick={handleExit} title="Exit Game">
+              ✕
+            </button>
             <GameBoard 
               question={currentQuestion}
               currentInput={input}
@@ -134,7 +145,10 @@ function App() {
               <p>Correct Answers: <strong>{correctCount}</strong></p>
               <p>Best Streak: <strong>{streak}</strong></p>
             </div>
-            <button className="primary" onClick={() => handleStart(selectedLevel)}>Play Again! 🔄</button>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <button className="primary" onClick={() => handleStart(selectedLevel)}>Play Again! 🔄</button>
+              <button onClick={resetGame}>Change Level 🛠️</button>
+            </div>
           </div>
         )}
       </div>
