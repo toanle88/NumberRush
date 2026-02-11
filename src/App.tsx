@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useGame } from './hooks/useGame';
 import type { GameMode } from './hooks/useGame';
 import GameBoard from './components/GameBoard';
@@ -28,29 +28,32 @@ function App() {
     startGame(selectedLevel, m);
   };
 
-  const handleInput = (val: string) => {
-    if (input.length < 3) {
-      setInput(prev => prev + val);
-    }
-  };
+  const handleInput = useCallback((val: string) => {
+    setInput(prev => {
+      if (prev.length < 3) return prev + val;
+      return prev;
+    });
+  }, []);
 
-  const handleClear = () => setInput('');
+  const handleClear = useCallback(() => setInput(''), []);
 
-  const handleSubmit = () => {
-    if (input === '') return;
-    const isCorrect = submitAnswer(parseInt(input, 10));
-    setFeedback(isCorrect ? 'correct' : 'incorrect');
-    if (isCorrect) playCorrectSound();
-    else playIncorrectSound();
-    setInput('');
-  };
+  const handleSubmit = useCallback(() => {
+    setInput(prev => {
+      if (prev === '') return prev;
+      const isCorrect = submitAnswer(parseInt(prev, 10));
+      setFeedback(isCorrect ? 'correct' : 'incorrect');
+      if (isCorrect) playCorrectSound();
+      else playIncorrectSound();
+      return '';
+    });
+  }, [submitAnswer]);
 
-  const handleExit = () => {
+  const handleExit = useCallback(() => {
     if (confirm('Are you sure you want to exit the game?')) {
       resetGame();
       setInput('');
     }
-  };
+  }, [resetGame]);
 
   // Clear feedback after 0.8 seconds
   useEffect(() => {
@@ -59,6 +62,26 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [feedback]);
+
+  // Handle keyboard input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (status !== 'playing') return;
+
+      if (e.key >= '0' && e.key <= '9') {
+        handleInput(e.key);
+      } else if (e.key === 'Enter') {
+        handleSubmit();
+      } else if (e.key === 'Backspace') {
+        handleClear();
+      } else if (e.key === 'Escape') {
+        handleExit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [status, handleInput, handleSubmit, handleClear, handleExit]); // removed input dependency
 
   // Handle sounds for timer and finish
   useEffect(() => {
