@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useGame } from './hooks/useGame';
 import GameBoard from './components/GameBoard';
 import Numpad from './components/Numpad';
+import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound } from './utils/soundEffects';
 import './App.css';
 
 function App() {
@@ -20,6 +21,10 @@ function App() {
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [selectedLevel, setSelectedLevel] = useState(1);
 
+  const handleStart = (lvl: number) => {
+    startGame(lvl);
+  };
+
   const handleInput = (val: string) => {
     if (input.length < 3) {
       setInput(prev => prev + val);
@@ -32,16 +37,29 @@ function App() {
     if (input === '') return;
     const isCorrect = submitAnswer(parseInt(input, 10));
     setFeedback(isCorrect ? 'correct' : 'incorrect');
+    if (isCorrect) playCorrectSound();
+    else playIncorrectSound();
     setInput('');
   };
 
-  // Clear feedback after 1 second
+  // Clear feedback after 0.8 seconds
   useEffect(() => {
     if (feedback) {
       const timer = setTimeout(() => setFeedback(null), 800);
       return () => clearTimeout(timer);
     }
   }, [feedback]);
+
+  // Handle sounds for timer and finish
+  useEffect(() => {
+    if (status === 'playing') {
+      if (timeLeft <= 5 && timeLeft > 0) {
+        playTickSound();
+      } else if (timeLeft === 0) {
+        playFinishSound();
+      }
+    }
+  }, [timeLeft, status]);
 
   const correctCount = history.filter(h => h.isCorrect).length;
 
@@ -80,7 +98,7 @@ function App() {
               </p>
             </div>
             <div className="mode-selection">
-              <button className="primary" onClick={() => startGame(selectedLevel)}>Start Blitz Rush! ⚡</button>
+              <button className="primary" onClick={() => handleStart(selectedLevel)}>Start Blitz Rush! ⚡</button>
               <button disabled style={{ opacity: 0.5 }}>Practice Mode (Soon) 🧠</button>
             </div>
           </div>
@@ -116,7 +134,7 @@ function App() {
               <p>Correct Answers: <strong>{correctCount}</strong></p>
               <p>Best Streak: <strong>{streak}</strong></p>
             </div>
-            <button className="primary" onClick={() => startGame(selectedLevel)}>Play Again! 🔄</button>
+            <button className="primary" onClick={() => handleStart(selectedLevel)}>Play Again! 🔄</button>
           </div>
         )}
       </div>
