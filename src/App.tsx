@@ -18,7 +18,7 @@ function App() {
     startGame, 
     submitAnswer,
     resetGame
-  } = useGame(60);
+  } = useGame(10);
 
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -124,6 +124,7 @@ function App() {
               currentInput={input}
               score={score}
               timeLeft={mode === 'practice' ? 9999 : timeLeft}
+              maxTime={10}
               streak={streak}
             />
             <Numpad 
