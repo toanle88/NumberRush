@@ -183,12 +183,25 @@ function App() {
         {status === 'playing' && currentQuestion && (
           <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
              <button className="exit-btn" onClick={handleExit} title="Exit Game">✕</button>
-            <GameBoard 
-              question={currentQuestion} currentInput={input} score={score}
-              timeLeft={mode === 'practice' ? 9999 : timeLeft} maxTime={initialTime} streak={streak}
-            />
+             <div className="board-wrapper" style={{ position: 'relative', width: '100%' }}>
+              <GameBoard 
+                question={currentQuestion} 
+                currentInput={input} 
+                score={score}
+                timeLeft={mode === 'practice' ? 9999 : timeLeft} 
+                maxTime={initialTime} 
+                streak={streak}
+              />
+              {feedback && (
+                <div className="feedback-overlay">
+                  <div className="feedback-content">
+                    {feedback === 'correct' ? '✅' : '❌'}
+                    <span>{feedback === 'correct' ? 'Correct!' : 'Oops!'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
             <Numpad onInput={handleInput} onClear={handleClear} onSubmit={handleSubmit} />
-            {feedback && <div className="feedback-overlay animate-pop">{feedback === 'correct' ? '✅ Correct!' : '❌ Oops!'}</div>}
           </div>
         )}
 

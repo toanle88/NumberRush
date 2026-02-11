@@ -163,21 +163,54 @@
 
 .feedback-overlay {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 3rem;
-  font-weight: 800;
-  text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  top: -1.25rem;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
   pointer-events: none;
-  z-index: 10;
+  z-index: 100;
 }
 
-.feedback-correct .feedback-overlay {
+.feedback-content {
+  background: var(--bg-dark);
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius-full);
+  border: 3px solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  animation: feedback-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.feedback-content span {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@keyframes feedback-pop {
+  from {
+    transform: translateY(-15px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.feedback-correct .feedback-content {
+  border-color: var(--color-success);
   color: var(--color-success);
 }
 
-.feedback-incorrect .feedback-overlay {
+.feedback-incorrect .feedback-content {
+  border-color: var(--color-error);
   color: var(--color-error);
 }
 
