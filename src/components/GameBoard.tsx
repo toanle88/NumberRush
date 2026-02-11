@@ -19,8 +19,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ question, currentInput, score, ti
           <div 
             className="progress-bar" 
             style={{ 
-              width: `${(timeLeft / 60) * 100}%`,
-              backgroundColor: timeLeft < 10 ? 'var(--color-error)' : 'var(--color-primary)'
+              width: `${(timeLeft / 10) * 100}%`,
+              backgroundColor: timeLeft < 4 ? 'var(--color-error)' : 'var(--color-primary)'
             }}
           />
         </div>

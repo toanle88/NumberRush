@@ -32,13 +32,13 @@ export const useGame = (initialTime: number = 60) => {
     setState({
       score: 0,
       streak: 0,
-      timeLeft: initialTime,
+      timeLeft: 10, // 10s per question
       status: 'playing',
       mode,
       currentQuestion: generateQuestion(level),
       history: [],
     });
-  }, [initialTime]);
+  }, []);
 
   const submitAnswer = useCallback((playerAnswer: number) => {
     if (state.status !== 'playing' || !state.currentQuestion) return;
@@ -53,6 +53,7 @@ export const useGame = (initialTime: number = 60) => {
         ...prev,
         score: newScore,
         streak: newStreak,
+        timeLeft: 10, // Reset timer on every answer
         history: [...prev.history, { question: prev.currentQuestion!, playerAnswer, isCorrect }],
         currentQuestion: generateQuestion(Math.min(3, Math.floor(newScore / 100) + 1)),
       };
