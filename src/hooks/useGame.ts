@@ -1,0 +1,88 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { generateQuestion, MathQuestion } from '../utils/mathLogic';
+
+export type GameStatus = 'idle' | 'playing' | 'finished';
+
+interface GameState {
+  score: number;
+  streak: number;
+  timeLeft: number;
+  status: GameStatus;
+  currentQuestion: MathQuestion | null;
+  history: Array<{ question: MathQuestion; playerAnswer: number; isCorrect: boolean }>;
+}
+
+export const useGame = (initialTime: number = 60) => {
+  const [state, setState] = useState<GameState>({
+    score: 0,
+    streak: 0,
+    timeLeft: initialTime,
+    status: 'idle',
+    currentQuestion: null,
+    history: [],
+  });
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startGame = useCallback(() => {
+    setState({
+      score: 0,
+      streak: 0,
+      timeLeft: initialTime,
+      status: 'playing',
+      currentQuestion: generateQuestion(1),
+      history: [],
+    });
+  }, [initialTime]);
+
+  const submitAnswer = useCallback((playerAnswer: number) => {
+    if (state.status !== 'playing' || !state.currentQuestion) return;
+
+    const isCorrect = playerAnswer === state.currentQuestion.answer;
+    
+    setState(prev => {
+      const newScore = isCorrect ? prev.score + (10 * (Math.floor(prev.streak / 5) + 1)) : prev.score;
+      const newStreak = isCorrect ? prev.streak + 1 : 0;
+      
+      return {
+        ...prev,
+        score: newScore,
+        streak: newStreak,
+        history: [...prev.history, { question: prev.currentQuestion!, playerAnswer, isCorrect }],
+        currentQuestion: generateQuestion(Math.min(3, Math.floor(newScore / 100) + 1)),
+      };
+    });
+
+    return isCorrect;
+  }, [state.status, state.currentQuestion]);
+
+  const endGame = useCallback(() => {
+    setState(prev => ({ ...prev, status: 'finished' }));
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (state.status === 'playing' && state.timeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setState(prev => {
+          if (prev.timeLeft <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            return { ...prev, timeLeft: 0, status: 'finished' };
+          }
+          return { ...prev, timeLeft: prev.timeLeft - 1 };
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [state.status]);
+
+  return {
+    ...state,
+    startGame,
+    submitAnswer,
+    endGame,
+  };
+};

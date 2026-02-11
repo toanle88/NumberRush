@@ -1,34 +1,27 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
+    <main className="animate-pop">
+      <header>
+        <h1>NumberRush</h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginBottom: '2rem' }}>
+          Speed Math for Super Kids! 🚀
         </p>
+      </header>
+      
+      <div className="game-container">
+        <div className="mode-selection" style={{ display: 'grid', gap: '1rem' }}>
+          <button className="primary">Start Blitz Rush! ⚡</button>
+          <button>Practice Mode 🧠</button>
+          <button style={{ color: 'var(--color-accent)' }}>High Scores 🏆</button>
+        </div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+
+      <footer style={{ marginTop: '3rem', fontSize: '0.875rem', opacity: 0.6 }}>
+        <p>Made with ❤️ for simple learning</p>
+      </footer>
+    </main>
   )
 }
 
