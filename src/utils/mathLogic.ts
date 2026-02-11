@@ -37,14 +37,21 @@ export const generateQuestion = (level: number = 1, isAdvanced: boolean = false)
     const current = op1 === 'addition' ? a + b : a - b;
 
     let c: number;
-    if (op2 === 'subtraction') {
-      // Ensure c <= current so (A ± B) - C >= 0
-      c = Math.floor(Math.random() * Math.max(1, current)) + 1;
+    let finalOp2 = op2;
+
+    if (finalOp2 === 'subtraction') {
+      if (current === 0) {
+        finalOp2 = 'addition';
+        c = Math.floor(Math.random() * settings.maxNum) + 1;
+      } else {
+        // Ensure c <= current so (A ± B) - C >= 0
+        c = Math.floor(Math.random() * current) + 1;
+      }
     } else {
       c = Math.floor(Math.random() * settings.maxNum) + 1;
     }
 
-    const answer = op2 === 'addition' ? current + c : current - c;
+    const answer = finalOp2 === 'addition' ? current + c : current - c;
 
     return {
       id: Math.random().toString(36).substring(2, 9),
@@ -52,7 +59,7 @@ export const generateQuestion = (level: number = 1, isAdvanced: boolean = false)
       operandB: b,
       operandC: c,
       operation: op1,
-      operation2: op2,
+      operation2: finalOp2,
       answer,
     };
   }
