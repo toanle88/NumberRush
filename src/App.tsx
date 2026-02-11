@@ -62,10 +62,8 @@ function App() {
   }, [submitAnswer]);
 
   const handleExit = useCallback(() => {
-    if (confirm('Are you sure you want to exit the game?')) {
-      resetGame();
-      setInput('');
-    }
+    resetGame();
+    setInput('');
   }, [resetGame]);
 
   const handleResetProgress = () => {
