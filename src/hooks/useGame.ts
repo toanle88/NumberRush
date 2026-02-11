@@ -63,11 +63,13 @@ export const useGame = (initialTime: number = 60) => {
   }, []);
 
   useEffect(() => {
-    if (state.status === 'playing' && state.timeLeft > 0) {
-      timerRef.current = setInterval(() => {
+    let interval: number | null = null;
+
+    if (state.status === 'playing') {
+      interval = setInterval(() => {
         setState(prev => {
           if (prev.timeLeft <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current);
+            if (interval) clearInterval(interval);
             return { ...prev, timeLeft: 0, status: 'finished' };
           }
           return { ...prev, timeLeft: prev.timeLeft - 1 };
@@ -76,7 +78,7 @@ export const useGame = (initialTime: number = 60) => {
     }
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (interval) clearInterval(interval);
     };
   }, [state.status]);
 

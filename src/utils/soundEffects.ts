@@ -1,5 +1,5 @@
-const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-const ctx = new AudioContext();
+const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+const ctx = new AudioContextClass();
 
 const playTone = (freq: number, type: OscillatorType, duration: number, volume: number) => {
   const osc = ctx.createOscillator();
