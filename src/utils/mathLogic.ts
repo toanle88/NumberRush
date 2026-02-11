@@ -30,22 +30,21 @@ export const generateQuestion = (level: number = 1, isAdvanced: boolean = false)
     const op2: Operation = Math.random() > 0.5 ? 'addition' : 'subtraction';
     
     let a = Math.floor(Math.random() * settings.maxNum) + 5;
-    let b = Math.floor(Math.random() * settings.maxNum) + 1;
-    let c = Math.floor(Math.random() * settings.maxNum) + 1;
-
-    let current = op1 === 'addition' ? a + b : a - b;
+    let b = Math.floor(Math.random() * Math.min(settings.maxNum, a)) + 1; // Ensure b <= a for first op
     
-    // Safety check for kids: avoid negative intermediate results
-    if (current < 0) {
-      current = a + b; // Force addition if negative
+    // If op1 is subtraction, we already ensured a >= b.
+    // If op1 is addition, a + b is definitely >= 0.
+    const current = op1 === 'addition' ? a + b : a - b;
+
+    let c: number;
+    if (op2 === 'subtraction') {
+      // Ensure c <= current so (A ± B) - C >= 0
+      c = Math.floor(Math.random() * Math.max(1, current)) + 1;
+    } else {
+      c = Math.floor(Math.random() * settings.maxNum) + 1;
     }
 
-    let answer = op2 === 'addition' ? current + c : current - c;
-
-    // Safety check for final answer
-    if (answer < 0) {
-      answer = current + c;
-    }
+    const answer = op2 === 'addition' ? current + c : current - c;
 
     return {
       id: Math.random().toString(36).substring(2, 9),
@@ -58,13 +57,13 @@ export const generateQuestion = (level: number = 1, isAdvanced: boolean = false)
     };
   }
 
-  // Standard mode
+  // Standard mode: A ± B
   const operation: Operation = Math.random() > 0.5 ? 'addition' : 'subtraction';
   let a = Math.floor(Math.random() * settings.maxNum) + 1;
   let b = Math.floor(Math.random() * settings.maxNum) + 1;
 
-  if (operation === 'subtraction' && !settings.allowNegative) {
-    if (a < b) [a, b] = [b, a];
+  if (operation === 'subtraction') {
+    if (a < b) [a, b] = [b, a]; // Ensure a >= b
   }
 
   const answer = operation === 'addition' ? a + b : a - b;
