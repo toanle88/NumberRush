@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { generateQuestion, MathQuestion } from '../utils/mathLogic';
+import type { MathQuestion } from '../utils/mathLogic';
+import { generateQuestion } from '../utils/mathLogic';
 
 export type GameStatus = 'idle' | 'playing' | 'finished';
 
@@ -22,7 +23,7 @@ export const useGame = (initialTime: number = 60) => {
     history: [],
   });
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<number | null>(null);
 
   const startGame = useCallback(() => {
     setState({

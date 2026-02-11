@@ -5,11 +5,98 @@
   padding: 2.5rem;
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-lg);
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .mode-selection {
   max-width: 320px;
   margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+
+/* GameBoard Styles */
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  font-weight: 600;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-item .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}
+
+.stat-item .value {
+  font-size: 1.5rem;
+  color: var(--color-secondary);
+}
+
+.stat-item.timer .value {
+  color: var(--color-accent);
+}
+
+.question-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 4rem;
+  font-weight: 800;
+  margin-bottom: 2.5rem;
+}
+
+.answer-box {
+  min-width: 100px;
+  padding: 0.25rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--color-success);
+  border-bottom: 4px solid var(--color-success);
+}
+
+/* Numpad Styles */
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.num-btn {
+  font-size: 1.5rem;
+  padding: 1rem;
+}
+
+.clear-btn {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.submit-btn {
+  grid-column: span 2;
+}
+
+.results-screen h2 {
+  margin-bottom: 0px;
+}
+
+.final-stats p {
+  margin: 0.5rem 0;
 }
 
 header h1 {
