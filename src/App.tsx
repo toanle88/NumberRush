@@ -9,7 +9,7 @@ import './App.css';
 
 const BadgeItem = ({ badge, isUnlocked }: { badge: Badge; isUnlocked: boolean }) => (
   <div className={`badge-item ${isUnlocked ? 'unlocked' : ''}`}>
-    {badge.icon}
+    <span className="badge-icon" aria-hidden="true">{badge.icon}</span>
     <div className="badge-tooltip">
       <strong>{badge.name}</strong>
       <p>{badge.description}</p>

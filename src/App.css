@@ -486,15 +486,30 @@ body.planet-3 {
   font-size: 1.5rem;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  filter: grayscale(1) opacity(0.3);
 }
 
 .badge-item.unlocked {
-  filter: grayscale(0) opacity(1);
   background: rgba(99, 102, 241, 0.1);
   border-color: var(--color-primary);
   box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
   animation: badge-unlock 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.badge-item .badge-icon {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
+.badge-item.unlocked .badge-icon {
+  filter: grayscale(0);
+  opacity: 1;
 }
 
 .badge-item:hover .badge-tooltip {
@@ -509,8 +524,8 @@ body.planet-3 {
   bottom: 110%;
   left: 50%;
   transform: translateX(-50%) translateY(0);
-  background: var(--bg-dark);
-  border: 1px solid var(--card-border);
+  background: rgba(12, 14, 20, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-md);
   font-size: 0.75rem;
@@ -519,6 +534,8 @@ body.planet-3 {
   opacity: 0;
   transition: all 0.2s;
   pointer-events: none;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
 }
 
 @keyframes badge-unlock {
