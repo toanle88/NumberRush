@@ -29,8 +29,8 @@ export const generateQuestion = (level: number = 1, isAdvanced: boolean = false)
     const op1: Operation = Math.random() > 0.5 ? 'addition' : 'subtraction';
     const op2: Operation = Math.random() > 0.5 ? 'addition' : 'subtraction';
     
-    let a = Math.floor(Math.random() * settings.maxNum) + 5;
-    let b = Math.floor(Math.random() * Math.min(settings.maxNum, a)) + 1; // Ensure b <= a for first op
+    const a = Math.floor(Math.random() * settings.maxNum) + 5;
+    const b = Math.floor(Math.random() * Math.min(settings.maxNum, a)) + 1; // Ensure b <= a for first op
     
     // If op1 is subtraction, we already ensured a >= b.
     // If op1 is addition, a + b is definitely >= 0.

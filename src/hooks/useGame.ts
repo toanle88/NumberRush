@@ -99,6 +99,36 @@ export const useGame = (initialTime: number = 10) => {
     return currentState.unlockedBadges;
   }, []);
 
+  const finalizeGameState = useCallback((previousState: GameState, overrides: Partial<GameState> = {}): GameState => {
+    if (previousState.status === 'finished') return previousState;
+
+    let moonGames = previousState.moonGames;
+    let marsGames = previousState.marsGames;
+    let spaceGames = previousState.spaceGames;
+
+    if (previousState.currentLevel === 1) {
+      moonGames++;
+      localStorage.setItem(STORAGE_KEYS.MOON_GAMES, moonGames.toString());
+    } else if (previousState.currentLevel === 2) {
+      marsGames++;
+      localStorage.setItem(STORAGE_KEYS.MARS_GAMES, marsGames.toString());
+    } else if (previousState.currentLevel === 3) {
+      spaceGames++;
+      localStorage.setItem(STORAGE_KEYS.SPACE_GAMES, spaceGames.toString());
+    }
+
+    const finishedState: GameState = {
+      ...previousState,
+      ...overrides,
+      status: 'finished',
+      moonGames,
+      marsGames,
+      spaceGames,
+    };
+    finishedState.unlockedBadges = checkBadges(finishedState);
+    return finishedState;
+  }, [checkBadges]);
+
   const startGame = useCallback((level: number = 1, mode: GameMode = 'blitz', isAdvanced: boolean = false) => {
     setState(prev => ({
       ...prev,
@@ -114,8 +144,8 @@ export const useGame = (initialTime: number = 10) => {
     }));
   }, [initialTime]);
 
-  const submitAnswer = useCallback((playerAnswer: number) => {
-    if (state.status !== 'playing' || !state.currentQuestion) return;
+  const submitAnswer = useCallback((playerAnswer: number): boolean => {
+    if (state.status !== 'playing' || !state.currentQuestion) return false;
 
     const isCorrect = playerAnswer === state.currentQuestion.answer;
     const isChaos = state.currentQuestion.operandC !== undefined;
@@ -155,27 +185,9 @@ export const useGame = (initialTime: number = 10) => {
   }, [state.status, state.currentQuestion, initialTime, checkBadges]);
 
   const endGame = useCallback(() => {
-    setState(prev => {
-      let moonGames = prev.moonGames;
-      let marsGames = prev.marsGames;
-      let spaceGames = prev.spaceGames;
-
-      if (prev.currentLevel === 1) { moonGames++; localStorage.setItem(STORAGE_KEYS.MOON_GAMES, moonGames.toString()); }
-      else if (prev.currentLevel === 2) { marsGames++; localStorage.setItem(STORAGE_KEYS.MARS_GAMES, marsGames.toString()); }
-      else if (prev.currentLevel === 3) { spaceGames++; localStorage.setItem(STORAGE_KEYS.SPACE_GAMES, spaceGames.toString()); }
-
-      const nextState = { 
-        ...prev, 
-        status: 'finished' as const,
-        moonGames,
-        marsGames,
-        spaceGames
-      };
-      nextState.unlockedBadges = checkBadges(nextState);
-      return nextState;
-    });
+    setState(prev => finalizeGameState(prev));
     if (timerRef.current) clearInterval(timerRef.current);
-  }, [checkBadges]);
+  }, [finalizeGameState]);
 
   const resetGame = useCallback(() => {
     setState(prev => ({ ...prev, status: 'idle', timeLeft: initialTime }));
@@ -206,24 +218,7 @@ export const useGame = (initialTime: number = 10) => {
           if (prev.timeLeft <= 1) {
             if (timerRef.current) clearInterval(timerRef.current);
             
-            let moonGames = prev.moonGames;
-            let marsGames = prev.marsGames;
-            let spaceGames = prev.spaceGames;
-
-            if (prev.currentLevel === 1) { moonGames++; localStorage.setItem(STORAGE_KEYS.MOON_GAMES, moonGames.toString()); }
-            else if (prev.currentLevel === 2) { marsGames++; localStorage.setItem(STORAGE_KEYS.MARS_GAMES, marsGames.toString()); }
-            else if (prev.currentLevel === 3) { spaceGames++; localStorage.setItem(STORAGE_KEYS.SPACE_GAMES, spaceGames.toString()); }
-
-            const finishedState = { 
-              ...prev, 
-              timeLeft: 0, 
-              status: 'finished' as const,
-              moonGames,
-              marsGames,
-              spaceGames
-            };
-            finishedState.unlockedBadges = checkBadges(finishedState);
-            return finishedState;
+            return finalizeGameState(prev, { timeLeft: 0 });
           }
           return { ...prev, timeLeft: prev.timeLeft - 1 };
         });
@@ -234,7 +229,7 @@ export const useGame = (initialTime: number = 10) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [state.status, state.mode, checkBadges]);
+  }, [state.status, state.mode, finalizeGameState]);
 
   return {
     ...state,

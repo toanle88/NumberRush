@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useGame, BADGES } from './hooks/useGame';
 import type { GameMode, Badge } from './hooks/useGame';
 import GameBoard from './components/GameBoard';
@@ -28,6 +28,8 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [lastUnlockedBadge, setLastUnlockedBadge] = useState<string | null>(null);
+  const previousBadgeCountRef = useRef(0);
+  const hasInitializedBadgesRef = useRef(false);
 
   const { 
     status, score, timeLeft, streak, mode, currentQuestion, history,
@@ -46,12 +48,24 @@ function App() {
 
   // Handle new badge unlock notifications
   useEffect(() => {
-    if (unlockedBadges.length > 0) {
-      const latest = unlockedBadges[unlockedBadges.length - 1];
-      setLastUnlockedBadge(latest);
-      const timer = setTimeout(() => setLastUnlockedBadge(null), 4000);
-      return () => clearTimeout(timer);
+    if (!hasInitializedBadgesRef.current) {
+      previousBadgeCountRef.current = unlockedBadges.length;
+      hasInitializedBadgesRef.current = true;
+      return;
     }
+
+    if (unlockedBadges.length > previousBadgeCountRef.current) {
+      const latest = unlockedBadges[unlockedBadges.length - 1];
+      const showTimer = setTimeout(() => setLastUnlockedBadge(latest), 0);
+      const clearTimer = setTimeout(() => setLastUnlockedBadge(null), 4000);
+      previousBadgeCountRef.current = unlockedBadges.length;
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(clearTimer);
+      };
+    }
+
+    previousBadgeCountRef.current = unlockedBadges.length;
   }, [unlockedBadges]);
 
   const handleStart = (m: GameMode) => {
@@ -128,7 +142,7 @@ function App() {
       <header>
         <div className="header-top">
           <h1>NumberRush</h1>
-          <button className="settings-btn" onClick={() => setSettingsOpen(true)}>⚙️</button>
+          <button type="button" className="settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Open settings">⚙️</button>
         </div>
         {status === 'idle' && (
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginBottom: '2rem' }}>
@@ -150,6 +164,7 @@ function App() {
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                 {['Moon', 'Mars', 'Space'].map((name, i) => (
                   <button 
+                    type="button"
                     key={name}
                     className={selectedLevel === i + 1 ? 'primary' : ''}
                     onClick={() => setSelectedLevel(i + 1)}
@@ -162,14 +177,14 @@ function App() {
             </div>
 
             <div className="advanced-toggle" style={{ marginBottom: '2rem' }}>
-              <button className={isAdvanced ? 'primary' : ''} onClick={() => setIsAdvanced(!isAdvanced)} style={{ width: '100%', maxWidth: '320px' }}>
+              <button type="button" className={isAdvanced ? 'primary' : ''} onClick={() => setIsAdvanced(!isAdvanced)} style={{ width: '100%', maxWidth: '320px' }}>
                 {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
               </button>
             </div>
 
             <div className="mode-selection" style={{ display: 'grid', gap: '1rem' }}>
-              <button className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
-              <button onClick={() => handleStart('practice')}>Practice Mode 🧠</button>
+              <button type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
+              <button type="button" onClick={() => handleStart('practice')}>Practice Mode 🧠</button>
             </div>
 
             <div className="badge-gallery">
@@ -182,15 +197,16 @@ function App() {
 
         {status === 'playing' && currentQuestion && (
           <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
-             <button className="exit-btn" onClick={handleExit} title="Exit Game">✕</button>
+             <button type="button" className="exit-btn" onClick={handleExit} title="Exit Game" aria-label="Exit game">✕</button>
              <div className="board-wrapper" style={{ position: 'relative', width: '100%' }}>
               <GameBoard 
                 question={currentQuestion} 
                 currentInput={input} 
                 score={score}
-                timeLeft={mode === 'practice' ? 9999 : timeLeft} 
+                timeLeft={timeLeft}
                 maxTime={initialTime} 
                 streak={streak}
+                showTimer={mode === 'blitz'}
               />
               {feedback && (
                 <div className="feedback-overlay">
@@ -213,8 +229,8 @@ function App() {
               <p>Correct: <strong>{correctCount}</strong> | Best Streak: <strong>{streak}</strong></p>
             </div>
             <div style={{ display: 'grid', gap: '1rem' }}>
-              <button className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>
-              <button onClick={resetGame}>Change Planet 🛠️</button>
+              <button type="button" className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>
+              <button type="button" onClick={resetGame}>Change Planet 🛠️</button>
             </div>
           </div>
         )}
@@ -232,14 +248,14 @@ function App() {
               <label>Speed (Seconds):</label>
               <div className="timer-options">
                 {[5, 10, 15, 20].map(t => (
-                  <button key={t} className={initialTime === t ? 'primary' : ''} onClick={() => updateTimer(t)}>{t}s</button>
+                  <button type="button" key={t} className={initialTime === t ? 'primary' : ''} onClick={() => updateTimer(t)}>{t}s</button>
                 ))}
               </div>
             </div>
             <div className="setting-item">
-              <button className="danger" onClick={() => { if (confirm('Reset all stats?')) resetStats(); }}>Reset Progress 🗑️</button>
+              <button type="button" className="danger" onClick={() => { if (confirm('Reset all stats?')) resetStats(); }}>Reset Progress 🗑️</button>
             </div>
-            <button className="close-modal" onClick={() => setSettingsOpen(false)}>Close</button>
+            <button type="button" className="close-modal" onClick={() => setSettingsOpen(false)}>Close</button>
           </div>
         </div>
       )}

@@ -12,12 +12,12 @@ const Numpad: React.FC<NumpadProps> = ({ onInput, onClear, onSubmit }) => {
   return (
     <div className="numpad">
       {numbers.map((num) => (
-        <button key={num} onClick={() => onInput(num.toString())} className="num-btn">
+        <button type="button" key={num} onClick={() => onInput(num.toString())} className="num-btn" aria-label={`Enter ${num}`}>
           {num}
         </button>
       ))}
-      <button onClick={onClear} className="clear-btn">C</button>
-      <button onClick={onSubmit} className="submit-btn primary">GO!</button>
+      <button type="button" onClick={onClear} className="clear-btn" aria-label="Clear input">C</button>
+      <button type="button" onClick={onSubmit} className="submit-btn primary" aria-label="Submit answer">GO!</button>
     </div>
   );
 };
