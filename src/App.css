@@ -173,7 +173,7 @@
 }
 
 .feedback-content {
-  background: var(--bg-dark);
+  background: #0f172a !important;
   padding: 0.5rem 1.5rem;
   border-radius: var(--radius-full);
   border: 3px solid var(--color-primary);
