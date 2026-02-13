@@ -33,7 +33,7 @@ function App() {
 
   const { 
     status, score, timeLeft, streak, mode, currentQuestion, history,
-    highScore, bestStreak, unlockedBadges,
+    highScore, bestStreak, unlockedBadges, currentLevel,
     startGame, submitAnswer, resetGame, resetStats
   } = useGame(initialTime);
 
@@ -43,8 +43,9 @@ function App() {
 
   // Update body class for planetary theme
   useEffect(() => {
-    document.body.className = `planet-${selectedLevel}`;
-  }, [selectedLevel]);
+    const level = status === 'playing' ? currentLevel : selectedLevel;
+    document.body.className = `planet-${level}`;
+  }, [selectedLevel, status, currentLevel]);
 
   // Handle new badge unlock notifications
   useEffect(() => {

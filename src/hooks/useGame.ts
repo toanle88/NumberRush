@@ -164,6 +164,8 @@ export const useGame = (initialTime: number = 10) => {
       if (isCorrect) localStorage.setItem(STORAGE_KEYS.TOTAL_CORRECT, newTotalCorrect.toString());
       if (isCorrect && isChaos) localStorage.setItem(STORAGE_KEYS.TOTAL_CHAOS, newTotalChaos.toString());
 
+      const nextLevel = Math.min(3, Math.floor(newScore / 100) + 1);
+
       const nextState: GameState = {
         ...prev,
         score: newScore,
@@ -174,7 +176,8 @@ export const useGame = (initialTime: number = 10) => {
         totalChaosSolved: newTotalChaos,
         timeLeft: initialTime,
         history: [...prev.history, { question: prev.currentQuestion!, playerAnswer, isCorrect }],
-        currentQuestion: generateQuestion(Math.min(3, Math.floor(newScore / 100) + 1), prev.isAdvanced),
+        currentLevel: nextLevel,
+        currentQuestion: generateQuestion(nextLevel, prev.isAdvanced),
       };
 
       nextState.unlockedBadges = checkBadges(nextState);
