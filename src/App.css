@@ -594,3 +594,84 @@ body.planet-3 {
 header h1 {
   margin-bottom: 0px;
 }
+
+/* Screen Shake Animations */
+@keyframes shake-small {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+
+  75% {
+    transform: translateX(2px) rotate(1deg);
+  }
+}
+
+@keyframes shake-medium {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-4px) rotate(-2deg);
+  }
+
+  40% {
+    transform: translateX(4px) rotate(2deg);
+  }
+
+  60% {
+    transform: translateX(-4px) rotate(-2deg);
+  }
+
+  80% {
+    transform: translateX(4px) rotate(2deg);
+  }
+}
+
+@keyframes shake-hard {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10% {
+    transform: translateX(-6px) rotate(-3deg);
+  }
+
+  30% {
+    transform: translateX(6px) rotate(3deg);
+  }
+
+  50% {
+    transform: translateX(-6px) rotate(-3deg);
+  }
+
+  70% {
+    transform: translateX(6px) rotate(3deg);
+  }
+
+  90% {
+    transform: translateX(-6px) rotate(-3deg);
+  }
+}
+
+.shake-small {
+  animation: shake-small 0.3s ease-in-out;
+}
+
+.shake-medium {
+  animation: shake-medium 0.5s ease-in-out;
+}
+
+.shake-hard {
+  animation: shake-hard 0.6s ease-in-out;
+}

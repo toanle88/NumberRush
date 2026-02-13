@@ -40,6 +40,7 @@ function App() {
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [selectedLevel, setSelectedLevel] = useState(1);
+  const [shakeClass, setShakeClass] = useState('');
 
   // Update body class for planetary theme
   useEffect(() => {
@@ -132,14 +133,40 @@ function App() {
   useEffect(() => {
     if (streak > 0 && streak % 10 === 0) {
       playCelebrationSound();
-      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] });
+      
+      let shake = 'shake-small';
+      
+      if (streak >= 30) {
+        shake = 'shake-hard';
+        // Fireworks effect
+        const duration = 1500;
+        const animationEnd = Date.now() + duration;
+        const random = (min: number, max: number) => Math.random() * (max - min) + min;
+        
+        const interval = setInterval(() => {
+          const timeLeft = animationEnd - Date.now();
+          if (timeLeft <= 0) return clearInterval(interval);
+          const particleCount = 40;
+          confetti({ particleCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } });
+          confetti({ particleCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } });
+        }, 250);
+      } else if (streak >= 20) {
+        shake = 'shake-medium';
+        confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } });
+      } else {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] });
+      }
+
+      setShakeClass(shake);
+      const timer = setTimeout(() => setShakeClass(''), 600);
+      return () => clearTimeout(timer);
     }
   }, [streak]);
 
   const correctCount = useMemo(() => history.filter(h => h.isCorrect).length, [history]);
 
   return (
-    <main className="animate-pop">
+    <main className={`animate-pop ${shakeClass}`}>
       <header>
         <div className="header-top">
           <h1>NumberRush</h1>
