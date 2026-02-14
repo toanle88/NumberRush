@@ -1,79 +1,84 @@
-# NumberRush
+# NumberRush 🚀
 
-NumberRush is a fast-paced math game for kids built with React + TypeScript + Vite.
+> **Speed Math for Super Kids!**
 
-Players solve arithmetic questions as quickly as possible, build streaks, and unlock badges over time.
+NumberRush is a fast-paced, interactive arithmetic game designed to help kids improve their mental math skills through fun gameplay, visual rewards, and progressive difficulty levels. Built with modern web technologies, it offers a smooth, app-like experience on any device.
 
-## Features
+## ✨ Features
 
-- `Blitz` mode with countdown timer and score multiplier streaks.
-- `Practice` mode with no visible timer pressure.
-- Planet-based difficulty (`Moon`, `Mars`, `Space`).
-- Optional `3-Number Chaos` questions.
-- Persistent progress in local storage:
-  - high score
-  - best streak
-  - unlocked badges
-  - cumulative game stats
-- Keyboard support (`0-9`, `Enter`, `Backspace`, `Escape`).
+### 🎮 Game Modes
+- **Blitz Mode ⚡**: Race against the clock! Solve questions before time runs out to build your streak and score massive points.
+- **Practice Mode 🧠**: Zen-like training with no timers. Perfect for learning at your own pace.
 
-## Tech Stack
+### 🌍 Planetary Progression
+As you score higher, travel through the solar system with dynamic visual themes:
+- **Moon Base 🌙**: Level 1 (Beginner)
+- **Mars Outpost 🔴**: Level 2 (Intermediate)
+- **Deep Space 🌌**: Level 3 (Advanced)
 
-- React 19
-- TypeScript
-- Vite
-- Vitest + Testing Library
+### 🔥 Challenge & Rewards
+- **Streak System**: Build combos to multiply your score.
+- **Badges**: Unlock 10 unique achievements like *Streak King*, *Math Marathon*, and *Galaxy Guide*.
+- **Chaos Mode**: Toggle "3-Number Chaos" for advanced arithmetic challenges (e.g., `5 + 3 - 2`).
+- **High Scores**: Local storage saves your personal bests, total solved questions, and unlocked badges.
 
-## Getting Started
+### 📱 Modern Experience
+- **PWA Support**: Installable as a native app on mobile and desktop. Works offline!
+- **Interactive Feedback**: Satisfying sound effects, screen shake animations, and confetti explosions for big achievements.
+- **Keyboard Support**: Full numpad and keyboard control for desktop users.
 
-Install dependencies:
+## 🛠️ Tech Stack
 
-```bash
-npm install
-```
+- **Core**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Testing**: [Vitest](https://vitest.dev/), React Testing Library
+- **Styling**: Modern CSS3 (Variables, Animations, Responsive Design)
+- **Effects**: [canvas-confetti](https://github.com/catdad/canvas-confetti)
+- **Infrastructure**: Azure Static Web Apps (IaC with Terraform)
+- **CI/CD**: GitHub Actions
 
-Start the dev server:
+## 🚀 Getting Started
 
-```bash
-npm run dev
-```
+### Prerequisites
+- Node.js (v18 or higher recommended)
+- npm
 
-Build for production:
+### Installation
 
-```bash
-npm run build
-```
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/number-rush.git
+    cd number-rush
+    ```
 
-Preview production build:
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-```bash
-npm run preview
-```
+3.  **Start the development server:**
+    ```bash
+    npm run dev
+    ```
+    Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-## Scripts
+## 📜 Scripts
 
-- `npm run dev`: Run development server.
-- `npm run build`: Type-check and build.
-- `npm run lint`: Run ESLint.
-- `npm run test`: Run unit tests with Vitest.
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Starts the development server with HMR. |
+| `npm run build` | Type-checks and builds the production-ready app. |
+| `npm run preview` | Previews the production build locally. |
+| `npm run test` | Runs unit tests with Vitest. |
+| `npm run lint` | Runs ESLint to check for code quality issues. |
 
-## Gameplay Notes
+## ☁️ Deployment
 
-- Correct answers increase score and streak.
-- Streak milestone bonuses increase per-question points.
-- In Blitz mode, each submitted answer resets the timer for the next question.
-- Badges unlock automatically when conditions are met.
+This project is configured for continuous deployment to **Azure Static Web Apps**. 
 
-## Testing
+- **Infrastructure**: Managed via Terraform in the `infra/` directory.
+- **Workflow**: The GitHub Action `.github/workflows/deploy.yml` automatically builds and deploys changes on push to `main`.
 
-Run tests:
+## 📄 License
 
-```bash
-npm run test
-```
-
-Current automated coverage includes:
-
-- math question generation constraints and arithmetic correctness
-- core game-state transitions in `useGame`
-
+This project is open source and available under the [MIT License](LICENSE).
