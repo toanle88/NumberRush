@@ -123,10 +123,10 @@ function App() {
     if (streak > 0 && streak % 10 === 0) {
       playCelebrationSound();
 
-      let shake = 'animate-[shake-small_0.6s_ease-in-out]';
+      let shake = 'shake-small';
 
       if (streak >= 30) {
-        shake = 'animate-[shake-hard_0.6s_ease-in-out]';
+        shake = 'shake-hard';
         const duration = 1500;
         const animationEnd = Date.now() + duration;
         const random = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -139,7 +139,7 @@ function App() {
           confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } });
         }, 250);
       } else if (streak >= 20) {
-        shake = 'animate-[shake-medium_0.6s_ease-in-out]';
+        shake = 'shake-medium';
         confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } });
       } else {
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] });
@@ -154,49 +154,37 @@ function App() {
   const correctCount = useMemo(() => history.filter(h => h.isCorrect).length, [history]);
 
   return (
-    <main className={`animate-pop-in ${shakeClass} w-full max-w-xl mx-auto px-6 text-center`}>
-      <header className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">NumberRush</h1>
-          <button
-            type="button"
-            className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Open settings"
-          >
-            ⚙️
-          </button>
+    <main className={`animate-pop ${shakeClass}`}>
+      <header>
+        <div className="header-top">
+          <h1>NumberRush</h1>
+          <button type="button" className="settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Open settings">⚙️</button>
         </div>
         {status === 'idle' && (
-          <p className="text-slate-400 text-lg md:text-xl">
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginBottom: '2rem' }}>
             Hey {playerName}! Speed Math for Super Kids! 🚀
           </p>
         )}
       </header>
 
-      <div className="relative">
+      <div className="game-container">
         {status === 'idle' && (
-          <div className="space-y-8 animate-pop-in">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                <span className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-1">High Score</span>
-                <strong className="text-3xl text-indigo-400">{highScore}</strong>
-              </div>
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                <span className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-1">Best Streak</span>
-                <strong className="text-3xl text-amber-500">{bestStreak}</strong>
-              </div>
+          <div className="dashboard animate-pop">
+            <div className="best-stats">
+              <div className="stat-card"><span>High Score</span><strong>{highScore}</strong></div>
+              <div className="stat-card"><span>Best Streak</span><strong>{bestStreak}</strong></div>
             </div>
 
-            <div className="space-y-4">
-              <p className="font-bold text-white uppercase tracking-widest text-sm">Choose Your Planet:</p>
-              <div className="flex flex-wrap justify-center gap-3">
+            <div className="level-selector" style={{ marginBottom: '2rem' }}>
+              <p style={{ marginBottom: '1rem', fontWeight: 600 }}>Choose Your Planet:</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                 {['Moon', 'Mars', 'Space'].map((name, i) => (
                   <button
                     type="button"
                     key={name}
-                    className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-bold border transition-all ${selectedLevel === i + 1 ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/20' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
+                    className={selectedLevel === i + 1 ? 'primary' : ''}
                     onClick={() => setSelectedLevel(i + 1)}
+                    style={{ padding: '0.5rem 1.5rem' }}
                   >
                     {name} {i === 0 ? '🌙' : i === 1 ? '🔴' : '🌌'}
                   </button>
@@ -204,34 +192,23 @@ function App() {
               </div>
             </div>
 
-            <div className="w-full max-w-sm mx-auto">
+            <div className="advanced-toggle" style={{ marginBottom: '2rem' }}>
               <button
                 type="button"
-                className={`w-full py-4 rounded-2xl border font-bold transition-all ${isAdvanced ? 'bg-pink-600/20 border-pink-500 text-pink-400' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}
+                className={isAdvanced ? 'primary' : ''}
                 onClick={() => setIsAdvanced(!isAdvanced)}
+                style={{ width: '100%', maxWidth: '320px' }}
               >
                 {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
               </button>
             </div>
 
-            <div className="grid gap-3 w-full max-w-sm mx-auto">
-              <button
-                type="button"
-                className="py-5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-transform"
-                onClick={() => handleStart('blitz')}
-              >
-                Start Blitz Rush! ⚡
-              </button>
-              <button
-                type="button"
-                className="py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all font-mono"
-                onClick={() => handleStart('practice')}
-              >
-                Practice Mode 🧠
-              </button>
+            <div className="mode-selection">
+              <button type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
+              <button type="button" onClick={() => handleStart('practice')}>Practice Mode 🧠</button>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-2 pt-6">
+            <div className="badge-gallery">
               {BADGES.map(badge => (
                 <BadgeItem key={badge.id} badge={badge} isUnlocked={unlockedBadges.includes(badge.id)} />
               ))}
@@ -240,17 +217,9 @@ function App() {
         )}
 
         {status === 'playing' && currentQuestion && (
-          <div className={`space-y-6 ${feedback ? `feedback-${feedback}` : ''}`}>
-            <button
-              type="button"
-              className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-slate-400 hover:text-white hover:bg-red-500/20 transition-all z-10"
-              onClick={handleExit}
-              aria-label="Exit game"
-            >
-              ✕
-            </button>
-
-            <div className="relative">
+          <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
+            <button type="button" className="exit-btn" onClick={handleExit} title="Exit Game" aria-label="Exit game">✕</button>
+            <div className="board-wrapper" style={{ position: 'relative', width: '100%' }}>
               <GameBoard
                 question={currentQuestion}
                 currentInput={input}
@@ -260,51 +229,29 @@ function App() {
                 streak={streak}
                 showTimer={mode === 'blitz'}
               />
-
               {feedback && (
-                <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
-                  <div className={`flex flex-col items-center gap-2 p-8 rounded-3xl backdrop-blur-xl border ${feedback === 'correct' ? 'bg-emerald-500/20 border-emerald-500' : 'bg-red-500/20 border-red-500'} animate-pop-in`}>
-                    <span className="text-5xl">{feedback === 'correct' ? '✅' : '❌'}</span>
-                    <span className={`text-2xl font-black ${feedback === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {feedback === 'correct' ? 'Correct!' : 'Oops!'}
-                    </span>
+                <div className="feedback-overlay">
+                  <div className="feedback-content">
+                    {feedback === 'correct' ? '✅' : '❌'}
+                    <span>{feedback === 'correct' ? 'Correct!' : 'Oops!'}</span>
                   </div>
                 </div>
               )}
             </div>
-
             <Numpad onInput={handleInput} onClear={handleClear} onSubmit={handleSubmit} />
           </div>
         )}
 
         {status === 'finished' && (
-          <div className="space-y-8 animate-pop-in py-8">
-            <h2 className="text-5xl font-black text-amber-500 mb-8">Time's Up! 🏁</h2>
-
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 space-y-4">
-              <p className="text-xl">Final Score</p>
-              <strong className="block text-7xl text-indigo-400 mb-4">{score}</strong>
-              <div className="flex justify-center gap-6 text-slate-400 font-bold">
-                <span>Correct: <strong className="text-emerald-400">{correctCount}</strong></span>
-                <span>Best Streak: <strong className="text-amber-500">{streak}</strong></span>
-              </div>
+          <div className="results-screen animate-pop">
+            <h2 style={{ fontSize: '2.5rem', color: 'var(--color-secondary)' }}>Time's Up! 🏁</h2>
+            <div className="final-stats" style={{ margin: '2rem 0', display: 'grid', gap: '1rem' }}>
+              <p style={{ fontSize: '1.5rem' }}>Final Score: <strong style={{ color: 'var(--color-primary)' }}>{score}</strong></p>
+              <p>Correct: <strong>{correctCount}</strong> | Best Streak: <strong>{streak}</strong></p>
             </div>
-
-            <div className="grid gap-3 w-full max-w-sm mx-auto">
-              <button
-                type="button"
-                className="py-5 bg-indigo-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-transform"
-                onClick={() => handleStart(mode)}
-              >
-                Play Again! 🔄
-              </button>
-              <button
-                type="button"
-                className="py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all font-mono"
-                onClick={resetGame}
-              >
-                Change Planet 🛠️
-              </button>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <button type="button" className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>
+              <button type="button" onClick={resetGame}>Change Planet 🛠️</button>
             </div>
           </div>
         )}
@@ -322,16 +269,16 @@ function App() {
       )}
 
       {lastUnlockedBadge && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-4 rounded-2xl bg-slate-900 border border-indigo-500 shadow-2xl shadow-indigo-500/20 animate-pop-in z-[200]">
-          <span className="text-3xl">{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
-          <div className="text-left">
-            <strong className="block text-white">Badge Unlocked!</strong>
-            <p className="text-sm text-slate-400">{BADGES.find(b => b.id === lastUnlockedBadge)?.name}</p>
+        <div className="unlocked-toast">
+          <span style={{ fontSize: '2rem' }}>{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
+          <div>
+            <strong>Badge Unlocked!</strong>
+            <p style={{ fontSize: '0.8rem', margin: 0 }}>{BADGES.find(b => b.id === lastUnlockedBadge)?.name}</p>
           </div>
         </div>
       )}
 
-      <footer className="mt-12 py-8 text-slate-600 text-sm font-medium">
+      <footer style={{ marginTop: '3rem', fontSize: '0.875rem', opacity: 0.6 }}>
         <p>Made with ❤️ for simple learning</p>
       </footer>
     </main>
