@@ -154,133 +154,135 @@ function App() {
   const correctCount = useMemo(() => history.filter(h => h.isCorrect).length, [history]);
 
   return (
-    <main className={`animate-pop ${shakeClass}`}>
-      <header>
-        <div className="header-top">
-          <h1>NumberRush</h1>
-          <button type="button" className="settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Open settings">⚙️</button>
-        </div>
-        {status === 'idle' && (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginBottom: '2rem' }}>
-            Hey {playerName}! Speed Math for Super Kids! 🚀
-          </p>
-        )}
-      </header>
+    <main className="animate-pop">
+      <div className={shakeClass}>
+        <header>
+          <div className="header-top">
+            <h1>NumberRush</h1>
+            <button type="button" className="settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Open settings">⚙️</button>
+          </div>
+          {status === 'idle' && (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginBottom: '2rem' }}>
+              Hey {playerName}! Speed Math for Super Kids! 🚀
+            </p>
+          )}
+        </header>
 
-      <div className="game-container">
-        {status === 'idle' && (
-          <div className="dashboard animate-pop">
-            <div className="best-stats">
-              <div className="stat-card"><span>High Score</span><strong>{highScore}</strong></div>
-              <div className="stat-card"><span>Best Streak</span><strong>{bestStreak}</strong></div>
-            </div>
+        <div className="game-container">
+          {status === 'idle' && (
+            <div className="dashboard animate-pop">
+              <div className="best-stats">
+                <div className="stat-card"><span>High Score</span><strong>{highScore}</strong></div>
+                <div className="stat-card"><span>Best Streak</span><strong>{bestStreak}</strong></div>
+              </div>
 
-            <div className="level-selector" style={{ marginBottom: '2rem' }}>
-              <p style={{ marginBottom: '1rem', fontWeight: 600 }}>Choose Your Planet:</p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                {['Moon', 'Mars', 'Space'].map((name, i) => (
-                  <button
-                    type="button"
-                    key={name}
-                    className={selectedLevel === i + 1 ? 'primary' : ''}
-                    onClick={() => setSelectedLevel(i + 1)}
-                    style={{ padding: '0.5rem 1.5rem' }}
-                  >
-                    {name} {i === 0 ? '🌙' : i === 1 ? '🔴' : '🌌'}
-                  </button>
+              <div className="level-selector" style={{ marginBottom: '2rem' }}>
+                <p style={{ marginBottom: '1rem', fontWeight: 600 }}>Choose Your Planet:</p>
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {['Moon', 'Mars', 'Space'].map((name, i) => (
+                    <button
+                      type="button"
+                      key={name}
+                      className={selectedLevel === i + 1 ? 'primary' : ''}
+                      onClick={() => setSelectedLevel(i + 1)}
+                      style={{ padding: '0.5rem 1.5rem' }}
+                    >
+                      {name} {i === 0 ? '🌙' : i === 1 ? '🔴' : '🌌'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="advanced-toggle" style={{ marginBottom: '2rem' }}>
+                <button
+                  type="button"
+                  className={isAdvanced ? 'primary' : ''}
+                  onClick={() => setIsAdvanced(!isAdvanced)}
+                  style={{ width: '100%', maxWidth: '320px' }}
+                >
+                  {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
+                </button>
+              </div>
+
+              <div className="mode-selection">
+                <button type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
+                <button type="button" onClick={() => handleStart('practice')}>Practice Mode 🧠</button>
+              </div>
+
+              <div className="badge-gallery">
+                {BADGES.map(badge => (
+                  <BadgeItem key={badge.id} badge={badge} isUnlocked={unlockedBadges.includes(badge.id)} />
                 ))}
               </div>
             </div>
+          )}
 
-            <div className="advanced-toggle" style={{ marginBottom: '2rem' }}>
-              <button
-                type="button"
-                className={isAdvanced ? 'primary' : ''}
-                onClick={() => setIsAdvanced(!isAdvanced)}
-                style={{ width: '100%', maxWidth: '320px' }}
-              >
-                {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
-              </button>
-            </div>
-
-            <div className="mode-selection">
-              <button type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
-              <button type="button" onClick={() => handleStart('practice')}>Practice Mode 🧠</button>
-            </div>
-
-            <div className="badge-gallery">
-              {BADGES.map(badge => (
-                <BadgeItem key={badge.id} badge={badge} isUnlocked={unlockedBadges.includes(badge.id)} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {status === 'playing' && currentQuestion && (
-          <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
-            <button type="button" className="exit-btn" onClick={handleExit} title="Exit Game" aria-label="Exit game">✕</button>
-            <div className="board-wrapper" style={{ position: 'relative', width: '100%' }}>
-              <GameBoard
-                question={currentQuestion}
-                currentInput={input}
-                score={score}
-                timeLeft={timeLeft}
-                maxTime={initialTime}
-                streak={streak}
-                showTimer={mode === 'blitz'}
-              />
-              {feedback && (
-                <div className="feedback-overlay">
-                  <div className="feedback-content">
-                    {feedback === 'correct' ? '✅' : '❌'}
-                    <span>{feedback === 'correct' ? 'Correct!' : 'Oops!'}</span>
+          {status === 'playing' && currentQuestion && (
+            <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
+              <button type="button" className="exit-btn" onClick={handleExit} title="Exit Game" aria-label="Exit game">✕</button>
+              <div className="board-wrapper" style={{ position: 'relative', width: '100%' }}>
+                <GameBoard
+                  question={currentQuestion}
+                  currentInput={input}
+                  score={score}
+                  timeLeft={timeLeft}
+                  maxTime={initialTime}
+                  streak={streak}
+                  showTimer={mode === 'blitz'}
+                />
+                {feedback && (
+                  <div className="feedback-overlay">
+                    <div className="feedback-content">
+                      {feedback === 'correct' ? '✅' : '❌'}
+                      <span>{feedback === 'correct' ? 'Correct!' : 'Oops!'}</span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              <Numpad onInput={handleInput} onClear={handleClear} onSubmit={handleSubmit} />
             </div>
-            <Numpad onInput={handleInput} onClear={handleClear} onSubmit={handleSubmit} />
-          </div>
-        )}
+          )}
 
-        {status === 'finished' && (
-          <div className="results-screen animate-pop">
-            <h2 style={{ fontSize: '2.5rem', color: 'var(--color-secondary)' }}>Time's Up! 🏁</h2>
-            <div className="final-stats" style={{ margin: '2rem 0', display: 'grid', gap: '1rem' }}>
-              <p style={{ fontSize: '1.5rem' }}>Final Score: <strong style={{ color: 'var(--color-primary)' }}>{score}</strong></p>
-              <p>Correct: <strong>{correctCount}</strong> | Best Streak: <strong>{streak}</strong></p>
+          {status === 'finished' && (
+            <div className="results-screen animate-pop">
+              <h2 style={{ fontSize: '2.5rem', color: 'var(--color-secondary)' }}>Time's Up! 🏁</h2>
+              <div className="final-stats" style={{ margin: '2rem 0', display: 'grid', gap: '1rem' }}>
+                <p style={{ fontSize: '1.5rem' }}>Final Score: <strong style={{ color: 'var(--color-primary)' }}>{score}</strong></p>
+                <p>Correct: <strong>{correctCount}</strong> | Best Streak: <strong>{streak}</strong></p>
+              </div>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <button type="button" className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>
+                <button type="button" onClick={resetGame}>Change Planet 🛠️</button>
+              </div>
             </div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <button type="button" className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>
-              <button type="button" onClick={resetGame}>Change Planet 🛠️</button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {settingsOpen && (
-        <SettingsModal
-          playerName={playerName}
-          initialTime={initialTime}
-          onClose={() => setSettingsOpen(false)}
-          onUpdateName={updateName}
-          onUpdateTimer={updateTimer}
-          onResetStats={resetStats}
-        />
-      )}
-
-      {lastUnlockedBadge && (
-        <div className="unlocked-toast">
-          <span style={{ fontSize: '2rem' }}>{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
-          <div>
-            <strong>Badge Unlocked!</strong>
-            <p style={{ fontSize: '0.8rem', margin: 0 }}>{BADGES.find(b => b.id === lastUnlockedBadge)?.name}</p>
-          </div>
+          )}
         </div>
-      )}
 
-      <footer style={{ marginTop: '3rem', fontSize: '0.875rem', opacity: 0.6 }}>
-        <p>Made with ❤️ for simple learning</p>
-      </footer>
+        {settingsOpen && (
+          <SettingsModal
+            playerName={playerName}
+            initialTime={initialTime}
+            onClose={() => setSettingsOpen(false)}
+            onUpdateName={updateName}
+            onUpdateTimer={updateTimer}
+            onResetStats={resetStats}
+          />
+        )}
+
+        {lastUnlockedBadge && (
+          <div className="unlocked-toast">
+            <span style={{ fontSize: '2rem' }}>{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
+            <div>
+              <strong>Badge Unlocked!</strong>
+              <p style={{ fontSize: '0.8rem', margin: 0 }}>{BADGES.find(b => b.id === lastUnlockedBadge)?.name}</p>
+            </div>
+          </div>
+        )}
+
+        <footer style={{ marginTop: '3rem', fontSize: '0.875rem', opacity: 0.6 }}>
+          <p>Made with ❤️ for simple learning</p>
+        </footer>
+      </div>
     </main>
   );
 }

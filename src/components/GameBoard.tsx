@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { MathQuestion } from '../utils/mathLogic';
 
 interface GameBoardProps {
@@ -10,7 +11,7 @@ interface GameBoardProps {
   showTimer: boolean;
 }
 
-const GameBoard = ({
+const GameBoard = memo(({
   question,
   currentInput,
   score,
@@ -75,6 +76,6 @@ const GameBoard = ({
       </div>
     </div>
   );
-};
+});
 
 export default GameBoard;

@@ -1,10 +1,12 @@
+import { memo } from 'react';
+
 interface NumpadProps {
   onInput: (val: string) => void;
   onClear: () => void;
   onSubmit: () => void;
 }
 
-const Numpad = ({ onInput, onClear, onSubmit }: NumpadProps) => {
+const Numpad = memo(({ onInput, onClear, onSubmit }: NumpadProps) => {
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '✓'];
 
   return (
@@ -30,6 +32,6 @@ const Numpad = ({ onInput, onClear, onSubmit }: NumpadProps) => {
       })}
     </div>
   );
-};
+});
 
 export default Numpad;
