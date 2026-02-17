@@ -26,7 +26,6 @@ interface GameState {
   bestStreak: number;
   unlockedBadges: string[];
   currentLevel: number;
-  // Cumulative Stats
   totalCorrect: number;
   totalChaosSolved: number;
   moonGames: number;

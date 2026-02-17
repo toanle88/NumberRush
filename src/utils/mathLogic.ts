@@ -4,9 +4,9 @@ export interface MathQuestion {
   id: string;
   operandA: number;
   operandB: number;
-  operandC?: number; // Optional 3rd operand
+  operandC?: number;
   operation: Operation;
-  operation2?: Operation; // Optional 2nd operation
+  operation2?: Operation;
   answer: number;
 }
 
@@ -25,15 +25,12 @@ export const generateQuestion = (level: number = 1, isAdvanced: boolean = false)
   const settings = DIFFICULTY_MAP[level] || DIFFICULTY_MAP[1];
   
   if (isAdvanced) {
-    // 3 Numbers mode: A ± B ± C
     const op1: Operation = Math.random() > 0.5 ? 'addition' : 'subtraction';
     const op2: Operation = Math.random() > 0.5 ? 'addition' : 'subtraction';
     
     const a = Math.floor(Math.random() * settings.maxNum) + 5;
-    const b = Math.floor(Math.random() * Math.min(settings.maxNum, a)) + 1; // Ensure b <= a for first op
+    const b = Math.floor(Math.random() * Math.min(settings.maxNum, a)) + 1;
     
-    // If op1 is subtraction, we already ensured a >= b.
-    // If op1 is addition, a + b is definitely >= 0.
     const current = op1 === 'addition' ? a + b : a - b;
 
     let c: number;
@@ -44,7 +41,6 @@ export const generateQuestion = (level: number = 1, isAdvanced: boolean = false)
         finalOp2 = 'addition';
         c = Math.floor(Math.random() * settings.maxNum) + 1;
       } else {
-        // Ensure c <= current so (A ± B) - C >= 0
         c = Math.floor(Math.random() * current) + 1;
       }
     } else {
@@ -64,13 +60,12 @@ export const generateQuestion = (level: number = 1, isAdvanced: boolean = false)
     };
   }
 
-  // Standard mode: A ± B
   const operation: Operation = Math.random() > 0.5 ? 'addition' : 'subtraction';
   let a = Math.floor(Math.random() * settings.maxNum) + 1;
   let b = Math.floor(Math.random() * settings.maxNum) + 1;
 
   if (operation === 'subtraction') {
-    if (a < b) [a, b] = [b, a]; // Ensure a >= b
+    if (a < b) [a, b] = [b, a];
   }
 
   const answer = operation === 'addition' ? a + b : a - b;

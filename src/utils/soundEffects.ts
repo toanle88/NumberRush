@@ -19,26 +19,26 @@ const playTone = (freq: number, type: OscillatorType, duration: number, volume: 
 };
 
 export const playCorrectSound = () => {
-  playTone(523.25, 'sine', 0.2, 0.1); // C5
-  setTimeout(() => playTone(659.25, 'sine', 0.3, 0.1), 100); // E5
+  playTone(523.25, 'sine', 0.2, 0.1);
+  setTimeout(() => playTone(659.25, 'sine', 0.3, 0.1), 100);
 };
 
 export const playIncorrectSound = () => {
-  playTone(220, 'triangle', 0.3, 0.1); // A3
+  playTone(220, 'triangle', 0.3, 0.1);
 };
 
 export const playFinishSound = () => {
   playTone(523.25, 'sine', 0.1, 0.1);
   setTimeout(() => playTone(659.25, 'sine', 0.1, 0.1), 100);
-  setTimeout(() => playTone(783.99, 'sine', 0.4, 0.1), 200); // C5 E5 G5
+  setTimeout(() => playTone(783.99, 'sine', 0.4, 0.1), 200);
 };
 
 export const playTickSound = () => {
-  playTone(880, 'sine', 0.05, 0.05); // A5 tick
+  playTone(880, 'sine', 0.05, 0.05);
 };
+
 export const playCelebrationSound = () => {
   const now = ctx.currentTime;
-  // Upbeat arpeggio
   [440, 554.37, 659.25, 880].forEach((freq, i) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();

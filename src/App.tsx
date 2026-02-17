@@ -1,28 +1,19 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useGame, BADGES } from './hooks/useGame';
-import type { GameMode, Badge } from './hooks/useGame';
+import type { GameMode } from './hooks/useGame';
 import GameBoard from './components/GameBoard';
 import Numpad from './components/Numpad';
+import BadgeItem from './components/BadgeItem';
+import SettingsModal from './components/SettingsModal';
 import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects';
 import confetti from 'canvas-confetti';
 import './App.css';
 
-const BadgeItem = ({ badge, isUnlocked }: { badge: Badge; isUnlocked: boolean }) => (
-  <div className={`badge-item ${isUnlocked ? 'unlocked' : ''}`}>
-    <span className="badge-icon" aria-hidden="true">{badge.icon}</span>
-    <div className="badge-tooltip">
-      <strong>{badge.name}</strong>
-      <p>{badge.description}</p>
-      {!isUnlocked && <span style={{fontSize: '0.6rem', color: 'var(--color-accent)'}}>Locked</span>}
-    </div>
-  </div>
-);
-
 function App() {
-  const [initialTime, setInitialTime] = useState(() => 
+  const [initialTime, setInitialTime] = useState(() =>
     parseInt(localStorage.getItem('numberrush_timer') || '10', 10)
   );
-  const [playerName, setPlayerName] = useState(() => 
+  const [playerName, setPlayerName] = useState(() =>
     localStorage.getItem('numberrush_name') || 'Super Kid'
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -31,7 +22,7 @@ function App() {
   const previousBadgeCountRef = useRef(0);
   const hasInitializedBadgesRef = useRef(false);
 
-  const { 
+  const {
     status, score, timeLeft, streak, mode, currentQuestion, history,
     highScore, bestStreak, unlockedBadges, currentLevel,
     startGame, submitAnswer, resetGame, resetStats
@@ -42,13 +33,11 @@ function App() {
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [shakeClass, setShakeClass] = useState('');
 
-  // Update body class for planetary theme
   useEffect(() => {
     const level = status === 'playing' ? currentLevel : selectedLevel;
     document.body.className = `planet-${level}`;
   }, [selectedLevel, status, currentLevel]);
 
-  // Handle new badge unlock notifications
   useEffect(() => {
     if (!hasInitializedBadgesRef.current) {
       previousBadgeCountRef.current = unlockedBadges.length;
@@ -94,9 +83,9 @@ function App() {
     setInput('');
   }, [resetGame]);
 
-  const updateName = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPlayerName(e.target.value);
-    localStorage.setItem('numberrush_name', e.target.value);
+  const updateName = (val: string) => {
+    setPlayerName(val);
+    localStorage.setItem('numberrush_name', val);
   };
 
   const updateTimer = (val: number) => {
@@ -133,32 +122,31 @@ function App() {
   useEffect(() => {
     if (streak > 0 && streak % 10 === 0) {
       playCelebrationSound();
-      
-      let shake = 'shake-small';
-      
+
+      let shake = 'animate-[shake-small_0.6s_ease-in-out]';
+
       if (streak >= 30) {
-        shake = 'shake-hard';
-        // Fireworks effect
+        shake = 'animate-[shake-hard_0.6s_ease-in-out]';
         const duration = 1500;
         const animationEnd = Date.now() + duration;
         const random = (min: number, max: number) => Math.random() * (max - min) + min;
-        
+
         const interval = setInterval(() => {
-          const timeLeft = animationEnd - Date.now();
-          if (timeLeft <= 0) return clearInterval(interval);
-          const particleCount = 40;
-          confetti({ particleCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } });
-          confetti({ particleCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } });
+          const tLeft = animationEnd - Date.now();
+          if (tLeft <= 0) return clearInterval(interval);
+          const pCount = 40;
+          confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } });
+          confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } });
         }, 250);
       } else if (streak >= 20) {
-        shake = 'shake-medium';
+        shake = 'animate-[shake-medium_0.6s_ease-in-out]';
         confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } });
       } else {
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] });
       }
 
       setShakeClass(shake);
-      const timer = setTimeout(() => setShakeClass(''), 600);
+      const timer = setTimeout(() => setShakeClass(''), 1000);
       return () => clearTimeout(timer);
     }
   }, [streak]);
@@ -166,37 +154,49 @@ function App() {
   const correctCount = useMemo(() => history.filter(h => h.isCorrect).length, [history]);
 
   return (
-    <main className={`animate-pop ${shakeClass}`}>
-      <header>
-        <div className="header-top">
-          <h1>NumberRush</h1>
-          <button type="button" className="settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Open settings">⚙️</button>
+    <main className={`animate-pop-in ${shakeClass} w-full max-w-xl mx-auto px-6 text-center`}>
+      <header className="mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">NumberRush</h1>
+          <button
+            type="button"
+            className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Open settings"
+          >
+            ⚙️
+          </button>
         </div>
         {status === 'idle' && (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginBottom: '2rem' }}>
+          <p className="text-slate-400 text-lg md:text-xl">
             Hey {playerName}! Speed Math for Super Kids! 🚀
           </p>
         )}
       </header>
-      
-      <div className="game-container">
+
+      <div className="relative">
         {status === 'idle' && (
-          <div className="dashboard animate-pop">
-            <div className="best-stats">
-              <div className="stat-card"><span>High Score</span><strong>{highScore}</strong></div>
-              <div className="stat-card"><span>Best Streak</span><strong>{bestStreak}</strong></div>
+          <div className="space-y-8 animate-pop-in">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <span className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-1">High Score</span>
+                <strong className="text-3xl text-indigo-400">{highScore}</strong>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <span className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-1">Best Streak</span>
+                <strong className="text-3xl text-amber-500">{bestStreak}</strong>
+              </div>
             </div>
 
-            <div className="level-selector" style={{ marginBottom: '2rem' }}>
-              <p style={{ marginBottom: '1rem', fontWeight: 600 }}>Choose Your Planet:</p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div className="space-y-4">
+              <p className="font-bold text-white uppercase tracking-widest text-sm">Choose Your Planet:</p>
+              <div className="flex flex-wrap justify-center gap-3">
                 {['Moon', 'Mars', 'Space'].map((name, i) => (
-                  <button 
+                  <button
                     type="button"
                     key={name}
-                    className={selectedLevel === i + 1 ? 'primary' : ''}
+                    className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-bold border transition-all ${selectedLevel === i + 1 ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/20' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'}`}
                     onClick={() => setSelectedLevel(i + 1)}
-                    style={{ padding: '0.5rem 1.5rem' }}
                   >
                     {name} {i === 0 ? '🌙' : i === 1 ? '🔴' : '🌌'}
                   </button>
@@ -204,18 +204,34 @@ function App() {
               </div>
             </div>
 
-            <div className="advanced-toggle" style={{ marginBottom: '2rem' }}>
-              <button type="button" className={isAdvanced ? 'primary' : ''} onClick={() => setIsAdvanced(!isAdvanced)} style={{ width: '100%', maxWidth: '320px' }}>
+            <div className="w-full max-w-sm mx-auto">
+              <button
+                type="button"
+                className={`w-full py-4 rounded-2xl border font-bold transition-all ${isAdvanced ? 'bg-pink-600/20 border-pink-500 text-pink-400' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}
+                onClick={() => setIsAdvanced(!isAdvanced)}
+              >
                 {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
               </button>
             </div>
 
-            <div className="mode-selection" style={{ display: 'grid', gap: '1rem' }}>
-              <button type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
-              <button type="button" onClick={() => handleStart('practice')}>Practice Mode 🧠</button>
+            <div className="grid gap-3 w-full max-w-sm mx-auto">
+              <button
+                type="button"
+                className="py-5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-transform"
+                onClick={() => handleStart('blitz')}
+              >
+                Start Blitz Rush! ⚡
+              </button>
+              <button
+                type="button"
+                className="py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all font-mono"
+                onClick={() => handleStart('practice')}
+              >
+                Practice Mode 🧠
+              </button>
             </div>
 
-            <div className="badge-gallery">
+            <div className="flex flex-wrap justify-center gap-2 pt-6">
               {BADGES.map(badge => (
                 <BadgeItem key={badge.id} badge={badge} isUnlocked={unlockedBadges.includes(badge.id)} />
               ))}
@@ -224,81 +240,98 @@ function App() {
         )}
 
         {status === 'playing' && currentQuestion && (
-          <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
-             <button type="button" className="exit-btn" onClick={handleExit} title="Exit Game" aria-label="Exit game">✕</button>
-             <div className="board-wrapper" style={{ position: 'relative', width: '100%' }}>
-              <GameBoard 
-                question={currentQuestion} 
-                currentInput={input} 
+          <div className={`space-y-6 ${feedback ? `feedback-${feedback}` : ''}`}>
+            <button
+              type="button"
+              className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-slate-400 hover:text-white hover:bg-red-500/20 transition-all z-10"
+              onClick={handleExit}
+              aria-label="Exit game"
+            >
+              ✕
+            </button>
+
+            <div className="relative">
+              <GameBoard
+                question={currentQuestion}
+                currentInput={input}
                 score={score}
                 timeLeft={timeLeft}
-                maxTime={initialTime} 
+                maxTime={initialTime}
                 streak={streak}
                 showTimer={mode === 'blitz'}
               />
+
               {feedback && (
-                <div className="feedback-overlay">
-                  <div className="feedback-content">
-                    {feedback === 'correct' ? '✅' : '❌'}
-                    <span>{feedback === 'correct' ? 'Correct!' : 'Oops!'}</span>
+                <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+                  <div className={`flex flex-col items-center gap-2 p-8 rounded-3xl backdrop-blur-xl border ${feedback === 'correct' ? 'bg-emerald-500/20 border-emerald-500' : 'bg-red-500/20 border-red-500'} animate-pop-in`}>
+                    <span className="text-5xl">{feedback === 'correct' ? '✅' : '❌'}</span>
+                    <span className={`text-2xl font-black ${feedback === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {feedback === 'correct' ? 'Correct!' : 'Oops!'}
+                    </span>
                   </div>
                 </div>
               )}
             </div>
+
             <Numpad onInput={handleInput} onClear={handleClear} onSubmit={handleSubmit} />
           </div>
         )}
 
         {status === 'finished' && (
-          <div className="results-screen animate-pop">
-            <h2 style={{ fontSize: '2.5rem', color: 'var(--color-secondary)' }}>Time's Up! 🏁</h2>
-            <div className="final-stats" style={{ margin: '2rem 0', display: 'grid', gap: '1rem' }}>
-              <p style={{ fontSize: '1.5rem' }}>Final Score: <strong style={{ color: 'var(--color-primary)' }}>{score}</strong></p>
-              <p>Correct: <strong>{correctCount}</strong> | Best Streak: <strong>{streak}</strong></p>
+          <div className="space-y-8 animate-pop-in py-8">
+            <h2 className="text-5xl font-black text-amber-500 mb-8">Time's Up! 🏁</h2>
+
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 space-y-4">
+              <p className="text-xl">Final Score</p>
+              <strong className="block text-7xl text-indigo-400 mb-4">{score}</strong>
+              <div className="flex justify-center gap-6 text-slate-400 font-bold">
+                <span>Correct: <strong className="text-emerald-400">{correctCount}</strong></span>
+                <span>Best Streak: <strong className="text-amber-500">{streak}</strong></span>
+              </div>
             </div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <button type="button" className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>
-              <button type="button" onClick={resetGame}>Change Planet 🛠️</button>
+
+            <div className="grid gap-3 w-full max-w-sm mx-auto">
+              <button
+                type="button"
+                className="py-5 bg-indigo-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-transform"
+                onClick={() => handleStart(mode)}
+              >
+                Play Again! 🔄
+              </button>
+              <button
+                type="button"
+                className="py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all font-mono"
+                onClick={resetGame}
+              >
+                Change Planet 🛠️
+              </button>
             </div>
           </div>
         )}
       </div>
 
       {settingsOpen && (
-        <div className="modal-overlay animate-pop" onClick={() => setSettingsOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Settings ⚙️</h3>
-            <div className="setting-item">
-              <label>Your Name:</label>
-              <input type="text" value={playerName} onChange={updateName} placeholder="Enter your name" />
-            </div>
-            <div className="setting-item">
-              <label>Speed (Seconds):</label>
-              <div className="timer-options">
-                {[5, 10, 15, 20].map(t => (
-                  <button type="button" key={t} className={initialTime === t ? 'primary' : ''} onClick={() => updateTimer(t)}>{t}s</button>
-                ))}
-              </div>
-            </div>
-            <div className="setting-item">
-              <button type="button" className="danger" onClick={() => { if (confirm('Reset all stats?')) resetStats(); }}>Reset Progress 🗑️</button>
-            </div>
-            <button type="button" className="close-modal" onClick={() => setSettingsOpen(false)}>Close</button>
-          </div>
-        </div>
+        <SettingsModal
+          playerName={playerName}
+          initialTime={initialTime}
+          onClose={() => setSettingsOpen(false)}
+          onUpdateName={updateName}
+          onUpdateTimer={updateTimer}
+          onResetStats={resetStats}
+        />
       )}
 
       {lastUnlockedBadge && (
-        <div className="unlocked-toast">
-          <span style={{fontSize: '2rem'}}>{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
-          <div>
-            <strong>Badge Unlocked!</strong>
-            <p style={{fontSize: '0.8rem', margin: 0}}>{BADGES.find(b => b.id === lastUnlockedBadge)?.name}</p>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-4 rounded-2xl bg-slate-900 border border-indigo-500 shadow-2xl shadow-indigo-500/20 animate-pop-in z-[200]">
+          <span className="text-3xl">{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
+          <div className="text-left">
+            <strong className="block text-white">Badge Unlocked!</strong>
+            <p className="text-sm text-slate-400">{BADGES.find(b => b.id === lastUnlockedBadge)?.name}</p>
           </div>
         </div>
       )}
 
-      <footer style={{ marginTop: '3rem', fontSize: '0.875rem', opacity: 0.6 }}>
+      <footer className="mt-12 py-8 text-slate-600 text-sm font-medium">
         <p>Made with ❤️ for simple learning</p>
       </footer>
     </main>
