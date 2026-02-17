@@ -433,6 +433,11 @@
   gap: 0.5rem;
 }
 
+.timer-options button {
+  padding: 0.75rem 0.25rem;
+  font-size: 1rem;
+}
+
 .setting-item button.danger {
   background: rgba(239, 68, 68, 0.1);
   color: var(--color-error);
