@@ -5,9 +5,15 @@ import GameBoard from './components/GameBoard';
 import Numpad from './components/Numpad';
 import BadgeItem from './components/BadgeItem';
 import SettingsModal from './components/SettingsModal';
+import { getPlanet, PLANETS } from './utils/planetProgression';
 import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects';
 import confetti from 'canvas-confetti';
 import './App.css';
+
+interface PlanetTransition {
+  from: number;
+  to: number;
+}
 
 function App() {
   const [initialTime, setInitialTime] = useState(() =>
@@ -24,7 +30,7 @@ function App() {
 
   const {
     status, score, timeLeft, streak, mode, currentQuestion, history,
-    highScore, bestStreak, unlockedBadges, currentLevel,
+    highScore, bestStreak, unlockedBadges, currentLevel, playedLevels,
     startGame, submitAnswer, resetGame, resetStats
   } = useGame(initialTime);
 
@@ -32,11 +38,30 @@ function App() {
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [shakeClass, setShakeClass] = useState('');
+  const [planetTransition, setPlanetTransition] = useState<PlanetTransition | null>(null);
+  const previousLevelRef = useRef<number | null>(null);
 
   useEffect(() => {
     const level = status === 'playing' ? currentLevel : selectedLevel;
     document.body.className = `planet-${level}`;
   }, [selectedLevel, status, currentLevel]);
+
+  useEffect(() => {
+    if (status !== 'playing') {
+      previousLevelRef.current = null;
+      return;
+    }
+
+    const previousLevel = previousLevelRef.current;
+    if (previousLevel !== null && previousLevel !== currentLevel) {
+      setPlanetTransition({ from: previousLevel, to: currentLevel });
+      const timer = window.setTimeout(() => setPlanetTransition(null), 4000);
+      previousLevelRef.current = currentLevel;
+      return () => window.clearTimeout(timer);
+    }
+
+    previousLevelRef.current = currentLevel;
+  }, [status, currentLevel]);
 
   useEffect(() => {
     if (!hasInitializedBadgesRef.current) {
@@ -60,6 +85,7 @@ function App() {
   }, [unlockedBadges]);
 
   const handleStart = (m: GameMode) => {
+    setPlanetTransition(null);
     startGame(selectedLevel, m, isAdvanced);
   };
 
@@ -79,6 +105,7 @@ function App() {
   }, [input, submitAnswer]);
 
   const handleExit = useCallback(() => {
+    setPlanetTransition(null);
     resetGame();
     setInput('');
   }, [resetGame]);
@@ -159,6 +186,7 @@ function App() {
   }, [streak]);
 
   const correctCount = useMemo(() => history.filter(h => h.isCorrect).length, [history]);
+  const selectedPlanet = getPlanet(selectedLevel);
 
   return (
     <main className="animate-pop">
@@ -184,20 +212,35 @@ function App() {
               </div>
 
               <div className="level-selector" style={{ marginBottom: '2rem' }}>
-                <p style={{ marginBottom: '1rem', fontWeight: 600 }}>Choose Your Planet:</p>
+                <p className="selector-title">Choose Your Starting Planet:</p>
+                <p className="selector-description">
+                  Your choice sets the first difficulty. Reach 100 points for Mars and 200 points for Deep Space.
+                </p>
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  {['Moon', 'Mars', 'Space'].map((name, i) => (
+                  {PLANETS.map(planet => (
                     <button
                       type="button"
-                      key={name}
-                      className={selectedLevel === i + 1 ? 'primary' : ''}
-                      onClick={() => setSelectedLevel(i + 1)}
+                      key={planet.level}
+                      className={selectedLevel === planet.level ? 'primary' : ''}
+                      onClick={() => setSelectedLevel(planet.level)}
+                      aria-pressed={selectedLevel === planet.level}
                       style={{ padding: '0.5rem 1.5rem' }}
                     >
-                      {name} {i === 0 ? '🌙' : i === 1 ? '🔴' : '🌌'}
+                      {planet.name} {planet.icon}
                     </button>
                   ))}
                 </div>
+                <div className="progression-guide" aria-label="Planet progression thresholds">
+                  {PLANETS.map(planet => (
+                    <span key={planet.level}>
+                      <strong>{planet.icon} {planet.name}</strong>
+                      <small>{planet.minimumScore === 0 ? 'Start here' : `${planet.minimumScore}+ points`}</small>
+                    </span>
+                  ))}
+                </div>
+                <p className="selected-planet-note">
+                  Starting on {selectedPlanet.name} begins at {selectedPlanet.difficulty.toLowerCase()} difficulty; progression only moves forward.
+                </p>
               </div>
 
               <div className="advanced-toggle" style={{ marginBottom: '2rem' }}>
@@ -227,6 +270,14 @@ function App() {
           {status === 'playing' && currentQuestion && (
             <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
               <button type="button" className="exit-btn" onClick={handleExit} title="Exit Game" aria-label="Exit game">✕</button>
+              {planetTransition && (
+                <div className="planet-transition" role="status" aria-live="polite">
+                  <span>{getPlanet(planetTransition.from).icon} {getPlanet(planetTransition.from).name}</span>
+                  <span aria-hidden="true">→</span>
+                  <strong>Now entering {getPlanet(planetTransition.to).icon} {getPlanet(planetTransition.to).name}!</strong>
+                  <small>{getPlanet(planetTransition.to).difficulty} difficulty · {score} points reached</small>
+                </div>
+              )}
               <div className="board-wrapper" style={{ position: 'relative', width: '100%' }}>
                 <GameBoard
                   question={currentQuestion}
@@ -236,6 +287,7 @@ function App() {
                   maxTime={initialTime}
                   streak={streak}
                   showTimer={mode === 'blitz'}
+                  level={currentLevel}
                 />
                 {feedback && (
                   <div className="feedback-overlay">
@@ -256,6 +308,20 @@ function App() {
               <div className="final-stats" style={{ margin: '2rem 0', display: 'grid', gap: '1rem' }}>
                 <p style={{ fontSize: '1.5rem' }}>Final Score: <strong style={{ color: 'var(--color-primary)' }}>{score}</strong></p>
                 <p>Correct: <strong>{correctCount}</strong> | Best Streak: <strong>{streak}</strong></p>
+                <div className="results-progression">
+                  <span className="results-label">Planets played</span>
+                  <div className="progression-path" aria-label="Planets played during this round">
+                    {playedLevels.map(level => {
+                      const planet = getPlanet(level);
+                      return (
+                        <span className="progression-chip" key={level}>
+                          {planet.icon} {planet.name}
+                          <small>{planet.difficulty}</small>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               <div style={{ display: 'grid', gap: '1rem' }}>
                 <button type="button" className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>

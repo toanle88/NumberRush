@@ -10,11 +10,13 @@ NumberRush is a fast-paced, interactive arithmetic game designed to help kids im
 - **Blitz Mode ⚡**: Race against the clock! Solve questions before time runs out to build your streak and score massive points.
 - **Practice Mode 🧠**: Zen-like training with no timers. Perfect for learning at your own pace.
 
-### 🌍 Planetary Progression
-As you score higher, travel through the solar system with dynamic visual themes:
+### 🌍 Starting Planet & Progression
+Choose a starting planet before each round. This sets the first difficulty, while score advances the journey with dynamic visual themes:
 - **Moon Base 🌙**: Level 1 (Beginner)
-- **Mars Outpost 🔴**: Level 2 (Intermediate)
-- **Deep Space 🌌**: Level 3 (Advanced)
+- **Mars Outpost 🔴**: Level 2 (Intermediate, from 100 points)
+- **Deep Space 🌌**: Level 3 (Advanced, from 200 points)
+
+Starting on Mars or Deep Space keeps the game at that difficulty; progression never moves backward. The game shows a transition when a score threshold is reached, and results list every planet played.
 
 ### 🔥 Challenge & Rewards
 - **Streak System**: Build combos to multiply your score.
