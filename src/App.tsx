@@ -145,9 +145,16 @@ function App() {
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] });
       }
 
-      setShakeClass(shake);
-      const timer = setTimeout(() => setShakeClass(''), 1000);
-      return () => clearTimeout(timer);
+      let clearShakeTimer: number | null = null;
+      const animationFrame = requestAnimationFrame(() => {
+        setShakeClass(shake);
+        clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000);
+      });
+
+      return () => {
+        cancelAnimationFrame(animationFrame);
+        if (clearShakeTimer !== null) clearTimeout(clearShakeTimer);
+      };
     }
   }, [streak]);
 

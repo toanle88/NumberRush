@@ -16,7 +16,7 @@ describe('useGame Edge Cases', () => {
     
     const initialScore = result.current.score;
     act(() => {
-      // @ts-ignore
+      // @ts-expect-error Testing runtime handling of an invalid answer value.
       result.current.submitAnswer(undefined);
     });
     
