@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGame, BADGES } from './hooks/useGame';
 import type { GameMode } from './hooks/useGame';
 import GameBoard from './components/GameBoard';
@@ -31,7 +31,7 @@ function App() {
   const {
     status, score, timeLeft, streak, mode, currentQuestion, history,
     highScore, bestStreak, unlockedBadges, currentLevel, playedLevels,
-    startGame, submitAnswer, resetGame, resetStats
+    roundSummary, isTargetedPractice, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats
   } = useGame(initialTime);
 
   const [input, setInput] = useState('');
@@ -110,6 +110,12 @@ function App() {
     setInput('');
   }, [resetGame]);
 
+  const handleTargetedPractice = useCallback(() => {
+    setPlanetTransition(null);
+    startTargetedPractice();
+    setInput('');
+  }, [startTargetedPractice]);
+
   const updateName = (val: string) => {
     setPlayerName(val);
     localStorage.setItem('numberrush_name', val);
@@ -185,7 +191,6 @@ function App() {
     }
   }, [streak]);
 
-  const correctCount = useMemo(() => history.filter(h => h.isCorrect).length, [history]);
   const selectedPlanet = getPlanet(selectedLevel);
 
   return (
@@ -299,15 +304,34 @@ function App() {
                 )}
               </div>
               <Numpad onInput={handleInput} onClear={handleClear} onSubmit={handleSubmit} />
+              {mode === 'practice' && (
+                <button type="button" className="finish-practice-btn" onClick={endGame}>Finish Practice Round</button>
+              )}
             </div>
           )}
 
-          {status === 'finished' && (
+          {status === 'finished' && roundSummary && (
             <div className="results-screen animate-pop">
-              <h2 style={{ fontSize: '2.5rem', color: 'var(--color-secondary)' }}>Time's Up! 🏁</h2>
-              <div className="final-stats" style={{ margin: '2rem 0', display: 'grid', gap: '1rem' }}>
-                <p style={{ fontSize: '1.5rem' }}>Final Score: <strong style={{ color: 'var(--color-primary)' }}>{score}</strong></p>
-                <p>Correct: <strong>{correctCount}</strong> | Best Streak: <strong>{streak}</strong></p>
+              <h2>{mode === 'blitz' ? "Time's Up! 🏁" : isTargetedPractice ? 'Missed Questions Reviewed! 🎯' : 'Round Complete! 🎉'}</h2>
+              <div className="final-stats">
+                <p className="final-score">Final Score: <strong>{roundSummary.finalScore}</strong></p>
+                <div className="results-metrics">
+                  <div className="results-metric"><span>Questions</span><strong>{roundSummary.totalQuestions}</strong></div>
+                  <div className="results-metric"><span>Correct</span><strong>{roundSummary.correctAnswers}</strong></div>
+                  <div className="results-metric"><span>Accuracy</span><strong>{roundSummary.accuracy}%</strong></div>
+                  <div className="results-metric"><span>Avg. response</span><strong>{roundSummary.averageResponseTimeMs === null ? '—' : `${(roundSummary.averageResponseTimeMs / 1000).toFixed(1)}s`}</strong></div>
+                  <div className="results-metric"><span>Round best streak</span><strong>🔥 {roundSummary.bestStreak}</strong></div>
+                  <div className="results-metric"><span>All-time best streak</span><strong>🔥 {roundSummary.allTimeBestStreak}</strong></div>
+                </div>
+                <div className="personal-best-comparison">
+                  <span className="results-label">Personal best comparison</span>
+                  <p>Previous best score: <strong>{roundSummary.personalBestScore}</strong> · Previous best streak: <strong>{roundSummary.personalBestStreak}</strong></p>
+                  {(roundSummary.isNewPersonalBestScore || roundSummary.isNewPersonalBestStreak) ? (
+                    <strong className="personal-best-message">New personal best{roundSummary.isNewPersonalBestScore && roundSummary.isNewPersonalBestStreak ? 's' : ''}! ✨</strong>
+                  ) : (
+                    <span className="personal-best-message">Keep going to beat your personal best.</span>
+                  )}
+                </div>
                 <div className="results-progression">
                   <span className="results-label">Planets played</span>
                   <div className="progression-path" aria-label="Planets played during this round">
@@ -323,8 +347,13 @@ function App() {
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'grid', gap: '1rem' }}>
+              <div className="results-actions">
                 <button type="button" className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>
+                {history.some(entry => !entry.isCorrect) ? (
+                  <button type="button" onClick={handleTargetedPractice}>Practice Missed Questions 🎯</button>
+                ) : (
+                  <p className="next-action">Next action: replay and try to extend your perfect run!</p>
+                )}
                 <button type="button" onClick={resetGame}>Change Planet 🛠️</button>
               </div>
             </div>
