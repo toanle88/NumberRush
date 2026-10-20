@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateQuestion, formatOperation } from './mathLogic';
+import { generateQuestion, formatOperation, getQuestionExplanation } from './mathLogic';
 
 describe('mathLogic', () => {
   describe('generateQuestion', () => {
@@ -67,6 +67,30 @@ describe('mathLogic', () => {
     it('formats addition and subtraction correctly', () => {
       expect(formatOperation('addition')).toBe('+');
       expect(formatOperation('subtraction')).toBe('−');
+    });
+  });
+
+  describe('getQuestionExplanation', () => {
+    it('explains a standard question as a worked calculation', () => {
+      expect(getQuestionExplanation({
+        id: 'standard',
+        operandA: 9,
+        operandB: 4,
+        operation: 'subtraction',
+        answer: 5,
+      })).toBe('9 − 4 = 5');
+    });
+
+    it('includes the intermediate result for a chaos question', () => {
+      expect(getQuestionExplanation({
+        id: 'chaos',
+        operandA: 8,
+        operandB: 3,
+        operandC: 2,
+        operation: 'subtraction',
+        operation2: 'addition',
+        answer: 7,
+      })).toBe('8 − 3 = 5; 5 + 2 = 7');
     });
   });
 });

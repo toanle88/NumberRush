@@ -115,6 +115,52 @@ describe('useGame Hook', () => {
     expect(result.current.streak).toBe(0);
   });
 
+  it('returns the expected answer and worked explanation for incorrect submissions', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => {
+      result.current.startGame(1, 'blitz', false);
+    });
+
+    const question = result.current.currentQuestion!;
+    let feedback;
+    act(() => {
+      feedback = result.current.submitAnswer(question.answer + 1);
+    });
+
+    expect(feedback).toMatchObject({
+      question,
+      playerAnswer: question.answer + 1,
+      expectedAnswer: question.answer,
+      isCorrect: false,
+      explanation: expect.stringContaining(`= ${question.answer}`),
+    });
+    expect(result.current.missedQuestions).toHaveLength(1);
+    expect(result.current.missedQuestions[0].question).toEqual(question);
+  });
+
+  it('keeps missed questions available after starting another round', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => {
+      result.current.startGame(1, 'blitz', false);
+    });
+    const missedQuestion = result.current.currentQuestion!;
+    act(() => {
+      result.current.submitAnswer(missedQuestion.answer + 1);
+      result.current.endGame();
+    });
+
+    act(() => {
+      result.current.startGame(1, 'practice', false);
+      result.current.endGame();
+    });
+
+    expect(result.current.missedQuestions).toHaveLength(1);
+    act(() => {
+      result.current.startTargetedPractice();
+    });
+    expect(result.current.currentQuestion).toEqual(missedQuestion);
+  });
+
   it('unlocks badges when conditions are met', () => {
     const { result } = renderHook(() => useGame(10));
     
@@ -246,18 +292,52 @@ describe('useGame Hook', () => {
     expect(result.current.status).toBe('playing');
     expect(result.current.mode).toBe('practice');
     expect(result.current.currentQuestion).toEqual(missedQuestion);
+    expect(result.current.missedQuestions).toHaveLength(1);
 
     act(() => {
-      result.current.submitAnswer(missedQuestionAnswer);
+      const feedback = result.current.submitAnswer(missedQuestionAnswer + 1);
+      expect(feedback?.isCorrect).toBe(false);
     });
 
     expect(result.current.status).toBe('finished');
+    expect(result.current.roundSummary).toMatchObject({
+      totalQuestions: 1,
+      correctAnswers: 0,
+      accuracy: 0,
+      mode: 'practice',
+    });
+
+    act(() => {
+      result.current.startTargetedPractice();
+    });
+    act(() => {
+      const feedback = result.current.submitAnswer(missedQuestionAnswer);
+      expect(feedback?.isCorrect).toBe(true);
+    });
+
     expect(result.current.roundSummary).toMatchObject({
       totalQuestions: 1,
       correctAnswers: 1,
       accuracy: 100,
       mode: 'practice',
     });
+  });
+
+  it('resets the blitz timer for an answer without pausing the interval', () => {
+    const { result } = renderHook(() => useGame(3));
+    act(() => {
+      result.current.startGame(1, 'blitz', false);
+    });
+
+    act(() => {
+      result.current.submitAnswer(result.current.currentQuestion!.answer + 1);
+    });
+    expect(result.current.timeLeft).toBe(3);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(result.current.timeLeft).toBe(2);
   });
 
   it('keeps the current planet when targeted practice is exhausted', () => {

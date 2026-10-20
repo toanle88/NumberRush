@@ -82,3 +82,16 @@ export const generateQuestion = (level: number = 1, isAdvanced: boolean = false)
 export const formatOperation = (op: Operation): string => {
   return op === 'addition' ? '+' : '−';
 };
+
+export const getQuestionExplanation = (question: MathQuestion): string => {
+  const firstStep = `${question.operandA} ${formatOperation(question.operation)} ${question.operandB}`;
+
+  if (question.operandC === undefined || question.operation2 === undefined) {
+    return `${firstStep} = ${question.answer}`;
+  }
+
+  const intermediateAnswer = question.operation === 'addition'
+    ? question.operandA + question.operandB
+    : question.operandA - question.operandB;
+  return `${firstStep} = ${intermediateAnswer}; ${intermediateAnswer} ${formatOperation(question.operation2)} ${question.operandC} = ${question.answer}`;
+};
