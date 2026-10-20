@@ -14,6 +14,34 @@ export interface Badge {
   condition: (state: GameState) => boolean;
 }
 
+export interface AnswerRecord {
+  question: MathQuestion;
+  playerAnswer: number;
+  isCorrect: boolean;
+  level: number;
+  responseTimeMs: number;
+}
+
+export interface RoundSummary {
+  finalScore: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  accuracy: number;
+  averageResponseTimeMs: number | null;
+  bestStreak: number;
+  allTimeBestStreak: number;
+  personalBestScore: number;
+  personalBestStreak: number;
+  isNewPersonalBestScore: boolean;
+  isNewPersonalBestStreak: boolean;
+  mode: GameMode;
+}
+
+interface TargetedQuestion {
+  question: MathQuestion;
+  level: number;
+}
+
 interface GameState {
   score: number;
   streak: number;
@@ -22,9 +50,16 @@ interface GameState {
   mode: GameMode;
   isAdvanced: boolean;
   currentQuestion: MathQuestion | null;
-  history: Array<{ question: MathQuestion; playerAnswer: number; isCorrect: boolean; level: number }>;
+  history: AnswerRecord[];
   highScore: number;
   bestStreak: number;
+  roundBestStreak: number;
+  roundPersonalBestScore: number;
+  roundPersonalBestStreak: number;
+  roundSummary: RoundSummary | null;
+  questionStartedAt: number;
+  isTargetedPractice: boolean;
+  practiceQueue: TargetedQuestion[];
   unlockedBadges: string[];
   currentLevel: number;
   startingLevel: number;
@@ -61,6 +96,28 @@ export const BADGES: Badge[] = [
   { id: 'galaxy_guide', name: 'Galaxy Guide', icon: '🌌', description: 'Finish 5 games in Deep Space!', condition: state => state.spaceGames >= 5 },
 ];
 
+export const createRoundSummary = (state: Pick<GameState, 'score' | 'history' | 'roundBestStreak' | 'bestStreak' | 'roundPersonalBestScore' | 'roundPersonalBestStreak' | 'mode'>): RoundSummary => {
+  const totalQuestions = state.history.length;
+  const correctAnswers = state.history.filter(entry => entry.isCorrect).length;
+  const totalResponseTimeMs = state.history.reduce((total, entry) => total + entry.responseTimeMs, 0);
+  const averageResponseTimeMs = totalQuestions > 0 ? totalResponseTimeMs / totalQuestions : null;
+
+  return {
+    finalScore: state.score,
+    totalQuestions,
+    correctAnswers,
+    accuracy: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
+    averageResponseTimeMs,
+    bestStreak: state.roundBestStreak,
+    allTimeBestStreak: state.bestStreak,
+    personalBestScore: state.roundPersonalBestScore,
+    personalBestStreak: state.roundPersonalBestStreak,
+    isNewPersonalBestScore: state.score > state.roundPersonalBestScore,
+    isNewPersonalBestStreak: state.roundBestStreak > state.roundPersonalBestStreak,
+    mode: state.mode,
+  };
+};
+
 export const useGame = (initialTime: number = 10) => {
   const [state, setState] = useState<GameState>(() => {
     const savedBadges = localStorage.getItem(STORAGE_KEYS.BADGES);
@@ -75,6 +132,13 @@ export const useGame = (initialTime: number = 10) => {
       history: [],
       highScore: parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) || '0', 10),
       bestStreak: parseInt(localStorage.getItem(STORAGE_KEYS.BEST_STREAK) || '0', 10),
+      roundBestStreak: 0,
+      roundPersonalBestScore: 0,
+      roundPersonalBestStreak: 0,
+      roundSummary: null,
+      questionStartedAt: 0,
+      isTargetedPractice: false,
+      practiceQueue: [],
       unlockedBadges: savedBadges ? JSON.parse(savedBadges) : [],
       currentLevel: 1,
       startingLevel: 1,
@@ -129,6 +193,7 @@ export const useGame = (initialTime: number = 10) => {
       marsGames,
       spaceGames,
     };
+    finishedState.roundSummary = createRoundSummary(finishedState);
     finishedState.unlockedBadges = checkBadges(finishedState);
     return finishedState;
   }, [checkBadges]);
@@ -147,58 +212,121 @@ export const useGame = (initialTime: number = 10) => {
       playedLevels: [level],
       currentQuestion: generateQuestion(level, isAdvanced),
       history: [],
+      roundBestStreak: 0,
+      roundPersonalBestScore: prev.highScore,
+      roundPersonalBestStreak: prev.bestStreak,
+      roundSummary: null,
+      questionStartedAt: Date.now(),
+      isTargetedPractice: false,
+      practiceQueue: [],
     }));
+  }, [initialTime]);
+
+  const startTargetedPractice = useCallback(() => {
+    setState(prev => {
+      const missedQuestions = prev.history
+        .filter(entry => !entry.isCorrect)
+        .map(entry => ({ question: entry.question, level: entry.level }));
+
+      if (missedQuestions.length === 0) return prev;
+
+      const [firstQuestion, ...practiceQueue] = missedQuestions;
+      return {
+        ...prev,
+        score: 0,
+        streak: 0,
+        timeLeft: initialTime,
+        status: 'playing',
+        mode: 'practice',
+        currentQuestion: firstQuestion.question,
+        currentLevel: firstQuestion.level,
+        startingLevel: firstQuestion.level,
+        playedLevels: [firstQuestion.level],
+        history: [],
+        roundBestStreak: 0,
+        roundPersonalBestScore: prev.highScore,
+        roundPersonalBestStreak: prev.bestStreak,
+        roundSummary: null,
+        questionStartedAt: Date.now(),
+        isTargetedPractice: true,
+        practiceQueue,
+      };
+    });
   }, [initialTime]);
 
   const submitAnswer = useCallback((playerAnswer: number): boolean => {
     if (state.status !== 'playing' || !state.currentQuestion) return false;
 
     const isCorrect = playerAnswer === state.currentQuestion.answer;
-    const isChaos = state.currentQuestion.operandC !== undefined;
     
     setState(prev => {
-      const newScore = isCorrect ? prev.score + (10 * (Math.floor(prev.streak / 5) + 1)) : prev.score;
-      const newStreak = isCorrect ? prev.streak + 1 : 0;
+      if (prev.status !== 'playing' || !prev.currentQuestion) return prev;
+
+      const answerIsCorrect = isCorrect;
+      const isChaos = prev.currentQuestion.operandC !== undefined;
+      const newScore = answerIsCorrect ? prev.score + (10 * (Math.floor(prev.streak / 5) + 1)) : prev.score;
+      const newStreak = answerIsCorrect ? prev.streak + 1 : 0;
+      const newRoundBestStreak = Math.max(prev.roundBestStreak, newStreak);
+      const responseTimeMs = Math.max(0, Date.now() - prev.questionStartedAt);
       
       const newHighScore = Math.max(prev.highScore, newScore);
       const newBestStreak = Math.max(prev.bestStreak, newStreak);
-      const newTotalCorrect = isCorrect ? prev.totalCorrect + 1 : prev.totalCorrect;
-      const newTotalChaos = (isCorrect && isChaos) ? prev.totalChaosSolved + 1 : prev.totalChaosSolved;
+      const newTotalCorrect = answerIsCorrect ? prev.totalCorrect + 1 : prev.totalCorrect;
+      const newTotalChaos = (answerIsCorrect && isChaos) ? prev.totalChaosSolved + 1 : prev.totalChaosSolved;
 
       if (newHighScore > prev.highScore) localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, newHighScore.toString());
       if (newBestStreak > prev.bestStreak) localStorage.setItem(STORAGE_KEYS.BEST_STREAK, newBestStreak.toString());
-      if (isCorrect) localStorage.setItem(STORAGE_KEYS.TOTAL_CORRECT, newTotalCorrect.toString());
-      if (isCorrect && isChaos) localStorage.setItem(STORAGE_KEYS.TOTAL_CHAOS, newTotalChaos.toString());
+      if (answerIsCorrect) localStorage.setItem(STORAGE_KEYS.TOTAL_CORRECT, newTotalCorrect.toString());
+      if (answerIsCorrect && isChaos) localStorage.setItem(STORAGE_KEYS.TOTAL_CHAOS, newTotalChaos.toString());
 
       const nextLevel = getLevelForScore(newScore, prev.startingLevel);
-      const playedLevels = prev.playedLevels.includes(nextLevel)
+      const nextTargetedQuestion = prev.practiceQueue[0];
+      const nextQuestionLevel = prev.isTargetedPractice
+        ? nextTargetedQuestion?.level ?? prev.currentLevel
+        : nextLevel;
+      const playedLevels = prev.playedLevels.includes(nextQuestionLevel)
         ? prev.playedLevels
-        : [...prev.playedLevels, nextLevel];
+        : [...prev.playedLevels, nextQuestionLevel];
+      const nextHistory = [...prev.history, {
+        question: prev.currentQuestion,
+        playerAnswer,
+        isCorrect: answerIsCorrect,
+        level: prev.currentLevel,
+        responseTimeMs,
+      }];
+      const hasFinishedTargetedPractice = prev.isTargetedPractice && !nextTargetedQuestion;
 
       const nextState: GameState = {
         ...prev,
         score: newScore,
         streak: newStreak,
+        roundBestStreak: newRoundBestStreak,
         highScore: newHighScore,
         bestStreak: newBestStreak,
         totalCorrect: newTotalCorrect,
         totalChaosSolved: newTotalChaos,
         timeLeft: initialTime,
-        history: [...prev.history, { question: prev.currentQuestion!, playerAnswer, isCorrect, level: prev.currentLevel }],
-        currentLevel: nextLevel,
+        history: nextHistory,
+        currentLevel: nextQuestionLevel,
         playedLevels,
-        currentQuestion: generateQuestion(nextLevel, prev.isAdvanced),
+        currentQuestion: hasFinishedTargetedPractice
+          ? null
+          : prev.isTargetedPractice
+            ? nextTargetedQuestion.question
+            : generateQuestion(nextLevel, prev.isAdvanced),
+        questionStartedAt: Date.now(),
+        practiceQueue: prev.isTargetedPractice ? prev.practiceQueue.slice(1) : [],
       };
 
       nextState.unlockedBadges = checkBadges(nextState);
-      return nextState;
+      return hasFinishedTargetedPractice ? finalizeGameState(nextState) : nextState;
     });
 
     return isCorrect;
-  }, [state.status, state.currentQuestion, initialTime, checkBadges]);
+  }, [state.status, state.currentQuestion, initialTime, checkBadges, finalizeGameState]);
 
   const endGame = useCallback(() => {
-    setState(prev => finalizeGameState(prev));
+    setState(prev => prev.status === 'playing' ? finalizeGameState(prev) : prev);
     if (timerRef.current) clearInterval(timerRef.current);
   }, [finalizeGameState]);
 
@@ -213,6 +341,8 @@ export const useGame = (initialTime: number = 10) => {
       ...prev, 
       highScore: 0, 
       bestStreak: 0, 
+      roundPersonalBestScore: 0,
+      roundPersonalBestStreak: 0,
       unlockedBadges: [],
       totalCorrect: 0,
       totalChaosSolved: 0,
@@ -247,6 +377,7 @@ export const useGame = (initialTime: number = 10) => {
   return {
     ...state,
     startGame,
+    startTargetedPractice,
     submitAnswer,
     endGame,
     resetGame,
