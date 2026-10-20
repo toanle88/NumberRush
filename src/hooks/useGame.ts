@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { MathQuestion } from '../utils/mathLogic';
 import { generateQuestion } from '../utils/mathLogic';
+import { getLevelForScore } from '../utils/planetProgression';
 
 export type GameStatus = 'idle' | 'playing' | 'finished';
 export type GameMode = 'blitz' | 'practice';
@@ -21,11 +22,13 @@ interface GameState {
   mode: GameMode;
   isAdvanced: boolean;
   currentQuestion: MathQuestion | null;
-  history: Array<{ question: MathQuestion; playerAnswer: number; isCorrect: boolean }>;
+  history: Array<{ question: MathQuestion; playerAnswer: number; isCorrect: boolean; level: number }>;
   highScore: number;
   bestStreak: number;
   unlockedBadges: string[];
   currentLevel: number;
+  startingLevel: number;
+  playedLevels: number[];
   totalCorrect: number;
   totalChaosSolved: number;
   moonGames: number;
@@ -74,6 +77,8 @@ export const useGame = (initialTime: number = 10) => {
       bestStreak: parseInt(localStorage.getItem(STORAGE_KEYS.BEST_STREAK) || '0', 10),
       unlockedBadges: savedBadges ? JSON.parse(savedBadges) : [],
       currentLevel: 1,
+      startingLevel: 1,
+      playedLevels: [],
       totalCorrect: parseInt(localStorage.getItem(STORAGE_KEYS.TOTAL_CORRECT) || '0', 10),
       totalChaosSolved: parseInt(localStorage.getItem(STORAGE_KEYS.TOTAL_CHAOS) || '0', 10),
       moonGames: parseInt(localStorage.getItem(STORAGE_KEYS.MOON_GAMES) || '0', 10),
@@ -138,6 +143,8 @@ export const useGame = (initialTime: number = 10) => {
       mode,
       isAdvanced,
       currentLevel: level,
+      startingLevel: level,
+      playedLevels: [level],
       currentQuestion: generateQuestion(level, isAdvanced),
       history: [],
     }));
@@ -163,7 +170,10 @@ export const useGame = (initialTime: number = 10) => {
       if (isCorrect) localStorage.setItem(STORAGE_KEYS.TOTAL_CORRECT, newTotalCorrect.toString());
       if (isCorrect && isChaos) localStorage.setItem(STORAGE_KEYS.TOTAL_CHAOS, newTotalChaos.toString());
 
-      const nextLevel = Math.min(3, Math.floor(newScore / 100) + 1);
+      const nextLevel = getLevelForScore(newScore, prev.startingLevel);
+      const playedLevels = prev.playedLevels.includes(nextLevel)
+        ? prev.playedLevels
+        : [...prev.playedLevels, nextLevel];
 
       const nextState: GameState = {
         ...prev,
@@ -174,8 +184,9 @@ export const useGame = (initialTime: number = 10) => {
         totalCorrect: newTotalCorrect,
         totalChaosSolved: newTotalChaos,
         timeLeft: initialTime,
-        history: [...prev.history, { question: prev.currentQuestion!, playerAnswer, isCorrect }],
+        history: [...prev.history, { question: prev.currentQuestion!, playerAnswer, isCorrect, level: prev.currentLevel }],
         currentLevel: nextLevel,
+        playedLevels,
         currentQuestion: generateQuestion(nextLevel, prev.isAdvanced),
       };
 

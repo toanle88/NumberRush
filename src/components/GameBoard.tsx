@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import type { MathQuestion } from '../utils/mathLogic';
+import { getPlanet } from '../utils/planetProgression';
 
 interface GameBoardProps {
   question: MathQuestion;
@@ -9,6 +10,7 @@ interface GameBoardProps {
   maxTime: number;
   streak: number;
   showTimer: boolean;
+  level: number;
 }
 
 const GameBoard = memo(({
@@ -18,9 +20,11 @@ const GameBoard = memo(({
   timeLeft,
   maxTime,
   streak,
-  showTimer
+  showTimer,
+  level
 }: GameBoardProps) => {
   const progress = (timeLeft / maxTime) * 100;
+  const planet = getPlanet(level);
 
   return (
     <div className="board-content">
@@ -37,6 +41,10 @@ const GameBoard = memo(({
       )}
 
       <div className="stats-header">
+        <div className="stat-item planet-stat">
+          <span className="label">Planet</span>
+          <span className="value">{planet.icon} {planet.name}</span>
+        </div>
         <div className="stat-item">
           <span className="label">Score</span>
           <span className="value">{score}</span>

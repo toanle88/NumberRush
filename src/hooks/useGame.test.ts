@@ -38,6 +38,46 @@ describe('useGame Hook', () => {
     expect(result.current.currentQuestion).not.toBeNull();
   });
 
+  it('keeps a Mars start at or above the selected difficulty', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => {
+      result.current.startGame(2, 'blitz', false);
+    });
+
+    act(() => {
+      result.current.submitAnswer(result.current.currentQuestion!.answer + 1);
+    });
+
+    expect(result.current.currentLevel).toBe(2);
+    expect(result.current.playedLevels).toEqual([2]);
+    expect(result.current.history[0].level).toBe(2);
+  });
+
+  it('records each planet when score thresholds are crossed', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => {
+      result.current.startGame(1, 'blitz', false);
+    });
+
+    for (let answerNumber = 0; answerNumber < 12; answerNumber += 1) {
+      act(() => {
+        result.current.submitAnswer(result.current.currentQuestion!.answer);
+      });
+    }
+
+    expect(result.current.score).toBe(210);
+    expect(result.current.currentLevel).toBe(3);
+    expect(result.current.playedLevels).toEqual([1, 2, 3]);
+    expect(result.current.history.map(entry => entry.level)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2]);
+
+    act(() => {
+      result.current.endGame();
+    });
+
+    expect(result.current.status).toBe('finished');
+    expect(result.current.playedLevels).toEqual([1, 2, 3]);
+  });
+
   it('handles correct answers and updates score/streak', () => {
     const { result } = renderHook(() => useGame(10));
     act(() => {
