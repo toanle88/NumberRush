@@ -24,17 +24,17 @@ describe('useGame Edge Cases', () => {
     expect(result.current.streak).toBe(0);
   });
 
-  it('should handle rapid consecutive submissions', () => {
+  it('should validate consecutive submissions against each current question', () => {
     const { result } = renderHook(() => useGame(10));
     act(() => {
       result.current.startGame(1, 'blitz');
     });
 
-    const correctAnswer = result.current.currentQuestion!.answer;
-    
     act(() => {
-      result.current.submitAnswer(correctAnswer);
-      result.current.submitAnswer(correctAnswer); // This should be for a NEW question
+      result.current.submitAnswer(result.current.currentQuestion!.answer);
+    });
+    act(() => {
+      result.current.submitAnswer(result.current.currentQuestion!.answer);
     });
 
     expect(result.current.streak).toBe(2);

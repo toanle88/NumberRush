@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGame, BADGES } from './hooks/useGame';
-import type { GameMode } from './hooks/useGame';
+import type { AnswerFeedback, GameMode } from './hooks/useGame';
 import GameBoard from './components/GameBoard';
 import Numpad from './components/Numpad';
 import BadgeItem from './components/BadgeItem';
@@ -29,13 +29,13 @@ function App() {
   const hasInitializedBadgesRef = useRef(false);
 
   const {
-    status, score, timeLeft, streak, mode, currentQuestion, history,
-    highScore, bestStreak, unlockedBadges, currentLevel, playedLevels,
+    status, score, timeLeft, streak, mode, currentQuestion,
+    highScore, bestStreak, unlockedBadges, currentLevel, playedLevels, missedQuestions,
     roundSummary, isTargetedPractice, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats
   } = useGame(initialTime);
 
   const [input, setInput] = useState('');
-  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const [feedback, setFeedback] = useState<AnswerFeedback | null>(null);
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [shakeClass, setShakeClass] = useState('');
   const [planetTransition, setPlanetTransition] = useState<PlanetTransition | null>(null);
@@ -86,6 +86,7 @@ function App() {
 
   const handleStart = (m: GameMode) => {
     setPlanetTransition(null);
+    setFeedback(null);
     startGame(selectedLevel, m, isAdvanced);
   };
 
@@ -97,21 +98,24 @@ function App() {
 
   const handleSubmit = useCallback(() => {
     if (input === '') return;
-    const isCorrect = submitAnswer(parseInt(input, 10));
-    setFeedback(isCorrect ? 'correct' : 'incorrect');
-    if (isCorrect) playCorrectSound();
+    const answerFeedback = submitAnswer(parseInt(input, 10));
+    if (!answerFeedback) return;
+    setFeedback(answerFeedback);
+    if (answerFeedback.isCorrect) playCorrectSound();
     else playIncorrectSound();
     setInput('');
   }, [input, submitAnswer]);
 
   const handleExit = useCallback(() => {
     setPlanetTransition(null);
+    setFeedback(null);
     resetGame();
     setInput('');
   }, [resetGame]);
 
   const handleTargetedPractice = useCallback(() => {
     setPlanetTransition(null);
+    setFeedback(null);
     startTargetedPractice();
     setInput('');
   }, [startTargetedPractice]);
@@ -128,7 +132,7 @@ function App() {
 
   useEffect(() => {
     if (feedback) {
-      const timer = setTimeout(() => setFeedback(null), 800);
+      const timer = setTimeout(() => setFeedback(null), 2200);
       return () => clearTimeout(timer);
     }
   }, [feedback]);
@@ -273,7 +277,7 @@ function App() {
           )}
 
           {status === 'playing' && currentQuestion && (
-            <div className={`game-area ${feedback ? `feedback-${feedback}` : ''}`}>
+            <div className={`game-area ${feedback ? `feedback-${feedback.isCorrect ? 'correct' : 'incorrect'}` : ''}`}>
               <button type="button" className="exit-btn" onClick={handleExit} title="Exit Game" aria-label="Exit game">✕</button>
               {planetTransition && (
                 <div className="planet-transition" role="status" aria-live="polite">
@@ -295,10 +299,15 @@ function App() {
                   level={currentLevel}
                 />
                 {feedback && (
-                  <div className="feedback-overlay">
+                  <div className="feedback-overlay" role="status" aria-live="polite">
                     <div className="feedback-content">
-                      {feedback === 'correct' ? '✅' : '❌'}
-                      <span>{feedback === 'correct' ? 'Correct!' : 'Oops!'}</span>
+                      <span className="feedback-title">{feedback.isCorrect ? '✅ Correct!' : '❌ Not quite'}</span>
+                      {!feedback.isCorrect && (
+                        <>
+                          <span className="feedback-answer">Correct answer: <strong>{feedback.expectedAnswer}</strong></span>
+                          <small>{feedback.explanation}</small>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -313,6 +322,12 @@ function App() {
           {status === 'finished' && roundSummary && (
             <div className="results-screen animate-pop">
               <h2>{mode === 'blitz' ? "Time's Up! 🏁" : isTargetedPractice ? 'Missed Questions Reviewed! 🎯' : 'Round Complete! 🎉'}</h2>
+              {feedback && !feedback.isCorrect && (
+                <div className="results-feedback" role="status" aria-live="polite">
+                  <strong>❌ Correct answer: {feedback.expectedAnswer}</strong>
+                  <span>{feedback.explanation}</span>
+                </div>
+              )}
               <div className="final-stats">
                 <p className="final-score">Final Score: <strong>{roundSummary.finalScore}</strong></p>
                 <div className="results-metrics">
@@ -349,7 +364,7 @@ function App() {
               </div>
               <div className="results-actions">
                 <button type="button" className="primary" onClick={() => handleStart(mode)}>Play Again! 🔄</button>
-                {history.some(entry => !entry.isCorrect) ? (
+                {missedQuestions.length > 0 ? (
                   <button type="button" onClick={handleTargetedPractice}>Practice Missed Questions 🎯</button>
                 ) : (
                   <p className="next-action">Next action: replay and try to extend your perfect run!</p>
