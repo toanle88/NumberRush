@@ -4,6 +4,15 @@ import { DEFAULT_OPERATIONS, generateQuestion, getAdaptiveDifficulty, getDifficu
 import { getLevelForScore } from '../utils/planetProgression';
 import { calculateProgressMetrics, createProgressSession, readProgressSessions, writeProgressSessions } from '../utils/progress';
 import type { ProgressMetrics, ProgressSession } from '../utils/progress';
+import {
+  DAILY_CHALLENGES_STORAGE_KEY,
+  getDailyChallenge,
+  normalizeRecurringProgress,
+  readRecurringProgress,
+  recordAnswerForRecurringProgress,
+  writeRecurringProgress,
+} from '../utils/dailyChallenges';
+import type { RecurringProgress } from '../utils/dailyChallenges';
 
 export type GameStatus = 'idle' | 'playing' | 'finished';
 export type GameMode = 'blitz' | 'practice';
@@ -90,6 +99,8 @@ interface GameState {
   marsGames: number;
   spaceGames: number;
   progressSessions: ProgressSession[];
+  recurringProgress: RecurringProgress;
+  challengeCompletedThisRound: boolean;
 }
 
 const STORAGE_KEYS = {
@@ -102,6 +113,7 @@ const STORAGE_KEYS = {
   MARS_GAMES: 'numberrush_mars_games',
   SPACE_GAMES: 'numberrush_space_games',
   PROGRESS_SESSIONS: 'numberrush_progress_sessions',
+  DAILY_CHALLENGES: DAILY_CHALLENGES_STORAGE_KEY,
 };
 
 const enforcePlanetDifficulty = (difficulty: DifficultyTier, level: number): DifficultyTier => {
@@ -182,6 +194,8 @@ export const useGame = (initialTime: number = 10) => {
       marsGames: parseInt(localStorage.getItem(STORAGE_KEYS.MARS_GAMES) || '0', 10),
       spaceGames: parseInt(localStorage.getItem(STORAGE_KEYS.SPACE_GAMES) || '0', 10),
       progressSessions: readProgressSessions(),
+      recurringProgress: readRecurringProgress(),
+      challengeCompletedThisRound: false,
     };
   });
 
@@ -191,6 +205,32 @@ export const useGame = (initialTime: number = 10) => {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  const refreshRecurringProgress = useCallback(() => {
+    const current = stateRef.current.recurringProgress;
+    const refreshed = normalizeRecurringProgress(current, new Date());
+    const hasChanged = refreshed.dateKey !== current.dateKey
+      || refreshed.weekStartKey !== current.weekStartKey
+      || refreshed.challenge.challengeId !== current.challenge.challengeId;
+    if (!hasChanged) return;
+    writeRecurringProgress(refreshed);
+    stateRef.current = { ...stateRef.current, recurringProgress: refreshed, challengeCompletedThisRound: false };
+    setState(prev => ({ ...prev, recurringProgress: refreshed, challengeCompletedThisRound: false }));
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshRecurringProgress();
+    };
+    const interval = window.setInterval(refreshRecurringProgress, 60_000);
+    window.addEventListener('focus', refreshRecurringProgress);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshRecurringProgress);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshRecurringProgress]);
 
   const checkBadges = useCallback((currentState: GameState) => {
     const newUnlocked = BADGES
@@ -281,6 +321,7 @@ export const useGame = (initialTime: number = 10) => {
       questionStartedAt: Date.now(),
       isTargetedPractice: false,
       practiceQueue: [],
+      challengeCompletedThisRound: false,
     }));
   }, [initialTime]);
 
@@ -313,6 +354,7 @@ export const useGame = (initialTime: number = 10) => {
         questionStartedAt: Date.now(),
         isTargetedPractice: true,
         practiceQueue,
+        challengeCompletedThisRound: false,
       };
     });
   }, []);
@@ -376,6 +418,14 @@ export const useGame = (initialTime: number = 10) => {
         : submissionState.maxTime
     );
     const hasFinishedTargetedPractice = submissionState.isTargetedPractice && !nextTargetedQuestion;
+    const nextRecurringProgress = recordAnswerForRecurringProgress(submissionState.recurringProgress, {
+      isCorrect: answerIsCorrect,
+      currentStreak: newStreak,
+    });
+    const challengeChanged = submissionState.recurringProgress.challenge.dateKey !== nextRecurringProgress.challenge.dateKey
+      || submissionState.recurringProgress.challenge.challengeId !== nextRecurringProgress.challenge.challengeId;
+    const challengeCompletedThisAnswer = nextRecurringProgress.challenge.completed
+      && (challengeChanged || !submissionState.recurringProgress.challenge.completed);
     const nextState: GameState = {
       ...submissionState,
       score: newScore,
@@ -406,6 +456,8 @@ export const useGame = (initialTime: number = 10) => {
           : generateQuestion(nextDifficulty, submissionState.isAdvanced, submissionState.operations),
       questionStartedAt: Date.now(),
       practiceQueue: submissionState.isTargetedPractice ? submissionState.practiceQueue.slice(1) : [],
+      recurringProgress: nextRecurringProgress,
+      challengeCompletedThisRound: submissionState.challengeCompletedThisRound || challengeCompletedThisAnswer,
     };
 
     nextState.unlockedBadges = checkBadges(nextState);
@@ -445,6 +497,8 @@ export const useGame = (initialTime: number = 10) => {
       spaceGames: 0,
       missedQuestions: [],
       progressSessions: [],
+      recurringProgress: readRecurringProgress(),
+      challengeCompletedThisRound: false,
     }));
   }, []);
 
@@ -479,5 +533,6 @@ export const useGame = (initialTime: number = 10) => {
     endGame,
     resetGame,
     resetStats,
+    dailyChallenge: getDailyChallenge(new Date()),
   };
 };

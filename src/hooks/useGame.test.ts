@@ -27,6 +27,63 @@ describe('useGame Hook', () => {
     expect(result.current.score).toBe(0);
     expect(result.current.streak).toBe(0);
     expect(result.current.highScore).toBe(0);
+    expect(result.current.recurringProgress.dailyCorrectAnswers).toBe(0);
+  });
+
+  it('completes and persists the stable daily challenge without double-awarding points', () => {
+    vi.setSystemTime(new Date(2026, 4, 12, 12));
+    const { result, unmount } = renderHook(() => useGame(10));
+    const target = result.current.dailyChallenge.target;
+
+    act(() => result.current.startGame(1, 'practice', false, ['addition']));
+    for (let answer = 0; answer < target; answer += 1) {
+      act(() => result.current.submitAnswer(result.current.currentQuestion!.answer));
+    }
+
+    expect(result.current.recurringProgress.challenge.completed).toBe(true);
+    const points = result.current.recurringProgress.points;
+    expect(result.current.recurringProgress.completionHistory).toHaveLength(1);
+
+    act(() => result.current.submitAnswer(result.current.currentQuestion!.answer));
+    expect(result.current.recurringProgress.points).toBe(points);
+    expect(result.current.recurringProgress.completionHistory).toHaveLength(1);
+
+    unmount();
+    const reloaded = renderHook(() => useGame(10));
+    expect(reloaded.result.current.recurringProgress.challenge.completed).toBe(true);
+    expect(reloaded.result.current.recurringProgress.points).toBe(points);
+  });
+
+  it('only marks the round that earns the challenge reward as newly completed', () => {
+    vi.setSystemTime(new Date(2026, 4, 12, 12));
+    const { result } = renderHook(() => useGame(10));
+    const target = result.current.dailyChallenge.target;
+
+    act(() => result.current.startGame(1, 'practice', false, ['addition']));
+    for (let answer = 0; answer < target; answer += 1) {
+      act(() => result.current.submitAnswer(result.current.currentQuestion!.answer));
+    }
+
+    expect(result.current.challengeCompletedThisRound).toBe(true);
+    act(() => result.current.endGame());
+    expect(result.current.challengeCompletedThisRound).toBe(true);
+
+    act(() => result.current.startGame(1, 'practice', false, ['addition']));
+    expect(result.current.challengeCompletedThisRound).toBe(false);
+    act(() => result.current.endGame());
+    expect(result.current.challengeCompletedThisRound).toBe(false);
+  });
+
+  it('refreshes the active challenge when the local day changes', () => {
+    vi.setSystemTime(new Date(2026, 4, 12, 23, 59));
+    const { result } = renderHook(() => useGame(10));
+    expect(result.current.recurringProgress.dateKey).toBe('2026-05-12');
+
+    vi.setSystemTime(new Date(2026, 4, 13, 0, 1));
+    act(() => vi.advanceTimersByTime(60_000));
+
+    expect(result.current.recurringProgress.dateKey).toBe('2026-05-13');
+    expect(result.current.recurringProgress.dailyCorrectAnswers).toBe(0);
   });
 
   it('starts a game correctly', () => {

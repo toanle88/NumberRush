@@ -9,6 +9,7 @@ import BadgeItem from './components/BadgeItem';
 import ProgressDashboard from './components/ProgressDashboard';
 import SettingsModal from './components/SettingsModal';
 import { getPlanet, PLANETS } from './utils/planetProgression';
+import { DAILY_GOAL, getChallengeProgress, WEEKLY_GOAL } from './utils/dailyChallenges';
 import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects';
 import { getSystemReducedMotionPreference, readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility';
 import type { AccessibilityPreferences } from './utils/accessibility';
@@ -42,7 +43,7 @@ function App() {
   const {
     status, score, timeLeft, streak, mode, currentQuestion,
     highScore, bestStreak, unlockedBadges, currentLevel, difficulty, maxTime, playedLevels, missedQuestions,
-    roundSummary, isTargetedPractice, progressMetrics, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats
+    roundSummary, isTargetedPractice, progressMetrics, recurringProgress, dailyChallenge, challengeCompletedThisRound, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats
   } = useGame(initialTime);
 
   const [input, setInput] = useState('');
@@ -305,6 +306,64 @@ function App() {
                 View your progress 📈
               </button>
 
+              <section className="daily-challenge-card" aria-labelledby="daily-challenge-heading">
+                <div className="daily-challenge-heading">
+                  <div>
+                    <p className="eyebrow">Daily challenge</p>
+                    <h2 id="daily-challenge-heading">{dailyChallenge.title}</h2>
+                    <p>{dailyChallenge.description}</p>
+                  </div>
+                  <span className="challenge-icon" aria-hidden="true">🎯</span>
+                </div>
+                <div className="challenge-progress-line">
+                  <div
+                    className="challenge-progress-bar"
+                    role="progressbar"
+                    aria-label={`${dailyChallenge.title} progress`}
+                    aria-valuemin={0}
+                    aria-valuemax={dailyChallenge.target}
+                    aria-valuenow={getChallengeProgress(dailyChallenge, recurringProgress)}
+                  >
+                    <span style={{ width: `${(getChallengeProgress(dailyChallenge, recurringProgress) / dailyChallenge.target) * 100}%` }} />
+                  </div>
+                  <strong>{getChallengeProgress(dailyChallenge, recurringProgress)}/{dailyChallenge.target}</strong>
+                </div>
+                <p className="challenge-status" role="status">
+                  {recurringProgress.challenge.completed
+                    ? `Completed today! +${dailyChallenge.rewardPoints} points earned.`
+                    : `Reward: ${dailyChallenge.rewardPoints} points`}
+                </p>
+                <p className="challenge-points">Challenge points: <strong>{recurringProgress.points}</strong></p>
+              </section>
+
+              <section className="recurring-goals" aria-labelledby="recurring-goals-heading">
+                <div className="daily-challenge-heading">
+                  <div>
+                    <p className="eyebrow">Keep returning</p>
+                    <h2 id="recurring-goals-heading">Recurring goals</h2>
+                  </div>
+                  <span className="challenge-icon" aria-hidden="true">🌟</span>
+                </div>
+                {[{
+                  ...DAILY_GOAL,
+                  progress: recurringProgress.dailyCorrectAnswers,
+                }, {
+                  ...WEEKLY_GOAL,
+                  progress: recurringProgress.weeklyCorrectAnswers,
+                }].map(goal => {
+                  const progress = Math.min(goal.progress, goal.target);
+                  return (
+                    <div className="goal-row" key={goal.id}>
+                      <div>
+                        <strong>{goal.title}</strong>
+                        <span>{goal.description}</span>
+                      </div>
+                      <strong>{progress}/{goal.target}{progress >= goal.target ? ' ✓' : ''}</strong>
+                    </div>
+                  );
+                })}
+              </section>
+
               <div className="level-selector" style={{ marginBottom: '2rem' }}>
                 <p className="selector-title">Choose Your Starting Planet:</p>
                 <p className="selector-description">
@@ -459,6 +518,12 @@ function App() {
           {status === 'finished' && roundSummary && (
             <div className="results-screen animate-pop">
               <h2 ref={resultsHeadingRef} tabIndex={-1}>{mode === 'blitz' ? "Time's Up! 🏁" : isTargetedPractice ? 'Missed Questions Reviewed! 🎯' : 'Round Complete! 🎉'}</h2>
+              {challengeCompletedThisRound && (
+                <div className="challenge-complete-banner" role="status">
+                  <strong>Daily challenge complete! 🎉</strong>
+                  <span>{dailyChallenge.rewardPoints} points added. Total challenge points: {recurringProgress.points}.</span>
+                </div>
+              )}
               {feedback && !feedback.isCorrect && (
                 <div className="results-feedback" role="status" aria-live="polite">
                   <strong>❌ Correct answer: {feedback.expectedAnswer}</strong>

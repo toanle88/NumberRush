@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import App from './App';
+import { DAILY_CHALLENGES_STORAGE_KEY, getDailyChallenge, getLocalDateKey, getWeekStartKey } from './utils/dailyChallenges';
 
 describe('App keyboard gameplay', () => {
   beforeEach(() => {
@@ -105,5 +106,48 @@ describe('App keyboard gameplay', () => {
     expect(screen.getByRole('heading', { name: 'Progress' })).toBeInTheDocument();
     expect(screen.getByText(/Your progress story starts here/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Back to home/i })).toBeInTheDocument();
+  });
+
+  it('shows the daily challenge and recurring goals with visible progress', () => {
+    render(<App />);
+
+    expect(screen.getByText('Daily challenge')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Recurring goals' })).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: /progress/i })).toHaveAttribute('aria-valuenow', '0');
+    expect(screen.getByText(/Solve 10 questions correctly/)).toBeInTheDocument();
+    expect(screen.getByText(/Solve 50 questions correctly/)).toBeInTheDocument();
+  });
+
+  it('does not report points added on a later round after the challenge was completed', () => {
+    const date = new Date();
+    const dateKey = getLocalDateKey(date);
+    const challenge = getDailyChallenge(date);
+    localStorage.setItem(DAILY_CHALLENGES_STORAGE_KEY, JSON.stringify({
+      dateKey,
+      dailyCorrectAnswers: challenge.target,
+      weekStartKey: getWeekStartKey(date),
+      weeklyCorrectAnswers: challenge.target,
+      dailyStreak: challenge.target,
+      lastCorrectDateKey: dateKey,
+      challenge: {
+        dateKey,
+        challengeId: challenge.id,
+        progress: challenge.target,
+        completed: true,
+      },
+      points: challenge.rewardPoints,
+      completionHistory: [{
+        dateKey,
+        challengeId: challenge.id,
+        completedAt: date.getTime(),
+        rewardPoints: challenge.rewardPoints,
+      }],
+    }));
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Practice Mode/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Finish Practice Round/ }));
+
+    expect(screen.queryByText(/points added/)).not.toBeInTheDocument();
   });
 });
