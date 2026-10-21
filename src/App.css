@@ -13,6 +13,249 @@
   overflow: hidden;
 }
 
+.progress-link {
+  display: block;
+  margin: 0 auto 2rem;
+  color: var(--color-secondary);
+  border-color: color-mix(in srgb, var(--color-secondary) 45%, var(--card-border));
+}
+
+.progress-dashboard {
+  width: 100%;
+  max-width: 62rem;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.progress-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.progress-heading h2 {
+  margin: 0.15rem 0 0;
+  color: var(--color-secondary);
+  font-size: 2.25rem;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.progress-subtitle {
+  margin: 0.4rem 0 0;
+  color: var(--text-secondary);
+}
+
+.progress-metric-grid,
+.progress-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.progress-metric,
+.progress-panel,
+.progress-empty-state {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.progress-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+}
+
+.progress-metric span,
+.progress-metric small {
+  color: var(--text-secondary);
+}
+
+.progress-metric span {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.progress-metric strong {
+  color: var(--color-primary);
+  font-size: 1.75rem;
+}
+
+.progress-metric small {
+  font-size: 0.75rem;
+}
+
+.progress-trend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  align-items: center;
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-success) 45%, var(--card-border));
+  border-radius: var(--radius-md);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.progress-trend span {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.progress-breakdown-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.progress-panel {
+  padding: 1rem;
+}
+
+.progress-panel h3 {
+  margin: 0 0 0.8rem;
+  color: var(--color-secondary);
+}
+
+.progress-table-wrap {
+  overflow-x: auto;
+}
+
+.progress-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.progress-panel th,
+.progress-panel td {
+  padding: 0.6rem 0.35rem;
+  border-bottom: 1px solid var(--card-border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.progress-panel tr:last-child th,
+.progress-panel tr:last-child td {
+  border-bottom: 0;
+}
+
+.progress-panel th:first-child {
+  text-align: left;
+}
+
+.progress-panel thead {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.recent-sessions {
+  margin-top: 1rem;
+}
+
+.session-list {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.session-row:last-child {
+  border-bottom: 0;
+}
+
+.session-row div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.session-row span {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.session-result {
+  text-align: right;
+}
+
+.progress-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.progress-empty-state h3,
+.progress-empty-state p {
+  margin: 0;
+}
+
+.progress-empty-state p {
+  max-width: 30rem;
+  color: var(--text-secondary);
+}
+
+.progress-empty-icon {
+  font-size: 3rem;
+}
+
+@media (max-width: 768px) {
+  .progress-heading {
+    flex-direction: column;
+  }
+
+  .progress-heading > button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .progress-metric-grid,
+  .progress-breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-metric strong {
+    font-size: 1.5rem;
+  }
+
+  .progress-trend {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .session-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .session-result {
+    text-align: left;
+  }
+}
+
 .progress-container {
   width: 100%;
   height: 8px;

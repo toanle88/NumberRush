@@ -96,4 +96,14 @@ describe('App keyboard gameplay', () => {
 
     expect(screen.getByRole('group', { name: /current answer 1234/i })).toBeInTheDocument();
   });
+
+  it('opens an empty progress view from the home screen', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /View your progress/i }));
+
+    expect(screen.getByRole('heading', { name: 'Progress' })).toBeInTheDocument();
+    expect(screen.getByText(/Your progress story starts here/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Back to home/i })).toBeInTheDocument();
+  });
 });

@@ -6,6 +6,7 @@ import { getDifficultyAtLeast, getDifficultyForLevel, SUPPORTED_OPERATIONS } fro
 import GameBoard from './components/GameBoard';
 import Numpad from './components/Numpad';
 import BadgeItem from './components/BadgeItem';
+import ProgressDashboard from './components/ProgressDashboard';
 import SettingsModal from './components/SettingsModal';
 import { getPlanet, PLANETS } from './utils/planetProgression';
 import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects';
@@ -20,6 +21,7 @@ interface PlanetTransition {
 }
 
 function App() {
+  const [view, setView] = useState<'home' | 'progress'>('home');
   const [initialTime, setInitialTime] = useState(() =>
     parseInt(localStorage.getItem('numberrush_timer') || '10', 10)
   );
@@ -40,7 +42,7 @@ function App() {
   const {
     status, score, timeLeft, streak, mode, currentQuestion,
     highScore, bestStreak, unlockedBadges, currentLevel, difficulty, maxTime, playedLevels, missedQuestions,
-    roundSummary, isTargetedPractice, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats
+    roundSummary, isTargetedPractice, progressMetrics, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats
   } = useGame(initialTime);
 
   const [input, setInput] = useState('');
@@ -124,6 +126,7 @@ function App() {
   }, [unlockedBadges]);
 
   const handleStart = (m: GameMode) => {
+    setView('home');
     setPlanetTransition(null);
     setFeedback(null);
     const hasDifficultyOverride = selectedDifficulty !== undefined;
@@ -289,11 +292,18 @@ function App() {
 
         <div className="game-container">
           {status === 'idle' && (
-            <div className="dashboard animate-pop">
+            view === 'progress' ? (
+              <ProgressDashboard metrics={progressMetrics} onBack={() => setView('home')} />
+            ) : (
+              <div className="dashboard animate-pop">
               <div className="best-stats">
                 <div className="stat-card"><span>High Score</span><strong>{highScore}</strong></div>
                 <div className="stat-card"><span>Best Streak</span><strong>{bestStreak}</strong></div>
               </div>
+
+              <button type="button" className="progress-link" onClick={() => setView('progress')}>
+                View your progress 📈
+              </button>
 
               <div className="level-selector" style={{ marginBottom: '2rem' }}>
                 <p className="selector-title">Choose Your Starting Planet:</p>
@@ -392,7 +402,8 @@ function App() {
                   <BadgeItem key={badge.id} badge={badge} isUnlocked={unlockedBadges.includes(badge.id)} />
                 ))}
               </div>
-            </div>
+              </div>
+            )
           )}
 
           {status === 'playing' && currentQuestion && (

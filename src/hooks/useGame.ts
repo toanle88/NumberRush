@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { DifficultyTier, MathQuestion, Operation } from '../utils/mathLogic';
 import { DEFAULT_OPERATIONS, generateQuestion, getAdaptiveDifficulty, getDifficultyAtLeast, getDifficultyForLevel, getDifficultySettings, getQuestionExplanation, normalizeOperations } from '../utils/mathLogic';
 import { getLevelForScore } from '../utils/planetProgression';
+import { calculateProgressMetrics, createProgressSession, readProgressSessions, writeProgressSessions } from '../utils/progress';
+import type { ProgressMetrics, ProgressSession } from '../utils/progress';
 
 export type GameStatus = 'idle' | 'playing' | 'finished';
 export type GameMode = 'blitz' | 'practice';
@@ -19,6 +21,7 @@ export interface AnswerRecord {
   playerAnswer: number;
   isCorrect: boolean;
   level: number;
+  difficulty: DifficultyTier;
   responseTimeMs: number;
 }
 
@@ -86,6 +89,7 @@ interface GameState {
   moonGames: number;
   marsGames: number;
   spaceGames: number;
+  progressSessions: ProgressSession[];
 }
 
 const STORAGE_KEYS = {
@@ -97,6 +101,7 @@ const STORAGE_KEYS = {
   MOON_GAMES: 'numberrush_moon_games',
   MARS_GAMES: 'numberrush_mars_games',
   SPACE_GAMES: 'numberrush_space_games',
+  PROGRESS_SESSIONS: 'numberrush_progress_sessions',
 };
 
 const enforcePlanetDifficulty = (difficulty: DifficultyTier, level: number): DifficultyTier => {
@@ -176,6 +181,7 @@ export const useGame = (initialTime: number = 10) => {
       moonGames: parseInt(localStorage.getItem(STORAGE_KEYS.MOON_GAMES) || '0', 10),
       marsGames: parseInt(localStorage.getItem(STORAGE_KEYS.MARS_GAMES) || '0', 10),
       spaceGames: parseInt(localStorage.getItem(STORAGE_KEYS.SPACE_GAMES) || '0', 10),
+      progressSessions: readProgressSessions(),
     };
   });
 
@@ -227,6 +233,20 @@ export const useGame = (initialTime: number = 10) => {
       spaceGames,
     };
     finishedState.roundSummary = createRoundSummary(finishedState);
+    const progressSession = createProgressSession({
+      mode: finishedState.mode,
+      finalScore: finishedState.score,
+      bestStreak: finishedState.roundBestStreak,
+      answers: finishedState.history.map(answer => ({
+        isCorrect: answer.isCorrect,
+        operations: [...new Set([answer.question.operation, ...(answer.question.operation2 ? [answer.question.operation2] : [])])],
+        difficulty: answer.difficulty,
+        level: answer.level,
+        responseTimeMs: answer.responseTimeMs,
+      })),
+    });
+    finishedState.progressSessions = [...finishedState.progressSessions, progressSession];
+    writeProgressSessions(finishedState.progressSessions);
     finishedState.unlockedBadges = checkBadges(finishedState);
     return finishedState;
   }, [checkBadges]);
@@ -339,6 +359,7 @@ export const useGame = (initialTime: number = 10) => {
       playerAnswer,
       isCorrect: answerIsCorrect,
       level: submissionState.currentLevel,
+      difficulty: submissionState.difficulty,
       responseTimeMs,
     }];
     const nextDifficulty = submissionState.isTargetedPractice
@@ -422,7 +443,8 @@ export const useGame = (initialTime: number = 10) => {
       moonGames: 0,
       marsGames: 0,
       spaceGames: 0,
-      missedQuestions: []
+      missedQuestions: [],
+      progressSessions: [],
     }));
   }, []);
 
@@ -450,6 +472,7 @@ export const useGame = (initialTime: number = 10) => {
 
   return {
     ...state,
+    progressMetrics: calculateProgressMetrics(state.progressSessions) as ProgressMetrics,
     startGame,
     startTargetedPractice,
     submitAnswer,
