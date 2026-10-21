@@ -21,6 +21,16 @@ interface PlanetTransition {
   to: number;
 }
 
+type RoundPreset = 'quick' | 'challenge' | 'custom';
+
+const QUICK_START_OPERATIONS: Operation[] = ['addition', 'subtraction'];
+const CHALLENGE_OPERATIONS: Operation[] = ['addition', 'subtraction', 'multiplication'];
+const DIFFICULTY_HELP: Record<DifficultyTier, string> = {
+  easy: '15 second starting timer with smaller number ranges',
+  medium: '10 second starting timer with wider number ranges',
+  hard: '7 second starting timer with challenging number ranges',
+};
+
 function App() {
   const [view, setView] = useState<'home' | 'progress'>('home');
   const [initialTime, setInitialTime] = useState(() =>
@@ -34,8 +44,10 @@ function App() {
   const [systemReducedMotion, setSystemReducedMotion] = useState(getSystemReducedMotionPreference);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const [isAdvanced, setIsAdvanced] = useState(false);
+  const [roundPreset, setRoundPreset] = useState<RoundPreset>('quick');
+  const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyTier | undefined>();
-  const [selectedOperations, setSelectedOperations] = useState<Operation[]>(['addition', 'subtraction']);
+  const [selectedOperations, setSelectedOperations] = useState<Operation[]>(QUICK_START_OPERATIONS);
   const [lastUnlockedBadge, setLastUnlockedBadge] = useState<string | null>(null);
   const previousBadgeCountRef = useRef(0);
   const hasInitializedBadgesRef = useRef(false);
@@ -135,7 +147,26 @@ function App() {
     startGame(selectedLevel, m, isAdvanced, selectedOperations, selectedDifficulty, timerOverride, hasDifficultyOverride, true);
   };
 
+  const selectRoundPreset = (preset: RoundPreset) => {
+    setRoundPreset(preset);
+    if (preset === 'quick') {
+      setSelectedLevel(1);
+      setIsAdvanced(false);
+      setSelectedOperations(QUICK_START_OPERATIONS);
+      setSelectedDifficulty(undefined);
+      setMoreOptionsOpen(false);
+    }
+    if (preset === 'challenge') {
+      setSelectedLevel(2);
+      setIsAdvanced(false);
+      setSelectedOperations(CHALLENGE_OPERATIONS);
+      setSelectedDifficulty('medium');
+      setMoreOptionsOpen(false);
+    }
+  };
+
   const toggleOperation = (operation: Operation) => {
+    setRoundPreset('custom');
     setSelectedOperations(previous => {
       if (previous.includes(operation)) {
         return previous.length === 1 ? previous : previous.filter(item => item !== operation);
@@ -270,7 +301,6 @@ function App() {
     }
   }, [timeLeft, status, mode, preferences.sound]);
 
-  const selectedPlanet = getPlanet(selectedLevel);
   const displayedDifficulty = getDifficultyAtLeast(
     selectedDifficulty || getDifficultyForLevel(selectedLevel),
     getDifficultyForLevel(selectedLevel),
@@ -339,90 +369,128 @@ function App() {
               <details className="customize-round">
                 <summary>Customize round <span aria-hidden="true">⌄</span></summary>
                 <div className="customize-round-content">
-                  <div className="level-selector">
-                    <p className="selector-title">Choose Your Starting Planet:</p>
-                    <p className="selector-description">
-                      Your choice sets the first difficulty. Reach 100 points for Mars and 200 points for Deep Space.
-                    </p>
-                    <div className="planet-choice-grid">
-                      {PLANETS.map(planet => (
-                        <button
-                          type="button"
-                          key={planet.level}
-                          className={selectedLevel === planet.level ? 'primary' : ''}
-                          onClick={() => setSelectedLevel(planet.level)}
-                          aria-pressed={selectedLevel === planet.level}
-                        >
-                          {planet.name} {planet.icon}{selectedLevel === planet.level ? ' (selected)' : ''}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="progression-guide" aria-label="Planet progression thresholds">
-                      {PLANETS.map(planet => (
-                        <span key={planet.level}>
-                          <strong>{planet.icon} {planet.name}</strong>
-                          <small>{planet.minimumScore === 0 ? 'Start here' : `${planet.minimumScore}+ points`}</small>
-                        </span>
-                      ))}
-                    </div>
-                    <p className="selected-planet-note">
-                      Starting on {selectedPlanet.name} begins at {displayedDifficulty} difficulty; the selected tier can raise that minimum, and progression only moves forward.
-                    </p>
-                  </div>
-
-                  <div className="advanced-toggle">
-                    <button
-                      type="button"
-                      className={isAdvanced ? 'primary' : ''}
-                      aria-pressed={isAdvanced}
-                      onClick={() => setIsAdvanced(!isAdvanced)}
-                    >
-                      {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
-                    </button>
-                  </div>
-
-                  <fieldset className="level-selector operator-selector">
-                    <legend className="selector-title">Choose Operators</legend>
-                    <p className="selector-description">Pick one or more operations for this round.</p>
-                    <div className="choice-grid" role="group" aria-label="Math operators">
-                      {SUPPORTED_OPERATIONS.map(operation => {
-                        const labels: Record<Operation, string> = {
-                          addition: 'Addition +',
-                          subtraction: 'Subtraction −',
-                          multiplication: 'Multiplication ×',
-                          division: 'Division ÷',
-                        };
-                        return (
-                          <label className="choice-chip" key={operation}>
-                            <input
-                              type="checkbox"
-                              checked={selectedOperations.includes(operation)}
-                              onChange={() => toggleOperation(operation)}
-                            />
-                            {labels[operation]}
-                          </label>
-                        );
-                      })}
+                  <fieldset className="preset-selector">
+                    <legend className="selector-title">Choose a preset</legend>
+                    <div className="preset-grid" role="group" aria-label="Round presets">
+                      <button
+                        type="button"
+                        className={`preset-choice ${roundPreset === 'quick' ? 'primary' : ''}`}
+                        aria-label="Quick Start"
+                        aria-describedby="quick-start-description"
+                        aria-pressed={roundPreset === 'quick'}
+                        onClick={() => selectRoundPreset('quick')}
+                      >
+                        <strong>Quick Start</strong>
+                        <small id="quick-start-description">Moon · + − · Easy</small>
+                      </button>
+                      <button
+                        type="button"
+                        className={`preset-choice ${roundPreset === 'challenge' ? 'primary' : ''}`}
+                        aria-label="Challenge"
+                        aria-describedby="challenge-description"
+                        aria-pressed={roundPreset === 'challenge'}
+                        onClick={() => selectRoundPreset('challenge')}
+                      >
+                        <strong>Challenge</strong>
+                        <small id="challenge-description">Mars · mixed · Medium</small>
+                      </button>
+                      <button
+                        type="button"
+                        className={`preset-choice ${roundPreset === 'custom' ? 'primary' : ''}`}
+                        aria-label="Custom"
+                        aria-describedby="custom-description"
+                        aria-pressed={roundPreset === 'custom'}
+                        onClick={() => selectRoundPreset('custom')}
+                      >
+                        <strong>Custom</strong>
+                        <small id="custom-description">Choose each setting</small>
+                      </button>
                     </div>
                   </fieldset>
 
-                  <fieldset className="level-selector difficulty-selector">
-                    <legend className="selector-title">Choose Difficulty</legend>
-                    <p className="selector-description">The tier sets operand ranges and the starting Blitz timer. Performance can move the tier up or down; Settings can override the timer.</p>
-                    <div className="choice-grid" role="group" aria-label="Difficulty tier">
-                      {(['easy', 'medium', 'hard'] as DifficultyTier[]).map(tier => (
-                        <button
-                          type="button"
-                          key={tier}
-                          className={displayedDifficulty === tier ? 'primary' : ''}
-                          onClick={() => setSelectedDifficulty(tier)}
-                          aria-pressed={displayedDifficulty === tier}
-                        >
-                          {tier[0].toUpperCase() + tier.slice(1)}{displayedDifficulty === tier ? ' (selected)' : ''}
-                        </button>
-                      ))}
+                  {roundPreset === 'custom' && (
+                    <div className="custom-round-settings">
+                      <section className="setting-group" aria-labelledby="starting-planet-heading">
+                        <h3 id="starting-planet-heading" className="setting-title">Starting planet</h3>
+                        <div className="planet-choice-grid">
+                          {PLANETS.map(planet => (
+                            <button
+                              type="button"
+                              key={planet.level}
+                              className={selectedLevel === planet.level ? 'primary' : ''}
+                              onClick={() => {
+                                setRoundPreset('custom');
+                                setSelectedLevel(planet.level);
+                              }}
+                              aria-pressed={selectedLevel === planet.level}
+                              title={`${planet.minimumScore === 0 ? 'Starting planet' : `Available after ${planet.minimumScore} points`}. Starts at ${getDifficultyForLevel(planet.level)} difficulty.`}
+                            >
+                              {planet.name} {planet.icon}{selectedLevel === planet.level ? ' (selected)' : ''}
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+
+                      <fieldset className="setting-group operator-selector">
+                        <legend className="setting-title">Operators</legend>
+                        <div className="choice-grid" role="group" aria-label="Math operators">
+                          {SUPPORTED_OPERATIONS.map(operation => {
+                            const labels: Record<Operation, string> = {
+                              addition: 'Addition +',
+                              subtraction: 'Subtraction −',
+                              multiplication: 'Multiplication ×',
+                              division: 'Division ÷',
+                            };
+                            return (
+                              <label className="choice-chip" key={operation}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedOperations.includes(operation)}
+                                  onChange={() => toggleOperation(operation)}
+                                />
+                                {labels[operation]}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </fieldset>
+
+                      <fieldset className="setting-group difficulty-selector">
+                        <legend className="setting-title">Difficulty</legend>
+                        <div className="choice-grid" role="group" aria-label="Difficulty tier">
+                          {(['easy', 'medium', 'hard'] as DifficultyTier[]).map(tier => (
+                            <button
+                              type="button"
+                              key={tier}
+                              className={displayedDifficulty === tier ? 'primary' : ''}
+                              onClick={() => {
+                                setRoundPreset('custom');
+                                setSelectedDifficulty(tier);
+                              }}
+                              aria-pressed={displayedDifficulty === tier}
+                              title={DIFFICULTY_HELP[tier]}
+                            >
+                              {tier[0].toUpperCase() + tier.slice(1)}{displayedDifficulty === tier ? ' (selected)' : ''}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+
+                      <details className="more-options">
+                        <summary onClick={() => setMoreOptionsOpen(previous => !previous)}>More options <span aria-hidden="true">⌄</span></summary>
+                        <div className="more-options-content" hidden={!moreOptionsOpen}>
+                          <button
+                            type="button"
+                            className={isAdvanced ? 'primary' : ''}
+                            aria-pressed={isAdvanced}
+                            onClick={() => setIsAdvanced(!isAdvanced)}
+                          >
+                            {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
+                          </button>
+                        </div>
+                      </details>
                     </div>
-                  </fieldset>
+                  )}
                 </div>
               </details>
 
