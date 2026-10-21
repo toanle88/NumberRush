@@ -20,8 +20,7 @@
   border-color: color-mix(in srgb, var(--color-secondary) 45%, var(--card-border));
 }
 
-.daily-challenge-card,
-.recurring-goals {
+.daily-challenge-card {
   width: 100%;
   max-width: 38rem;
   margin: 0 auto 1.25rem;
@@ -30,11 +29,6 @@
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(168, 85, 247, 0.08));
   text-align: left;
-}
-
-.recurring-goals {
-  border-color: color-mix(in srgb, var(--color-secondary) 45%, var(--card-border));
-  background: rgba(255, 255, 255, 0.04);
 }
 
 .daily-challenge-heading {
@@ -376,6 +370,63 @@
   margin: 0 auto;
   display: grid;
   gap: 1rem;
+}
+
+.primary-action {
+  max-width: 320px;
+  margin: 0 auto 1rem;
+}
+
+.primary-action button {
+  width: 100%;
+}
+
+.mode-selection .progress-link {
+  margin: 0;
+}
+
+.customize-round {
+  width: 100%;
+  max-width: 38rem;
+  margin: 0 auto 1.25rem;
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+  text-align: left;
+}
+
+.customize-round summary {
+  padding: 0.9rem 0.25rem;
+  color: var(--color-secondary);
+  cursor: pointer;
+  font-weight: 700;
+  list-style-position: inside;
+}
+
+.customize-round summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.customize-round summary span {
+  float: right;
+  transition: transform 0.2s ease;
+}
+
+.customize-round[open] summary span {
+  transform: rotate(180deg);
+}
+
+.customize-round-content {
+  display: grid;
+  gap: 1.5rem;
+  padding: 0.25rem 0 1.25rem;
+}
+
+.planet-choice-grid {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 /* GameBoard Styles */
@@ -950,10 +1001,7 @@
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.05);
   padding: 1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--card-border);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;

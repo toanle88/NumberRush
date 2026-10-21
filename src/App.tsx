@@ -9,7 +9,7 @@ import BadgeItem from './components/BadgeItem';
 import ProgressDashboard from './components/ProgressDashboard';
 import SettingsModal from './components/SettingsModal';
 import { getPlanet, PLANETS } from './utils/planetProgression';
-import { DAILY_GOAL, getChallengeProgress, WEEKLY_GOAL } from './utils/dailyChallenges';
+import { getChallengeProgress } from './utils/dailyChallenges';
 import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects';
 import { getSystemReducedMotionPreference, readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility';
 import type { AccessibilityPreferences } from './utils/accessibility';
@@ -294,17 +294,13 @@ function App() {
         <div className="game-container">
           {status === 'idle' && (
             view === 'progress' ? (
-              <ProgressDashboard metrics={progressMetrics} onBack={() => setView('home')} />
+              <ProgressDashboard metrics={progressMetrics} recurringProgress={recurringProgress} onBack={() => setView('home')} />
             ) : (
               <div className="dashboard animate-pop">
               <div className="best-stats">
                 <div className="stat-card"><span>High Score</span><strong>{highScore}</strong></div>
                 <div className="stat-card"><span>Best Streak</span><strong>{bestStreak}</strong></div>
               </div>
-
-              <button type="button" className="progress-link" onClick={() => setView('progress')}>
-                View your progress 📈
-              </button>
 
               <section className="daily-challenge-card" aria-labelledby="daily-challenge-heading">
                 <div className="daily-challenge-heading">
@@ -336,124 +332,105 @@ function App() {
                 <p className="challenge-points">Challenge points: <strong>{recurringProgress.points}</strong></p>
               </section>
 
-              <section className="recurring-goals" aria-labelledby="recurring-goals-heading">
-                <div className="daily-challenge-heading">
-                  <div>
-                    <p className="eyebrow">Keep returning</p>
-                    <h2 id="recurring-goals-heading">Recurring goals</h2>
-                  </div>
-                  <span className="challenge-icon" aria-hidden="true">🌟</span>
-                </div>
-                {[{
-                  ...DAILY_GOAL,
-                  progress: recurringProgress.dailyCorrectAnswers,
-                }, {
-                  ...WEEKLY_GOAL,
-                  progress: recurringProgress.weeklyCorrectAnswers,
-                }].map(goal => {
-                  const progress = Math.min(goal.progress, goal.target);
-                  return (
-                    <div className="goal-row" key={goal.id}>
-                      <div>
-                        <strong>{goal.title}</strong>
-                        <span>{goal.description}</span>
-                      </div>
-                      <strong>{progress}/{goal.target}{progress >= goal.target ? ' ✓' : ''}</strong>
+              <div className="primary-action">
+                <button type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
+              </div>
+
+              <details className="customize-round">
+                <summary>Customize round <span aria-hidden="true">⌄</span></summary>
+                <div className="customize-round-content">
+                  <div className="level-selector">
+                    <p className="selector-title">Choose Your Starting Planet:</p>
+                    <p className="selector-description">
+                      Your choice sets the first difficulty. Reach 100 points for Mars and 200 points for Deep Space.
+                    </p>
+                    <div className="planet-choice-grid">
+                      {PLANETS.map(planet => (
+                        <button
+                          type="button"
+                          key={planet.level}
+                          className={selectedLevel === planet.level ? 'primary' : ''}
+                          onClick={() => setSelectedLevel(planet.level)}
+                          aria-pressed={selectedLevel === planet.level}
+                        >
+                          {planet.name} {planet.icon}{selectedLevel === planet.level ? ' (selected)' : ''}
+                        </button>
+                      ))}
                     </div>
-                  );
-                })}
-              </section>
+                    <div className="progression-guide" aria-label="Planet progression thresholds">
+                      {PLANETS.map(planet => (
+                        <span key={planet.level}>
+                          <strong>{planet.icon} {planet.name}</strong>
+                          <small>{planet.minimumScore === 0 ? 'Start here' : `${planet.minimumScore}+ points`}</small>
+                        </span>
+                      ))}
+                    </div>
+                    <p className="selected-planet-note">
+                      Starting on {selectedPlanet.name} begins at {displayedDifficulty} difficulty; the selected tier can raise that minimum, and progression only moves forward.
+                    </p>
+                  </div>
 
-              <div className="level-selector" style={{ marginBottom: '2rem' }}>
-                <p className="selector-title">Choose Your Starting Planet:</p>
-                <p className="selector-description">
-                  Your choice sets the first difficulty. Reach 100 points for Mars and 200 points for Deep Space.
-                </p>
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  {PLANETS.map(planet => (
+                  <div className="advanced-toggle">
                     <button
                       type="button"
-                      key={planet.level}
-                      className={selectedLevel === planet.level ? 'primary' : ''}
-                      onClick={() => setSelectedLevel(planet.level)}
-                      aria-pressed={selectedLevel === planet.level}
-                      style={{ padding: '0.5rem 1.5rem' }}
+                      className={isAdvanced ? 'primary' : ''}
+                      aria-pressed={isAdvanced}
+                      onClick={() => setIsAdvanced(!isAdvanced)}
                     >
-                      {planet.name} {planet.icon}{selectedLevel === planet.level ? ' (selected)' : ''}
+                      {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
                     </button>
-                  ))}
-                </div>
-                <div className="progression-guide" aria-label="Planet progression thresholds">
-                  {PLANETS.map(planet => (
-                    <span key={planet.level}>
-                      <strong>{planet.icon} {planet.name}</strong>
-                      <small>{planet.minimumScore === 0 ? 'Start here' : `${planet.minimumScore}+ points`}</small>
-                    </span>
-                  ))}
-                </div>
-                <p className="selected-planet-note">
-                  Starting on {selectedPlanet.name} begins at {displayedDifficulty} difficulty; the selected tier can raise that minimum, and progression only moves forward.
-                </p>
-              </div>
+                  </div>
 
-              <div className="advanced-toggle" style={{ marginBottom: '2rem' }}>
-                <button
-                  type="button"
-                  className={isAdvanced ? 'primary' : ''}
-                  aria-pressed={isAdvanced}
-                  onClick={() => setIsAdvanced(!isAdvanced)}
-                  style={{ width: '100%', maxWidth: '320px' }}
-                >
-                  {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
-                </button>
-              </div>
+                  <fieldset className="level-selector operator-selector">
+                    <legend className="selector-title">Choose Operators</legend>
+                    <p className="selector-description">Pick one or more operations for this round.</p>
+                    <div className="choice-grid" role="group" aria-label="Math operators">
+                      {SUPPORTED_OPERATIONS.map(operation => {
+                        const labels: Record<Operation, string> = {
+                          addition: 'Addition +',
+                          subtraction: 'Subtraction −',
+                          multiplication: 'Multiplication ×',
+                          division: 'Division ÷',
+                        };
+                        return (
+                          <label className="choice-chip" key={operation}>
+                            <input
+                              type="checkbox"
+                              checked={selectedOperations.includes(operation)}
+                              onChange={() => toggleOperation(operation)}
+                            />
+                            {labels[operation]}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
 
-              <fieldset className="level-selector operator-selector" style={{ marginBottom: '2rem' }}>
-                <legend className="selector-title">Choose Operators</legend>
-                <p className="selector-description">Pick one or more operations for this round.</p>
-                <div className="choice-grid" role="group" aria-label="Math operators">
-                  {SUPPORTED_OPERATIONS.map(operation => {
-                    const labels: Record<Operation, string> = {
-                      addition: 'Addition +',
-                      subtraction: 'Subtraction −',
-                      multiplication: 'Multiplication ×',
-                      division: 'Division ÷',
-                    };
-                    return (
-                      <label className="choice-chip" key={operation}>
-                        <input
-                          type="checkbox"
-                          checked={selectedOperations.includes(operation)}
-                          onChange={() => toggleOperation(operation)}
-                        />
-                        {labels[operation]}
-                      </label>
-                    );
-                  })}
+                  <fieldset className="level-selector difficulty-selector">
+                    <legend className="selector-title">Choose Difficulty</legend>
+                    <p className="selector-description">The tier sets operand ranges and the starting Blitz timer. Performance can move the tier up or down; Settings can override the timer.</p>
+                    <div className="choice-grid" role="group" aria-label="Difficulty tier">
+                      {(['easy', 'medium', 'hard'] as DifficultyTier[]).map(tier => (
+                        <button
+                          type="button"
+                          key={tier}
+                          className={displayedDifficulty === tier ? 'primary' : ''}
+                          onClick={() => setSelectedDifficulty(tier)}
+                          aria-pressed={displayedDifficulty === tier}
+                        >
+                          {tier[0].toUpperCase() + tier.slice(1)}{displayedDifficulty === tier ? ' (selected)' : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
                 </div>
-              </fieldset>
-
-              <fieldset className="level-selector difficulty-selector" style={{ marginBottom: '2rem' }}>
-                <legend className="selector-title">Choose Difficulty</legend>
-                <p className="selector-description">The tier sets operand ranges and the starting Blitz timer. Performance can move the tier up or down; Settings can override the timer.</p>
-                <div className="choice-grid" role="group" aria-label="Difficulty tier">
-                  {(['easy', 'medium', 'hard'] as DifficultyTier[]).map(tier => (
-                    <button
-                      type="button"
-                      key={tier}
-                      className={displayedDifficulty === tier ? 'primary' : ''}
-                      onClick={() => setSelectedDifficulty(tier)}
-                      aria-pressed={displayedDifficulty === tier}
-                    >
-                      {tier[0].toUpperCase() + tier.slice(1)}{displayedDifficulty === tier ? ' (selected)' : ''}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+              </details>
 
               <div className="mode-selection">
-                <button type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
                 <button type="button" onClick={() => handleStart('practice')}>Practice Mode 🧠</button>
+                <button type="button" className="progress-link" onClick={() => setView('progress')}>
+                  View your progress 📈
+                </button>
               </div>
 
               <div className="badge-gallery">

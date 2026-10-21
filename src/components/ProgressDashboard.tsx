@@ -1,8 +1,11 @@
 import type { ProgressMetrics, ProgressSession } from '../utils/progress';
 import type { DifficultyTier, Operation } from '../utils/mathLogic';
+import { DAILY_GOAL, WEEKLY_GOAL } from '../utils/dailyChallenges';
+import type { RecurringProgress } from '../utils/dailyChallenges';
 
 interface ProgressDashboardProps {
   metrics: ProgressMetrics;
+  recurringProgress: RecurringProgress;
   onBack: () => void;
 }
 
@@ -42,7 +45,37 @@ const SessionRow = ({ session }: { session: ProgressSession }) => (
   </li>
 );
 
-function ProgressDashboard({ metrics, onBack }: ProgressDashboardProps) {
+const RecurringGoals = ({ recurringProgress }: { recurringProgress: RecurringProgress }) => (
+  <section className="progress-panel goals-panel" aria-labelledby="recurring-goals-heading">
+    <div className="daily-challenge-heading">
+      <div>
+        <p className="eyebrow">Keep returning</p>
+        <h3 id="recurring-goals-heading">Recurring goals</h3>
+      </div>
+      <span className="challenge-icon" aria-hidden="true">🌟</span>
+    </div>
+    {[{
+      ...DAILY_GOAL,
+      progress: recurringProgress.dailyCorrectAnswers,
+    }, {
+      ...WEEKLY_GOAL,
+      progress: recurringProgress.weeklyCorrectAnswers,
+    }].map(goal => {
+      const progress = Math.min(goal.progress, goal.target);
+      return (
+        <div className="goal-row" key={goal.id}>
+          <div>
+            <strong>{goal.title}</strong>
+            <span>{goal.description}</span>
+          </div>
+          <strong>{progress}/{goal.target}{progress >= goal.target ? ' ✓' : ''}</strong>
+        </div>
+      );
+    })}
+  </section>
+);
+
+function ProgressDashboard({ metrics, recurringProgress, onBack }: ProgressDashboardProps) {
   if (metrics.totalSessions === 0) {
     return (
       <section className="progress-dashboard" aria-labelledby="progress-title">
@@ -59,6 +92,7 @@ function ProgressDashboard({ metrics, onBack }: ProgressDashboardProps) {
           <p>Finish a round and your accuracy, speed, and practice history will appear here.</p>
           <button type="button" className="primary" onClick={onBack}>Start your first round</button>
         </div>
+        <RecurringGoals recurringProgress={recurringProgress} />
       </section>
     );
   }
@@ -79,6 +113,8 @@ function ProgressDashboard({ metrics, onBack }: ProgressDashboardProps) {
         <div className="progress-metric"><span>Average response</span><strong>{formatResponseTime(metrics.averageResponseTimeMs)}</strong><small>Across all answers</small></div>
         <div className="progress-metric"><span>Questions solved</span><strong>{metrics.questionsSolved}</strong><small>{metrics.totalSessions} {metrics.totalSessions === 1 ? 'session' : 'sessions'}</small></div>
       </div>
+
+      <RecurringGoals recurringProgress={recurringProgress} />
 
       {metrics.trend && (
         <div className="progress-trend" role="status">
