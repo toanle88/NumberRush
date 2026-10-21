@@ -608,6 +608,8 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .setting-item {
@@ -615,6 +617,16 @@
   flex-direction: column;
   gap: 0.75rem;
   text-align: left;
+}
+
+.setting-item legend {
+  padding: 0;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.setting-item fieldset {
+  border: 0;
 }
 
 .setting-item label {
@@ -625,10 +637,32 @@
 .setting-item input {
   padding: 0.75rem;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--input-bg);
   border: 1px solid var(--card-border);
-  color: #fff;
+  color: var(--text-primary);
   font-size: 1rem;
+}
+
+.setting-item select {
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-dark);
+  border: 1px solid var(--card-border);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.checkbox-setting {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--text-primary) !important;
+}
+
+.checkbox-setting input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--color-primary);
 }
 
 .timer-options {
@@ -757,6 +791,19 @@ body.planet-3 {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+html[data-high-contrast='true'] button,
+html[data-high-contrast='true'] input,
+html[data-high-contrast='true'] select,
+html[data-high-contrast='true'] .progress-container,
+html[data-high-contrast='true'] .answer-box {
+  border-width: 2px;
+}
+
+html[data-high-contrast='true'] .feedback-content,
+html[data-high-contrast='true'] .results-feedback {
+  border-width: 3px;
 }
 
 .unlocked-toast {

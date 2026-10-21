@@ -25,6 +25,7 @@ const GameBoard = memo(({
 }: GameBoardProps) => {
   const progress = (timeLeft / maxTime) * 100;
   const planet = getPlanet(level);
+  const questionText = `${question.operandA} ${question.operation === 'addition' ? 'plus' : 'minus'} ${question.operandB}${question.operandC === undefined ? '' : ` ${question.operation2 === 'addition' ? 'plus' : 'minus'} ${question.operandC}`} equals`;
 
   return (
     <div className="board-content">
@@ -32,8 +33,14 @@ const GameBoard = memo(({
         <div className="progress-container">
           <div
             className="progress-bar"
+            role="progressbar"
+            aria-label="Time remaining"
+            aria-valuemin={0}
+            aria-valuemax={maxTime}
+            aria-valuenow={timeLeft}
+            aria-valuetext={`${timeLeft} seconds remaining${timeLeft <= 3 ? ', hurry' : ''}`}
             style={{
-              width: `${progress}%`,
+              width: `${Math.max(0, progress)}%`,
               backgroundColor: timeLeft <= 3 ? 'var(--color-error)' : 'var(--color-primary)'
             }}
           />
@@ -56,14 +63,15 @@ const GameBoard = memo(({
           </div>
         )}
         {showTimer && (
-          <div className="stat-item timer">
+          <div className="stat-item timer" aria-live="polite">
             <span className="label">Time</span>
-            <span className="value">{timeLeft}s</span>
+            <span className="value">{timeLeft}s{timeLeft <= 3 ? ' — hurry' : ''}</span>
           </div>
         )}
       </div>
 
-      <div className="question-display">
+      <div className="question-display" role="group" aria-label={`${questionText} current answer ${currentInput || 'not entered'}`}>
+        <span className="sr-only" role="status" aria-live="polite">{questionText} Your current answer is {currentInput || 'not entered'}.</span>
         <span>{question.operandA}</span>
         <span style={{ color: 'var(--color-primary)' }}>
           {question.operation === 'addition' ? '+' : '−'}
