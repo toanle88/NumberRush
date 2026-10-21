@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import App from './App';
 import { DAILY_CHALLENGES_STORAGE_KEY, getDailyChallenge, getLocalDateKey, getWeekStartKey } from './utils/dailyChallenges';
 
+const openRoundCustomizer = () => {
+  fireEvent.click(screen.getByText('Customize round'));
+};
+
 describe('App keyboard gameplay', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -38,6 +42,7 @@ describe('App keyboard gameplay', () => {
   it('lets players choose division and a named difficulty tier before starting', () => {
     render(<App />);
 
+    openRoundCustomizer();
     fireEvent.click(screen.getByRole('checkbox', { name: /Division/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Addition/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Subtraction/ }));
@@ -53,6 +58,7 @@ describe('App keyboard gameplay', () => {
   it('uses the selected starting planet difficulty by default', () => {
     render(<App />);
 
+    openRoundCustomizer();
     fireEvent.click(screen.getByRole('button', { name: /Mars/ }));
     fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
 
@@ -72,6 +78,7 @@ describe('App keyboard gameplay', () => {
   it('uses the hard timer for a default Deep Space start', () => {
     render(<App />);
 
+    openRoundCustomizer();
     fireEvent.click(screen.getByRole('button', { name: /Deep Space/ }));
     fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
 
@@ -83,6 +90,7 @@ describe('App keyboard gameplay', () => {
   it('accepts four-digit answers for hard three-number multiplication', () => {
     render(<App />);
 
+    openRoundCustomizer();
     fireEvent.click(screen.getByRole('checkbox', { name: /Addition/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Subtraction/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Multiplication/ }));
@@ -108,12 +116,44 @@ describe('App keyboard gameplay', () => {
     expect(screen.getByRole('button', { name: /Back to home/i })).toBeInTheDocument();
   });
 
-  it('shows the daily challenge and recurring goals with visible progress', () => {
+  it('puts the daily challenge and default start before collapsed round controls', () => {
     render(<App />);
 
-    expect(screen.getByText('Daily challenge')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Recurring goals' })).toBeInTheDocument();
+    const dailyChallenge = screen.getByText('Daily challenge');
+    const startButton = screen.getByRole('button', { name: /Start Blitz Rush/ });
+    const customizeSummary = screen.getByText('Customize round');
+    const practiceButton = screen.getByRole('button', { name: /Practice Mode/ });
+
+    expect(dailyChallenge).toBeInTheDocument();
+    expect(startButton).toBeInTheDocument();
+    expect(dailyChallenge.compareDocumentPosition(startButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(startButton.compareDocumentPosition(customizeSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(customizeSummary.compareDocumentPosition(practiceButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(customizeSummary.tagName).toBe('SUMMARY');
+    expect(customizeSummary.closest('details')).not.toHaveAttribute('open');
     expect(screen.getByRole('progressbar', { name: /progress/i })).toHaveAttribute('aria-valuenow', '0');
+    expect(screen.queryByRole('heading', { name: 'Recurring goals' })).not.toBeInTheDocument();
+  });
+
+  it('preserves round selections when customization is closed and reopened', () => {
+    render(<App />);
+
+    openRoundCustomizer();
+    fireEvent.click(screen.getByRole('button', { name: /Mars/ }));
+    fireEvent.click(screen.getByRole('button', { name: /3-Number Chaos OFF/ }));
+    fireEvent.click(screen.getByText('Customize round'));
+    fireEvent.click(screen.getByText('Customize round'));
+
+    expect(screen.getByRole('button', { name: /Mars.*\(selected\)/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /3-Number Chaos ON/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('keeps recurring goals behind the progress view', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /View your progress/i }));
+
+    expect(screen.getByRole('heading', { name: 'Recurring goals' })).toBeInTheDocument();
     expect(screen.getByText(/Solve 10 questions correctly/)).toBeInTheDocument();
     expect(screen.getByText(/Solve 50 questions correctly/)).toBeInTheDocument();
   });
