@@ -531,4 +531,46 @@ describe('useGame Hook', () => {
       isNewPersonalBestStreak: true,
     });
   });
+
+  it('records answer-level operator and effective difficulty data in persisted sessions', () => {
+    const { result, unmount } = renderHook(() => useGame(10));
+    vi.setSystemTime(0);
+
+    act(() => {
+      result.current.startGame(1, 'blitz', false, ['multiplication'], 'hard');
+    });
+    vi.setSystemTime(1500);
+    act(() => {
+      result.current.submitAnswer(result.current.currentQuestion!.answer + 1);
+      result.current.endGame();
+    });
+
+    expect(result.current.progressSessions).toHaveLength(1);
+    expect(result.current.progressSessions[0].answers[0]).toMatchObject({
+      isCorrect: false,
+      operations: ['multiplication'],
+      difficulty: 'hard',
+      responseTimeMs: 1500,
+    });
+    expect(JSON.parse(localStorage.getItem('numberrush_progress_sessions')!)).toHaveLength(1);
+
+    unmount();
+    const reloaded = renderHook(() => useGame(10));
+    expect(reloaded.result.current.progressSessions).toHaveLength(1);
+    expect(reloaded.result.current.progressMetrics.questionsAttempted).toBe(1);
+  });
+
+  it('records a zero-answer finished session and clears progress on reset', () => {
+    const { result } = renderHook(() => useGame(10));
+
+    act(() => {
+      result.current.startGame(1, 'practice', false);
+      result.current.endGame();
+    });
+
+    expect(result.current.progressSessions[0]).toMatchObject({ totalQuestions: 0, correctAnswers: 0, averageResponseTimeMs: null });
+    act(() => result.current.resetStats());
+    expect(result.current.progressSessions).toEqual([]);
+    expect(localStorage.getItem('numberrush_progress_sessions')).toBeNull();
+  });
 });
