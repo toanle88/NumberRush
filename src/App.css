@@ -418,8 +418,64 @@
 
 .customize-round-content {
   display: grid;
-  gap: 1.5rem;
+  gap: 1rem;
   padding: 0.25rem 0 1.25rem;
+}
+
+.preset-selector,
+.setting-group {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.preset-selector .selector-title,
+.setting-title {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.preset-choice {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.preset-choice small {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.preset-choice.primary small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.custom-round-settings {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--card-border);
+}
+
+.setting-group {
+  text-align: center;
+}
+
+.setting-group .setting-title {
+  text-align: left;
 }
 
 .planet-choice-grid {
@@ -427,6 +483,51 @@
   justify-content: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.planet-choice-grid button,
+.difficulty-selector button {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.95rem;
+}
+
+.more-options {
+  border-top: 1px solid var(--card-border);
+  text-align: left;
+}
+
+.more-options summary {
+  padding: 0.75rem 0.25rem;
+  color: var(--color-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  list-style-position: inside;
+}
+
+.more-options summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.more-options summary span {
+  float: right;
+  transition: transform 0.2s ease;
+}
+
+.more-options[open] summary span {
+  transform: rotate(180deg);
+}
+
+.more-options-content {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0.25rem 0 0.25rem;
+}
+
+.more-options-content button {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.95rem;
 }
 
 /* GameBoard Styles */
@@ -652,31 +753,6 @@
   color: var(--text-secondary);
 }
 
-/* Level Selector */
-.level-selector button {
-  font-size: 1rem;
-  transition: all 0.2s;
-}
-
-.selector-title {
-  margin: 0 0 0.5rem;
-  font-weight: 600;
-}
-
-.selector-description,
-.selected-planet-note {
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-  margin: 0 auto 1rem;
-  max-width: 480px;
-}
-
-.selected-planet-note {
-  margin: 1rem auto 0;
-  font-size: 0.85rem;
-}
-
-.progression-guide,
 .progression-path {
   display: flex;
   justify-content: center;
@@ -684,11 +760,6 @@
   flex-wrap: wrap;
 }
 
-.progression-guide {
-  margin-top: 1rem;
-}
-
-.progression-guide span,
 .progression-chip {
   display: flex;
   flex-direction: column;
@@ -699,7 +770,6 @@
   background: rgba(255, 255, 255, 0.04);
 }
 
-.progression-guide small,
 .progression-chip small {
   color: var(--text-secondary);
   font-size: 0.7rem;
@@ -769,6 +839,10 @@
 @media (max-width: 480px) {
   h1 {
     font-size: 2rem;
+  }
+
+  .preset-grid {
+    grid-template-columns: 1fr;
   }
 
   p {
@@ -930,11 +1004,6 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.advanced-toggle {
-  display: flex;
-  justify-content: center;
 }
 
 .operator-selector,

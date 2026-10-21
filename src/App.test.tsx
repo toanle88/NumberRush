@@ -7,6 +7,11 @@ const openRoundCustomizer = () => {
   fireEvent.click(screen.getByText('Customize round'));
 };
 
+const openCustomRoundCustomizer = () => {
+  openRoundCustomizer();
+  fireEvent.click(screen.getByRole('button', { name: /^Custom$/ }));
+};
+
 describe('App keyboard gameplay', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -42,7 +47,7 @@ describe('App keyboard gameplay', () => {
   it('lets players choose division and a named difficulty tier before starting', () => {
     render(<App />);
 
-    openRoundCustomizer();
+    openCustomRoundCustomizer();
     fireEvent.click(screen.getByRole('checkbox', { name: /Division/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Addition/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Subtraction/ }));
@@ -58,7 +63,7 @@ describe('App keyboard gameplay', () => {
   it('uses the selected starting planet difficulty by default', () => {
     render(<App />);
 
-    openRoundCustomizer();
+    openCustomRoundCustomizer();
     fireEvent.click(screen.getByRole('button', { name: /Mars/ }));
     fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
 
@@ -78,7 +83,7 @@ describe('App keyboard gameplay', () => {
   it('uses the hard timer for a default Deep Space start', () => {
     render(<App />);
 
-    openRoundCustomizer();
+    openCustomRoundCustomizer();
     fireEvent.click(screen.getByRole('button', { name: /Deep Space/ }));
     fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
 
@@ -90,11 +95,12 @@ describe('App keyboard gameplay', () => {
   it('accepts four-digit answers for hard three-number multiplication', () => {
     render(<App />);
 
-    openRoundCustomizer();
+    openCustomRoundCustomizer();
     fireEvent.click(screen.getByRole('checkbox', { name: /Addition/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Subtraction/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Multiplication/ }));
     fireEvent.click(screen.getByRole('button', { name: /^Hard$/ }));
+    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByRole('button', { name: /3-Number Chaos OFF/ }));
     fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
 
@@ -114,6 +120,39 @@ describe('App keyboard gameplay', () => {
     expect(screen.getByRole('heading', { name: 'Progress' })).toBeInTheDocument();
     expect(screen.getByText(/Your progress story starts here/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Back to home/i })).toBeInTheDocument();
+  });
+
+  it('shows presets before custom controls and keeps Chaos behind More options', () => {
+    render(<App />);
+
+    openRoundCustomizer();
+
+    expect(screen.getByRole('button', { name: /^Quick Start$/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^Challenge$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Custom$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Starting planet' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /Addition/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Custom$/ }));
+    expect(screen.getByRole('heading', { name: 'Starting planet' })).toBeInTheDocument();
+    expect(screen.getByText('More options')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /3-Number Chaos/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('More options'));
+    expect(screen.getByRole('button', { name: /3-Number Chaos OFF/ })).toBeInTheDocument();
+  });
+
+  it('applies the recommended Challenge preset through the existing start contract', () => {
+    render(<App />);
+
+    openRoundCustomizer();
+    fireEvent.click(screen.getByRole('button', { name: /^Challenge$/ }));
+
+    expect(screen.getByRole('button', { name: /^Challenge$/ })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
+
+    expect(screen.getByText('Medium')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Time remaining' })).toHaveAttribute('aria-valuemax', '10');
   });
 
   it('puts the daily challenge and default start before collapsed round controls', () => {
@@ -138,12 +177,14 @@ describe('App keyboard gameplay', () => {
   it('preserves round selections when customization is closed and reopened', () => {
     render(<App />);
 
-    openRoundCustomizer();
+    openCustomRoundCustomizer();
     fireEvent.click(screen.getByRole('button', { name: /Mars/ }));
+    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByRole('button', { name: /3-Number Chaos OFF/ }));
     fireEvent.click(screen.getByText('Customize round'));
     fireEvent.click(screen.getByText('Customize round'));
 
+    expect(screen.getByRole('button', { name: /^Custom$/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /Mars.*\(selected\)/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /3-Number Chaos ON/ })).toHaveAttribute('aria-pressed', 'true');
   });
