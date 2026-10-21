@@ -20,6 +20,105 @@
   border-color: color-mix(in srgb, var(--color-secondary) 45%, var(--card-border));
 }
 
+.daily-challenge-card,
+.recurring-goals {
+  width: 100%;
+  max-width: 38rem;
+  margin: 0 auto 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 45%, var(--card-border));
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(168, 85, 247, 0.08));
+  text-align: left;
+}
+
+.recurring-goals {
+  border-color: color-mix(in srgb, var(--color-secondary) 45%, var(--card-border));
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.daily-challenge-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.daily-challenge-heading h2 {
+  margin: 0.15rem 0 0.3rem;
+  color: var(--color-secondary);
+  font-size: 1.35rem;
+}
+
+.daily-challenge-heading p:last-child {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.challenge-icon {
+  font-size: 2rem;
+}
+
+.challenge-progress-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.challenge-progress-bar {
+  height: 0.7rem;
+  flex: 1;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.challenge-progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  transition: width 0.3s ease;
+}
+
+.challenge-status,
+.challenge-points {
+  margin: 0.65rem 0 0;
+  font-size: 0.9rem;
+}
+
+.challenge-status {
+  color: var(--color-success);
+}
+
+.challenge-points {
+  color: var(--text-secondary);
+}
+
+.goal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--card-border);
+}
+
+.goal-row:first-of-type {
+  margin-top: 0.75rem;
+}
+
+.goal-row div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.goal-row span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 .progress-dashboard {
   width: 100%;
   max-width: 62rem;
@@ -484,6 +583,21 @@
 }
 
 .results-feedback span {
+  color: var(--text-secondary);
+}
+
+.challenge-complete-banner {
+  display: grid;
+  gap: 0.25rem;
+  max-width: 28rem;
+  margin: 0 auto 1.5rem;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--color-success);
+  border-radius: var(--radius-md);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.challenge-complete-banner span {
   color: var(--text-secondary);
 }
 
