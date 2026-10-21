@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MathQuestion } from '../utils/mathLogic';
-import { generateQuestion, getQuestionExplanation } from '../utils/mathLogic';
+import type { DifficultyTier, MathQuestion, Operation } from '../utils/mathLogic';
+import { DEFAULT_OPERATIONS, generateQuestion, getAdaptiveDifficulty, getDifficultyAtLeast, getDifficultyForLevel, getDifficultySettings, getQuestionExplanation, normalizeOperations } from '../utils/mathLogic';
 import { getLevelForScore } from '../utils/planetProgression';
 
 export type GameStatus = 'idle' | 'playing' | 'finished';
@@ -48,15 +48,23 @@ export interface RoundSummary {
 interface TargetedQuestion {
   question: MathQuestion;
   level: number;
+  difficulty: DifficultyTier;
+  operations: Operation[];
 }
 
 interface GameState {
   score: number;
   streak: number;
   timeLeft: number;
+  maxTime: number;
   status: GameStatus;
   mode: GameMode;
   isAdvanced: boolean;
+  operations: Operation[];
+  difficulty: DifficultyTier;
+  adaptiveDifficulty: boolean;
+  timerOverride: number | null;
+  useDifficultyTimer: boolean;
   currentQuestion: MathQuestion | null;
   history: AnswerRecord[];
   missedQuestions: TargetedQuestion[];
@@ -89,6 +97,10 @@ const STORAGE_KEYS = {
   MOON_GAMES: 'numberrush_moon_games',
   MARS_GAMES: 'numberrush_mars_games',
   SPACE_GAMES: 'numberrush_space_games',
+};
+
+const enforcePlanetDifficulty = (difficulty: DifficultyTier, level: number): DifficultyTier => {
+  return getDifficultyAtLeast(difficulty, getDifficultyForLevel(level));
 };
 
 export const BADGES: Badge[] = [
@@ -134,9 +146,15 @@ export const useGame = (initialTime: number = 10) => {
       score: 0,
       streak: 0,
       timeLeft: initialTime,
+      maxTime: initialTime,
       status: 'idle',
       mode: 'blitz',
       isAdvanced: false,
+      operations: [...DEFAULT_OPERATIONS],
+      difficulty: 'easy',
+      adaptiveDifficulty: false,
+      timerOverride: null,
+      useDifficultyTimer: false,
       currentQuestion: null,
       history: [],
       missedQuestions: [],
@@ -213,19 +231,28 @@ export const useGame = (initialTime: number = 10) => {
     return finishedState;
   }, [checkBadges]);
 
-  const startGame = useCallback((level: number = 1, mode: GameMode = 'blitz', isAdvanced: boolean = false) => {
+  const startGame = useCallback((level: number = 1, mode: GameMode = 'blitz', isAdvanced = false, operations: readonly Operation[] = DEFAULT_OPERATIONS, selectedDifficulty?: DifficultyTier, timerOverride?: number, adaptDifficulty = selectedDifficulty !== undefined, useDifficultyTimer = selectedDifficulty !== undefined) => {
+    const difficulty = enforcePlanetDifficulty(selectedDifficulty || getDifficultyForLevel(level), level);
+    const roundOperations = normalizeOperations(operations);
+    const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(difficulty).timerSeconds : initialTime);
     setState(prev => ({
       ...prev,
       score: 0,
       streak: 0,
-      timeLeft: initialTime,
+      timeLeft: maxTime,
+      maxTime,
       status: 'playing',
       mode,
       isAdvanced,
+      operations: roundOperations,
+      difficulty,
+      adaptiveDifficulty: adaptDifficulty,
+      timerOverride: timerOverride ?? null,
+      useDifficultyTimer,
       currentLevel: level,
       startingLevel: level,
       playedLevels: [level],
-      currentQuestion: generateQuestion(level, isAdvanced),
+      currentQuestion: generateQuestion(difficulty, isAdvanced, roundOperations),
       history: [],
       roundBestStreak: 0,
       roundPersonalBestScore: prev.highScore,
@@ -248,11 +275,14 @@ export const useGame = (initialTime: number = 10) => {
         ...prev,
         score: 0,
         streak: 0,
-        timeLeft: initialTime,
+        timeLeft: prev.maxTime,
+        maxTime: prev.maxTime,
         status: 'playing',
         mode: 'practice',
         currentQuestion: firstQuestion.question,
         currentLevel: firstQuestion.level,
+        difficulty: firstQuestion.difficulty,
+        operations: firstQuestion.operations,
         startingLevel: firstQuestion.level,
         playedLevels: [firstQuestion.level],
         history: [],
@@ -265,7 +295,7 @@ export const useGame = (initialTime: number = 10) => {
         practiceQueue,
       };
     });
-  }, [initialTime]);
+  }, []);
 
   const submitAnswer = useCallback((playerAnswer: number): AnswerFeedback | null => {
     const submissionState = stateRef.current;
@@ -311,6 +341,19 @@ export const useGame = (initialTime: number = 10) => {
       level: submissionState.currentLevel,
       responseTimeMs,
     }];
+    const nextDifficulty = submissionState.isTargetedPractice
+      ? nextTargetedQuestion?.difficulty ?? submissionState.difficulty
+      : enforcePlanetDifficulty(
+        submissionState.adaptiveDifficulty
+          ? getAdaptiveDifficulty(submissionState.difficulty, nextHistory)
+          : getDifficultyForLevel(nextQuestionLevel),
+        nextQuestionLevel,
+      );
+    const nextMaxTime = submissionState.timerOverride ?? (
+      submissionState.useDifficultyTimer || submissionState.adaptiveDifficulty
+        ? getDifficultySettings(nextDifficulty).timerSeconds
+        : submissionState.maxTime
+    );
     const hasFinishedTargetedPractice = submissionState.isTargetedPractice && !nextTargetedQuestion;
     const nextState: GameState = {
       ...submissionState,
@@ -321,18 +364,25 @@ export const useGame = (initialTime: number = 10) => {
       bestStreak: newBestStreak,
       totalCorrect: newTotalCorrect,
       totalChaosSolved: newTotalChaos,
-      timeLeft: initialTime,
+      timeLeft: nextMaxTime,
+      maxTime: nextMaxTime,
+      difficulty: nextDifficulty,
       history: nextHistory,
       missedQuestions: answerIsCorrect || submissionState.isTargetedPractice
         ? submissionState.missedQuestions
-        : [...submissionState.missedQuestions, { question, level: submissionState.currentLevel }],
+        : [...submissionState.missedQuestions, {
+          question,
+          level: submissionState.currentLevel,
+          difficulty: submissionState.difficulty,
+          operations: submissionState.operations,
+        }],
       currentLevel: nextQuestionLevel,
       playedLevels,
       currentQuestion: hasFinishedTargetedPractice
         ? null
         : submissionState.isTargetedPractice
           ? nextTargetedQuestion.question
-          : generateQuestion(nextLevel, submissionState.isAdvanced),
+          : generateQuestion(nextDifficulty, submissionState.isAdvanced, submissionState.operations),
       questionStartedAt: Date.now(),
       practiceQueue: submissionState.isTargetedPractice ? submissionState.practiceQueue.slice(1) : [],
     };
@@ -346,7 +396,7 @@ export const useGame = (initialTime: number = 10) => {
     });
 
     return feedback;
-  }, [initialTime, checkBadges, finalizeGameState]);
+  }, [checkBadges, finalizeGameState]);
 
   const endGame = useCallback(() => {
     setState(prev => prev.status === 'playing' ? finalizeGameState(prev) : prev);
@@ -354,9 +404,9 @@ export const useGame = (initialTime: number = 10) => {
   }, [finalizeGameState]);
 
   const resetGame = useCallback(() => {
-    setState(prev => ({ ...prev, status: 'idle', timeLeft: initialTime }));
+    setState(prev => ({ ...prev, status: 'idle', timeLeft: prev.maxTime }));
     if (timerRef.current) clearInterval(timerRef.current);
-  }, [initialTime]);
+  }, []);
 
   const resetStats = useCallback(() => {
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));

@@ -38,6 +38,145 @@ describe('useGame Hook', () => {
     expect(result.current.currentQuestion).not.toBeNull();
   });
 
+  it('starts selected operator and difficulty rounds with tier settings', () => {
+    const { result } = renderHook(() => useGame(20));
+    act(() => {
+      result.current.startGame(1, 'blitz', false, ['division'], 'hard');
+    });
+
+    expect(result.current.difficulty).toBe('hard');
+    expect(result.current.maxTime).toBe(7);
+    expect(result.current.timeLeft).toBe(7);
+    expect(result.current.currentQuestion?.operation).toBe('division');
+    expect(result.current.currentQuestion!.operandA % result.current.currentQuestion!.operandB).toBe(0);
+  });
+
+  it('keeps the hook configuration aligned with generation when operators are empty', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => {
+      result.current.startGame(1, 'blitz', false, []);
+    });
+
+    expect(result.current.operations).toEqual(['addition', 'subtraction']);
+    expect(['addition', 'subtraction']).toContain(result.current.currentQuestion?.operation);
+  });
+
+  it('uses the starting planet tier when no difficulty override is provided', () => {
+    const { result } = renderHook(() => useGame(10));
+
+    act(() => {
+      result.current.startGame(2, 'blitz', false, ['addition']);
+    });
+
+    expect(result.current.difficulty).toBe('medium');
+    expect(result.current.currentQuestion!.operandA).toBeLessThanOrEqual(20);
+
+    act(() => {
+      result.current.endGame();
+      result.current.startGame(3, 'blitz', false, ['addition']);
+    });
+
+    expect(result.current.difficulty).toBe('hard');
+    expect(result.current.currentQuestion!.operandA).toBeLessThanOrEqual(50);
+  });
+
+  it('raises the tier when score progression reaches the next planet', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => {
+      result.current.startGame(1, 'blitz', false, ['addition']);
+    });
+
+    for (let answerNumber = 0; answerNumber < 8; answerNumber += 1) {
+      act(() => {
+        result.current.submitAnswer(result.current.currentQuestion!.answer);
+      });
+    }
+
+    expect(result.current.score).toBe(110);
+    expect(result.current.currentLevel).toBe(2);
+    expect(result.current.difficulty).toBe('medium');
+    expect(result.current.currentQuestion!.operandA).toBeLessThanOrEqual(20);
+  });
+
+  it('uses planet timers without treating the planet tier as a difficulty override', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => {
+      result.current.startGame(1, 'blitz', false, ['addition'], undefined, undefined, false, true);
+    });
+
+    expect(result.current.difficulty).toBe('easy');
+    expect(result.current.maxTime).toBe(15);
+
+    for (let answerNumber = 0; answerNumber < 8; answerNumber += 1) {
+      act(() => {
+        result.current.submitAnswer(result.current.currentQuestion!.answer);
+      });
+    }
+
+    expect(result.current.difficulty).toBe('medium');
+    expect(result.current.maxTime).toBe(10);
+    expect(result.current.timeLeft).toBe(10);
+  });
+
+  it('raises an explicit easy tier to the next planet minimum at the threshold', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => {
+      result.current.startGame(1, 'blitz', false, ['addition'], 'easy', undefined, false, true);
+    });
+
+    for (let answerNumber = 0; answerNumber < 8; answerNumber += 1) {
+      act(() => {
+        result.current.submitAnswer(result.current.currentQuestion!.answer);
+      });
+    }
+
+    expect(result.current.currentLevel).toBe(2);
+    expect(result.current.difficulty).toBe('medium');
+    expect(result.current.maxTime).toBe(10);
+  });
+
+  it('keeps an explicit tier at or above the starting planet minimum', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => {
+      result.current.startGame(2, 'blitz', false, ['addition'], 'easy');
+    });
+
+    expect(result.current.difficulty).toBe('medium');
+  });
+
+  it('adapts an explicit tier after fast accurate answers', () => {
+    const { result } = renderHook(() => useGame(20));
+    act(() => {
+      result.current.startGame(1, 'blitz', false, ['addition'], 'easy');
+    });
+
+    for (let answerNumber = 0; answerNumber < 3; answerNumber += 1) {
+      act(() => {
+        result.current.submitAnswer(result.current.currentQuestion!.answer);
+      });
+    }
+
+    expect(result.current.difficulty).toBe('medium');
+    expect(result.current.maxTime).toBe(10);
+  });
+
+  it('preserves a Settings timer override while adaptive difficulty changes', () => {
+    const { result } = renderHook(() => useGame(20));
+    act(() => {
+      result.current.startGame(1, 'blitz', false, ['addition'], 'easy', 20);
+    });
+
+    for (let answerNumber = 0; answerNumber < 3; answerNumber += 1) {
+      act(() => {
+        result.current.submitAnswer(result.current.currentQuestion!.answer);
+      });
+    }
+
+    expect(result.current.difficulty).toBe('medium');
+    expect(result.current.maxTime).toBe(20);
+    expect(result.current.timeLeft).toBe(20);
+  });
+
   it('keeps a Mars start at or above the selected difficulty', () => {
     const { result } = renderHook(() => useGame(10));
     act(() => {
