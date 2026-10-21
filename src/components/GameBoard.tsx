@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import type { MathQuestion } from '../utils/mathLogic';
+import type { DifficultyTier, MathQuestion } from '../utils/mathLogic';
+import { formatOperation } from '../utils/mathLogic';
 import { getPlanet } from '../utils/planetProgression';
 
 interface GameBoardProps {
@@ -11,6 +12,7 @@ interface GameBoardProps {
   streak: number;
   showTimer: boolean;
   level: number;
+  difficulty?: DifficultyTier;
 }
 
 const GameBoard = memo(({
@@ -21,11 +23,18 @@ const GameBoard = memo(({
   maxTime,
   streak,
   showTimer,
-  level
+  level,
+  difficulty = 'easy'
 }: GameBoardProps) => {
   const progress = (timeLeft / maxTime) * 100;
   const planet = getPlanet(level);
-  const questionText = `${question.operandA} ${question.operation === 'addition' ? 'plus' : 'minus'} ${question.operandB}${question.operandC === undefined ? '' : ` ${question.operation2 === 'addition' ? 'plus' : 'minus'} ${question.operandC}`} equals`;
+  const spokenOperation = (operation: MathQuestion['operation']) => {
+    if (operation === 'addition') return 'plus';
+    if (operation === 'subtraction') return 'minus';
+    if (operation === 'multiplication') return 'times';
+    return 'divided by';
+  };
+  const questionText = `${question.operandA} ${spokenOperation(question.operation)} ${question.operandB}${question.operandC === undefined ? '' : ` ${spokenOperation(question.operation2!)} ${question.operandC}`} equals`;
 
   return (
     <div className="board-content">
@@ -53,6 +62,10 @@ const GameBoard = memo(({
           <span className="value">{planet.icon} {planet.name}</span>
         </div>
         <div className="stat-item">
+          <span className="label">Difficulty</span>
+          <span className="value">{difficulty[0].toUpperCase() + difficulty.slice(1)}</span>
+        </div>
+        <div className="stat-item">
           <span className="label">Score</span>
           <span className="value">{score}</span>
         </div>
@@ -74,13 +87,13 @@ const GameBoard = memo(({
         <span className="sr-only" role="status" aria-live="polite">{questionText} Your current answer is {currentInput || 'not entered'}.</span>
         <span>{question.operandA}</span>
         <span style={{ color: 'var(--color-primary)' }}>
-          {question.operation === 'addition' ? '+' : '−'}
+          {formatOperation(question.operation)}
         </span>
         <span>{question.operandB}</span>
         {question.operandC !== undefined && (
           <>
             <span style={{ color: 'var(--color-primary)' }}>
-              {question.operation2 === 'addition' ? '+' : '−'}
+              {formatOperation(question.operation2!)}
             </span>
             <span>{question.operandC}</span>
           </>

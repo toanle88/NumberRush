@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGame, BADGES } from './hooks/useGame';
 import type { AnswerFeedback, GameMode } from './hooks/useGame';
+import type { DifficultyTier, Operation } from './utils/mathLogic';
+import { getDifficultyAtLeast, getDifficultyForLevel, SUPPORTED_OPERATIONS } from './utils/mathLogic';
 import GameBoard from './components/GameBoard';
 import Numpad from './components/Numpad';
 import BadgeItem from './components/BadgeItem';
@@ -29,13 +31,15 @@ function App() {
   const [systemReducedMotion, setSystemReducedMotion] = useState(getSystemReducedMotionPreference);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const [isAdvanced, setIsAdvanced] = useState(false);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyTier | undefined>();
+  const [selectedOperations, setSelectedOperations] = useState<Operation[]>(['addition', 'subtraction']);
   const [lastUnlockedBadge, setLastUnlockedBadge] = useState<string | null>(null);
   const previousBadgeCountRef = useRef(0);
   const hasInitializedBadgesRef = useRef(false);
 
   const {
     status, score, timeLeft, streak, mode, currentQuestion,
-    highScore, bestStreak, unlockedBadges, currentLevel, playedLevels, missedQuestions,
+    highScore, bestStreak, unlockedBadges, currentLevel, difficulty, maxTime, playedLevels, missedQuestions,
     roundSummary, isTargetedPractice, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats
   } = useGame(initialTime);
 
@@ -122,11 +126,22 @@ function App() {
   const handleStart = (m: GameMode) => {
     setPlanetTransition(null);
     setFeedback(null);
-    startGame(selectedLevel, m, isAdvanced);
+    const hasDifficultyOverride = selectedDifficulty !== undefined;
+    const timerOverride = localStorage.getItem('numberrush_timer') !== null ? initialTime : undefined;
+    startGame(selectedLevel, m, isAdvanced, selectedOperations, selectedDifficulty, timerOverride, hasDifficultyOverride, true);
+  };
+
+  const toggleOperation = (operation: Operation) => {
+    setSelectedOperations(previous => {
+      if (previous.includes(operation)) {
+        return previous.length === 1 ? previous : previous.filter(item => item !== operation);
+      }
+      return [...previous, operation];
+    });
   };
 
   const handleInput = useCallback((val: string) => {
-    setInput(prev => (prev.length < 3 ? prev + val : prev));
+    setInput(prev => (prev.length < 4 ? prev + val : prev));
   }, []);
 
   const handleClear = useCallback(() => setInput(''), []);
@@ -252,6 +267,10 @@ function App() {
   }, [timeLeft, status, mode, preferences.sound]);
 
   const selectedPlanet = getPlanet(selectedLevel);
+  const displayedDifficulty = getDifficultyAtLeast(
+    selectedDifficulty || getDifficultyForLevel(selectedLevel),
+    getDifficultyForLevel(selectedLevel),
+  );
 
   return (
     <main className="animate-pop">
@@ -304,7 +323,7 @@ function App() {
                   ))}
                 </div>
                 <p className="selected-planet-note">
-                  Starting on {selectedPlanet.name} begins at {selectedPlanet.difficulty.toLowerCase()} difficulty; progression only moves forward.
+                  Starting on {selectedPlanet.name} begins at {displayedDifficulty} difficulty; the selected tier can raise that minimum, and progression only moves forward.
                 </p>
               </div>
 
@@ -319,6 +338,49 @@ function App() {
                   {isAdvanced ? '🔥 3-Number Chaos ON' : '💡 3-Number Chaos OFF'}
                 </button>
               </div>
+
+              <fieldset className="level-selector operator-selector" style={{ marginBottom: '2rem' }}>
+                <legend className="selector-title">Choose Operators</legend>
+                <p className="selector-description">Pick one or more operations for this round.</p>
+                <div className="choice-grid" role="group" aria-label="Math operators">
+                  {SUPPORTED_OPERATIONS.map(operation => {
+                    const labels: Record<Operation, string> = {
+                      addition: 'Addition +',
+                      subtraction: 'Subtraction −',
+                      multiplication: 'Multiplication ×',
+                      division: 'Division ÷',
+                    };
+                    return (
+                      <label className="choice-chip" key={operation}>
+                        <input
+                          type="checkbox"
+                          checked={selectedOperations.includes(operation)}
+                          onChange={() => toggleOperation(operation)}
+                        />
+                        {labels[operation]}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              <fieldset className="level-selector difficulty-selector" style={{ marginBottom: '2rem' }}>
+                <legend className="selector-title">Choose Difficulty</legend>
+                <p className="selector-description">The tier sets operand ranges and the starting Blitz timer. Performance can move the tier up or down; Settings can override the timer.</p>
+                <div className="choice-grid" role="group" aria-label="Difficulty tier">
+                  {(['easy', 'medium', 'hard'] as DifficultyTier[]).map(tier => (
+                    <button
+                      type="button"
+                      key={tier}
+                      className={displayedDifficulty === tier ? 'primary' : ''}
+                      onClick={() => setSelectedDifficulty(tier)}
+                      aria-pressed={displayedDifficulty === tier}
+                    >
+                      {tier[0].toUpperCase() + tier.slice(1)}{displayedDifficulty === tier ? ' (selected)' : ''}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
 
               <div className="mode-selection">
                 <button type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
@@ -347,7 +409,7 @@ function App() {
                   <span>{getPlanet(planetTransition.from).icon} {getPlanet(planetTransition.from).name}</span>
                   <span aria-hidden="true">→</span>
                   <strong>Now entering {getPlanet(planetTransition.to).icon} {getPlanet(planetTransition.to).name}!</strong>
-                  <small>{getPlanet(planetTransition.to).difficulty} difficulty · {score} points reached</small>
+                  <small>{difficulty[0].toUpperCase() + difficulty.slice(1)} difficulty · {score} points reached</small>
                 </div>
               )}
               <div className="board-wrapper" style={{ position: 'relative', width: '100%' }}>
@@ -356,10 +418,11 @@ function App() {
                   currentInput={input}
                   score={score}
                   timeLeft={timeLeft}
-                  maxTime={initialTime}
+                  maxTime={maxTime}
                   streak={streak}
                   showTimer={mode === 'blitz'}
                   level={currentLevel}
+                  difficulty={difficulty}
                 />
                 {feedback && (
                   <div className="feedback-overlay" role="status" aria-live="polite">
