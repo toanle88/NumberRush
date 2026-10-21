@@ -10,7 +10,7 @@ const Numpad = memo(({ onInput, onClear, onSubmit }: NumpadProps) => {
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '✓'];
 
   return (
-    <div className="numpad">
+    <div className="numpad" role="group" aria-label="Answer keypad">
       {keys.map((key) => {
         const isSubmit = key === '✓';
         const isClear = key === 'C';
@@ -25,6 +25,7 @@ const Numpad = memo(({ onInput, onClear, onSubmit }: NumpadProps) => {
               else onInput(key);
             }}
             className={`num-btn ${isClear ? 'clear-btn' : ''} ${isSubmit ? 'submit-btn primary' : ''}`}
+            aria-label={isClear ? 'Clear answer' : isSubmit ? 'Submit answer' : `Enter ${key}`}
           >
             {key}
           </button>

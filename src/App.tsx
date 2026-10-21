@@ -7,6 +7,8 @@ import BadgeItem from './components/BadgeItem';
 import SettingsModal from './components/SettingsModal';
 import { getPlanet, PLANETS } from './utils/planetProgression';
 import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects';
+import { getSystemReducedMotionPreference, readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility';
+import type { AccessibilityPreferences } from './utils/accessibility';
 import confetti from 'canvas-confetti';
 import './App.css';
 
@@ -23,6 +25,9 @@ function App() {
     localStorage.getItem('numberrush_name') || 'Super Kid'
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [preferences, setPreferences] = useState<AccessibilityPreferences>(readAccessibilityPreferences);
+  const [systemReducedMotion, setSystemReducedMotion] = useState(getSystemReducedMotionPreference);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [lastUnlockedBadge, setLastUnlockedBadge] = useState<string | null>(null);
   const previousBadgeCountRef = useRef(0);
@@ -40,11 +45,36 @@ function App() {
   const [shakeClass, setShakeClass] = useState('');
   const [planetTransition, setPlanetTransition] = useState<PlanetTransition | null>(null);
   const previousLevelRef = useRef<number | null>(null);
+  const gameAreaRef = useRef<HTMLDivElement>(null);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const previousStreakRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleChange = (event: MediaQueryListEvent) => setSystemReducedMotion(event.matches);
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+    if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, []);
 
   useEffect(() => {
     const level = status === 'playing' ? currentLevel : selectedLevel;
     document.body.className = `planet-${level}`;
   }, [selectedLevel, status, currentLevel]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = preferences.theme;
+    document.documentElement.dataset.highContrast = preferences.highContrast ? 'true' : 'false';
+    document.documentElement.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false';
+    saveAccessibilityPreferences(preferences);
+  }, [preferences]);
 
   useEffect(() => {
     if (status !== 'playing') {
@@ -62,6 +92,11 @@ function App() {
 
     previousLevelRef.current = currentLevel;
   }, [status, currentLevel]);
+
+  useEffect(() => {
+    if (status === 'playing') gameAreaRef.current?.focus();
+    if (status === 'finished') resultsHeadingRef.current?.focus();
+  }, [status]);
 
   useEffect(() => {
     if (!hasInitializedBadgesRef.current) {
@@ -101,10 +136,11 @@ function App() {
     const answerFeedback = submitAnswer(parseInt(input, 10));
     if (!answerFeedback) return;
     setFeedback(answerFeedback);
-    if (answerFeedback.isCorrect) playCorrectSound();
-    else playIncorrectSound();
+    if (answerFeedback.isCorrect) playCorrectSound(preferences.sound);
+    else playIncorrectSound(preferences.sound);
+    triggerHaptic(preferences.haptics, answerFeedback.isCorrect ? 20 : [50, 50, 50]);
     setInput('');
-  }, [input, submitAnswer]);
+  }, [input, preferences.haptics, preferences.sound, submitAnswer]);
 
   const handleExit = useCallback(() => {
     setPlanetTransition(null);
@@ -130,6 +166,10 @@ function App() {
     localStorage.setItem('numberrush_timer', val.toString());
   };
 
+  const updatePreferences = (patch: Partial<AccessibilityPreferences>) => {
+    setPreferences(previous => ({ ...previous, ...patch }));
+  };
+
   useEffect(() => {
     if (feedback) {
       const timer = setTimeout(() => setFeedback(null), 2200);
@@ -140,8 +180,15 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (status !== 'playing' || settingsOpen) return;
-      if (e.key >= '0' && e.key <= '9') handleInput(e.key);
-      else if (e.key === 'Enter') handleSubmit();
+      if (e.target instanceof Element && e.target.closest('button, input, select, textarea, a, summary, [role="button"], [contenteditable="true"]')) return;
+      if ((e.key >= '0' && e.key <= '9') || (e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9')) {
+        e.preventDefault();
+        handleInput(e.key);
+      }
+      else if (e.key === 'Enter' || e.key === 'NumpadEnter') {
+        e.preventDefault();
+        handleSubmit();
+      }
       else if (e.key === 'Backspace') handleClear();
       else if (e.key === 'Escape') handleExit();
     };
@@ -150,50 +197,59 @@ function App() {
   }, [status, handleInput, handleSubmit, handleClear, handleExit, settingsOpen]);
 
   useEffect(() => {
-    if (status === 'playing' && mode === 'blitz') {
-      if (timeLeft <= 3 && timeLeft > 0) playTickSound();
-      else if (timeLeft === 0) playFinishSound();
+    const previousStreak = previousStreakRef.current;
+    previousStreakRef.current = streak;
+
+    if (streak <= 0 || streak <= previousStreak || streak % 10 !== 0) return;
+
+    playCelebrationSound(preferences.sound);
+    if (preferences.reducedMotion || systemReducedMotion) return;
+
+    let shake = 'shake-small';
+    let confettiInterval: number | null = null;
+
+    if (streak >= 30) {
+      shake = 'shake-hard';
+      const duration = 1500;
+      const animationEnd = Date.now() + duration;
+      const random = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      confettiInterval = window.setInterval(() => {
+        const tLeft = animationEnd - Date.now();
+        if (tLeft <= 0) {
+          window.clearInterval(confettiInterval!);
+          return;
+        }
+        const pCount = 40;
+        confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } });
+      }, 250);
+    } else if (streak >= 20) {
+      shake = 'shake-medium';
+      confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } });
+    } else {
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] });
     }
-  }, [timeLeft, status, mode]);
+
+    let clearShakeTimer: number | null = null;
+    const animationFrame = requestAnimationFrame(() => {
+      setShakeClass(shake);
+      clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000);
+    });
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      if (clearShakeTimer !== null) window.clearTimeout(clearShakeTimer);
+      if (confettiInterval !== null) window.clearInterval(confettiInterval);
+    };
+  }, [preferences.reducedMotion, preferences.sound, streak, systemReducedMotion]);
 
   useEffect(() => {
-    if (streak > 0 && streak % 10 === 0) {
-      playCelebrationSound();
-
-      let shake = 'shake-small';
-
-      if (streak >= 30) {
-        shake = 'shake-hard';
-        const duration = 1500;
-        const animationEnd = Date.now() + duration;
-        const random = (min: number, max: number) => Math.random() * (max - min) + min;
-
-        const interval = setInterval(() => {
-          const tLeft = animationEnd - Date.now();
-          if (tLeft <= 0) return clearInterval(interval);
-          const pCount = 40;
-          confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } });
-          confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } });
-        }, 250);
-      } else if (streak >= 20) {
-        shake = 'shake-medium';
-        confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } });
-      } else {
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] });
-      }
-
-      let clearShakeTimer: number | null = null;
-      const animationFrame = requestAnimationFrame(() => {
-        setShakeClass(shake);
-        clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000);
-      });
-
-      return () => {
-        cancelAnimationFrame(animationFrame);
-        if (clearShakeTimer !== null) clearTimeout(clearShakeTimer);
-      };
+    if (status === 'playing' && mode === 'blitz') {
+      if (timeLeft <= 3 && timeLeft > 0) playTickSound(preferences.sound);
+      else if (timeLeft === 0) playFinishSound(preferences.sound);
     }
-  }, [streak]);
+  }, [timeLeft, status, mode, preferences.sound]);
 
   const selectedPlanet = getPlanet(selectedLevel);
 
@@ -235,7 +291,7 @@ function App() {
                       aria-pressed={selectedLevel === planet.level}
                       style={{ padding: '0.5rem 1.5rem' }}
                     >
-                      {planet.name} {planet.icon}
+                      {planet.name} {planet.icon}{selectedLevel === planet.level ? ' (selected)' : ''}
                     </button>
                   ))}
                 </div>
@@ -256,6 +312,7 @@ function App() {
                 <button
                   type="button"
                   className={isAdvanced ? 'primary' : ''}
+                  aria-pressed={isAdvanced}
                   onClick={() => setIsAdvanced(!isAdvanced)}
                   style={{ width: '100%', maxWidth: '320px' }}
                 >
@@ -277,7 +334,13 @@ function App() {
           )}
 
           {status === 'playing' && currentQuestion && (
-            <div className={`game-area ${feedback ? `feedback-${feedback.isCorrect ? 'correct' : 'incorrect'}` : ''}`}>
+            <div
+              ref={gameAreaRef}
+              className={`game-area ${feedback ? `feedback-${feedback.isCorrect ? 'correct' : 'incorrect'}` : ''}`}
+              role="region"
+              aria-label="Math game"
+              tabIndex={-1}
+            >
               <button type="button" className="exit-btn" onClick={handleExit} title="Exit Game" aria-label="Exit game">✕</button>
               {planetTransition && (
                 <div className="planet-transition" role="status" aria-live="polite">
@@ -301,7 +364,7 @@ function App() {
                 {feedback && (
                   <div className="feedback-overlay" role="status" aria-live="polite">
                     <div className="feedback-content">
-                      <span className="feedback-title">{feedback.isCorrect ? '✅ Correct!' : '❌ Not quite'}</span>
+                      <span className="feedback-title">{feedback.isCorrect ? 'Correct answer' : 'Incorrect answer'}</span>
                       {!feedback.isCorrect && (
                         <>
                           <span className="feedback-answer">Correct answer: <strong>{feedback.expectedAnswer}</strong></span>
@@ -321,7 +384,7 @@ function App() {
 
           {status === 'finished' && roundSummary && (
             <div className="results-screen animate-pop">
-              <h2>{mode === 'blitz' ? "Time's Up! 🏁" : isTargetedPractice ? 'Missed Questions Reviewed! 🎯' : 'Round Complete! 🎉'}</h2>
+              <h2 ref={resultsHeadingRef} tabIndex={-1}>{mode === 'blitz' ? "Time's Up! 🏁" : isTargetedPractice ? 'Missed Questions Reviewed! 🎯' : 'Round Complete! 🎉'}</h2>
               {feedback && !feedback.isCorrect && (
                 <div className="results-feedback" role="status" aria-live="polite">
                   <strong>❌ Correct answer: {feedback.expectedAnswer}</strong>
@@ -379,9 +442,11 @@ function App() {
           <SettingsModal
             playerName={playerName}
             initialTime={initialTime}
-            onClose={() => setSettingsOpen(false)}
+            preferences={preferences}
+            onClose={closeSettings}
             onUpdateName={updateName}
             onUpdateTimer={updateTimer}
+            onUpdatePreferences={updatePreferences}
             onResetStats={resetStats}
           />
         )}
