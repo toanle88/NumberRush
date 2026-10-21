@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { DAILY_CHALLENGES_STORAGE_KEY, getDailyChallenge, getLocalDateKey, getWeekStartKey } from './utils/dailyChallenges';
 
@@ -15,6 +15,10 @@ const openCustomRoundCustomizer = () => {
 describe('App keyboard gameplay', () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('accepts digits and backspace from the keyboard during a round', () => {
@@ -42,6 +46,76 @@ describe('App keyboard gameplay', () => {
     // Browsers dispatch the button's click after an unhandled Enter keydown.
     fireEvent.click(digitButton);
     expect(screen.getByRole('group', { name: /current answer 12/i })).toBeInTheDocument();
+  });
+
+  it('renders correct feedback inline without covering the keypad', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
+
+    const question = screen.getByRole('group', { name: /current answer not entered/i });
+    const questionLabel = question.getAttribute('aria-label')!;
+    const [, left, operation, right] = questionLabel.match(/(\d+) (plus|minus) (\d+) equals/)!;
+    const answer = operation === 'plus' ? Number(left) + Number(right) : Number(left) - Number(right);
+
+    for (const digit of String(answer)) fireEvent.keyDown(window, { key: digit });
+    fireEvent.keyDown(window, { key: 'Enter', code: 'Enter' });
+
+    const feedback = screen.getByText('Correct').closest('[role="status"]');
+    const keypad = screen.getByRole('group', { name: 'Answer keypad' });
+    expect(feedback).toBeInTheDocument();
+    expect(feedback).toHaveClass('feedback-inline', 'feedback-inline-correct');
+    expect(feedback).not.toHaveClass('feedback-overlay');
+    expect(feedback!.compareDocumentPosition(keypad) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.queryByText('Correct answer:')).not.toBeInTheDocument();
+  });
+
+  it('clears in-round feedback after its brief display duration', () => {
+    vi.useFakeTimers();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
+
+    const question = screen.getByRole('group', { name: /current answer not entered/i });
+    const [, left, operation, right] = question.getAttribute('aria-label')!.match(/(\d+) (plus|minus) (\d+) equals/)!;
+    const answer = operation === 'plus' ? Number(left) + Number(right) : Number(left) - Number(right);
+
+    for (const digit of String(answer)) fireEvent.keyDown(window, { key: digit });
+    fireEvent.keyDown(window, { key: 'Enter', code: 'Enter' });
+    expect(screen.getByText('Correct')).toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(1399));
+    expect(screen.getByText('Correct')).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.queryByText('Correct')).not.toBeInTheDocument();
+  });
+
+  it('renders incorrect feedback with the correct answer and accepts another submission', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
+
+    for (const digit of '9999') fireEvent.keyDown(window, { key: digit });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit answer' }));
+
+    const feedback = screen.getByText(/Correct answer:/).closest('[role="status"]');
+    expect(feedback).toHaveClass('feedback-inline', 'feedback-inline-incorrect');
+    expect(feedback).toHaveTextContent(/^Correct answer: \d+$/);
+    expect(screen.getByRole('group', { name: /current answer not entered/i })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: '1' });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit answer' }));
+    expect(screen.getByRole('group', { name: /current answer not entered/i })).toBeInTheDocument();
+  });
+
+  it('keeps the final incorrect answer feedback when the timer ends the round', () => {
+    localStorage.setItem('numberrush_timer', '1');
+    vi.useFakeTimers();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }));
+
+    for (const digit of '9999') fireEvent.keyDown(window, { key: digit });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit answer' }));
+    act(() => vi.advanceTimersByTime(1000));
+
+    expect(screen.getByText(/Correct answer:/).closest('.results-feedback')).toBeInTheDocument();
   });
 
   it('lets players choose division and a named difficulty tier before starting', () => {

@@ -30,6 +30,7 @@ const DIFFICULTY_HELP: Record<DifficultyTier, string> = {
   medium: '10 second starting timer with wider number ranges',
   hard: '7 second starting timer with challenging number ranges',
 };
+const FEEDBACK_DURATION_MS = 1400;
 
 function App() {
   const [view, setView] = useState<'home' | 'progress'>('home');
@@ -221,11 +222,10 @@ function App() {
   };
 
   useEffect(() => {
-    if (feedback) {
-      const timer = setTimeout(() => setFeedback(null), 2200);
-      return () => clearTimeout(timer);
-    }
-  }, [feedback]);
+    if (!feedback || status !== 'playing') return;
+    const timer = setTimeout(() => setFeedback(null), FEEDBACK_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [feedback, status]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -513,7 +513,7 @@ function App() {
           {status === 'playing' && currentQuestion && (
             <div
               ref={gameAreaRef}
-              className={`game-area ${feedback ? `feedback-${feedback.isCorrect ? 'correct' : 'incorrect'}` : ''}`}
+              className="game-area"
               role="region"
               aria-label="Math game"
               tabIndex={-1}
@@ -527,7 +527,7 @@ function App() {
                   <small>{difficulty[0].toUpperCase() + difficulty.slice(1)} difficulty · {score} points reached</small>
                 </div>
               )}
-              <div className="board-wrapper" style={{ position: 'relative', width: '100%' }}>
+              <div className="board-wrapper">
                 <GameBoard
                   question={currentQuestion}
                   currentInput={input}
@@ -539,19 +539,22 @@ function App() {
                   level={currentLevel}
                   difficulty={difficulty}
                 />
-                {feedback && (
-                  <div className="feedback-overlay" role="status" aria-live="polite">
-                    <div className="feedback-content">
-                      <span className="feedback-title">{feedback.isCorrect ? 'Correct answer' : 'Incorrect answer'}</span>
-                      {!feedback.isCorrect && (
-                        <>
-                          <span className="feedback-answer">Correct answer: <strong>{feedback.expectedAnswer}</strong></span>
-                          <small>{feedback.explanation}</small>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
+                <div
+                  className={`feedback-inline ${feedback ? `feedback-inline-${feedback.isCorrect ? 'correct' : 'incorrect'}` : 'feedback-inline-empty'}`}
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {feedback?.isCorrect && (
+                    <>
+                      <span className="feedback-inline-icon" aria-hidden="true">✓</span>
+                      <span>Correct</span>
+                    </>
+                  )}
+                  {feedback && !feedback.isCorrect && (
+                    <span>Correct answer: <strong>{feedback.expectedAnswer}</strong></span>
+                  )}
+                </div>
               </div>
               <Numpad onInput={handleInput} onClear={handleClear} onSubmit={handleSubmit} />
               {mode === 'practice' && (
