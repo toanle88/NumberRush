@@ -1,6 +1,7 @@
 import type { DifficultyTier, Operation } from './mathLogic'
-import { readStorage, writeStorage } from './storage'
-export const PROGRESS_STORAGE_KEY = 'numberrush_progress_sessions'
+import { readStoredJson, writeStorage } from './storage'
+import { STORAGE_KEYS } from './storageKeys'
+export const PROGRESS_STORAGE_KEY = STORAGE_KEYS.PROGRESS_SESSIONS
 export const MAX_PROGRESS_SESSIONS = 60
 export const MAX_ANSWERS_PER_SESSION = 200
 const MAX_PROGRESS_STRING_LENGTH = 128
@@ -148,19 +149,18 @@ return {
   }
 }
 export const readProgressSessions = (): ProgressSession[] => {
-  const saved = readStorage(PROGRESS_STORAGE_KEY)
-if (!saved) return []
-try {
-    const parsed: unknown = JSON.parse(saved)
+  try {
+    const parsed = readStoredJson<unknown>(PROGRESS_STORAGE_KEY)
+    if (!parsed) return []
 return Array.isArray(parsed)
       ? parsed.slice(-MAX_PROGRESS_SESSIONS).map(parseSession).filter((session): session is ProgressSession => session !== null)
       : []
-} catch {
+  } catch {
     return []
 }
 }
-export const writeProgressSessions = (sessions: ProgressSession[]): void => {
-  writeStorage(PROGRESS_STORAGE_KEY, JSON.stringify(sessions.slice(-MAX_PROGRESS_SESSIONS)))
+export const writeProgressSessions = (sessions: ProgressSession[]): boolean => {
+  return writeStorage(PROGRESS_STORAGE_KEY, JSON.stringify(sessions.slice(-MAX_PROGRESS_SESSIONS)))
 }
 const createBreakdownMap = <T extends string>(values: T[]): Record<T, ProgressBreakdown> => {
   return values.reduce((result, value) => {

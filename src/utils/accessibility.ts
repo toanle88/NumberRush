@@ -1,4 +1,5 @@
-import { readStorage, writeStorage } from './storage'
+import { readStoredJson, writeStorage } from './storage'
+import { STORAGE_KEYS } from './storageKeys'
 export type Theme = 'dark' | 'light'
 export interface AccessibilityPreferences {
   theme: Theme
@@ -7,7 +8,7 @@ reducedMotion: boolean
 sound: boolean
 haptics: boolean}
 
-export const ACCESSIBILITY_STORAGE_KEY = 'numberrush_accessibility'
+export const ACCESSIBILITY_STORAGE_KEY = STORAGE_KEYS.ACCESSIBILITY
 export const DEFAULT_ACCESSIBILITY_PREFERENCES: AccessibilityPreferences = {
   theme: 'dark',
   highContrast: false,
@@ -18,9 +19,8 @@ export const DEFAULT_ACCESSIBILITY_PREFERENCES: AccessibilityPreferences = {
 const isTheme = (value: unknown): value is Theme => value === 'dark' || value === 'light'
 export const readAccessibilityPreferences = (): AccessibilityPreferences => {
   try {
-    const saved = readStorage(ACCESSIBILITY_STORAGE_KEY)
-if (!saved) return DEFAULT_ACCESSIBILITY_PREFERENCES
-    const parsed = JSON.parse(saved) as Partial<AccessibilityPreferences>
+    const parsed = readStoredJson<Partial<AccessibilityPreferences>>(ACCESSIBILITY_STORAGE_KEY)
+    if (!parsed) return DEFAULT_ACCESSIBILITY_PREFERENCES
 return {
       ...DEFAULT_ACCESSIBILITY_PREFERENCES,
       ...parsed,
@@ -30,9 +30,9 @@ return {
       sound: parsed.sound !== false,
       haptics: parsed.haptics !== false,
     }
-} catch {
+  } catch {
     return DEFAULT_ACCESSIBILITY_PREFERENCES
-}
+  }
 }
 export const saveAccessibilityPreferences = (preferences: AccessibilityPreferences) => {
   writeStorage(ACCESSIBILITY_STORAGE_KEY, JSON.stringify(preferences))

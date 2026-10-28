@@ -5,7 +5,6 @@ import { getLevelForScore } from '../utils/planetProgression'
 import { calculateProgressMetrics, createProgressSession, MAX_PROGRESS_SESSIONS, readProgressSessions, writeProgressSessions } from '../utils/progress'
 import type { ProgressMetrics, ProgressSession } from '../utils/progress'
 import {
-  DAILY_CHALLENGES_STORAGE_KEY,
   getDailyChallenge,
   normalizeRecurringProgress,
   readRecurringProgress,
@@ -13,7 +12,8 @@ import {
   writeRecurringProgress,
 } from '../utils/dailyChallenges'
 import type { RecurringProgress } from '../utils/dailyChallenges'
-import { readStorage, readStoredNonNegativeInteger, removeStorage, writeStorage } from '../utils/storage'
+import { ensureStorageSchema, readStoredJson, readStoredNonNegativeInteger, removeStorage, writeStorage } from '../utils/storage'
+import { STORAGE_KEYS } from '../utils/storageKeys'
 export type GameStatus = 'idle' | 'playing' | 'finished'
 export type GameMode = 'blitz' | 'practice'
 export interface Badge {
@@ -100,18 +100,18 @@ progressSessions: ProgressSession[]
 recurringProgress: RecurringProgress
 challengeCompletedThisRound: boolean}
 
-const STORAGE_KEYS = {
-  HIGH_SCORE: 'numberrush_highscore',
-  BEST_STREAK: 'numberrush_beststreak',
-  BADGES: 'numberrush_badges',
-  TOTAL_CORRECT: 'numberrush_total_correct',
-  TOTAL_CHAOS: 'numberrush_total_chaos',
-  MOON_GAMES: 'numberrush_moon_games',
-  MARS_GAMES: 'numberrush_mars_games',
-  SPACE_GAMES: 'numberrush_space_games',
-  PROGRESS_SESSIONS: 'numberrush_progress_sessions',
-  DAILY_CHALLENGES: DAILY_CHALLENGES_STORAGE_KEY,
-}
+const GAME_STORAGE_KEYS = [
+  STORAGE_KEYS.HIGH_SCORE,
+  STORAGE_KEYS.BEST_STREAK,
+  STORAGE_KEYS.BADGES,
+  STORAGE_KEYS.TOTAL_CORRECT,
+  STORAGE_KEYS.TOTAL_CHAOS,
+  STORAGE_KEYS.MOON_GAMES,
+  STORAGE_KEYS.MARS_GAMES,
+  STORAGE_KEYS.SPACE_GAMES,
+  STORAGE_KEYS.PROGRESS_SESSIONS,
+  STORAGE_KEYS.DAILY_CHALLENGES,
+]
 const enforcePlanetDifficulty = (difficulty: DifficultyTier, level: number): DifficultyTier => {
   return getDifficultyAtLeast(difficulty, getDifficultyForLevel(level))
 }
@@ -129,14 +129,13 @@ export const BADGES: Badge[] = [
   { id: 'galaxy_guide', name: 'Galaxy Guide', icon: '🌌', description: 'Finish 5 games in Deep Space!', condition: state => state.spaceGames >= 5 },
 ]
 const readUnlockedBadges = (): string[] => {
-  const saved = readStorage(STORAGE_KEYS.BADGES)
-if (!saved) return []
-try {
-    const parsed: unknown = JSON.parse(saved)
+  try {
+    const parsed = readStoredJson<unknown>(STORAGE_KEYS.BADGES)
+    if (!parsed) return []
 return Array.isArray(parsed)
       ? parsed.filter((badge): badge is string => typeof badge === 'string' && BADGES.some(item => item.id === badge)).slice(0, BADGES.length)
       : []
-} catch {
+  } catch {
     return []
 }
 }
@@ -210,9 +209,30 @@ export const useGame = (initialTime: number = 10) => {
 })
   const timerRef = useRef<number | null>(null)
 const stateRef = useRef<GameState>(state)
+  const pendingSubmissionRef = useRef(false)
+  type PersistenceTask = { key: string; write: () => boolean }
+  const pendingPersistenceRef = useRef<Map<string, PersistenceTask>>(new Map())
   useEffect(() => {
     stateRef.current = state
+    pendingSubmissionRef.current = false
 }, [state])
+  const queuePersistence = useCallback((key: string, write: () => boolean) => {
+    const task = { key, write }
+    if (task.write()) {
+      pendingPersistenceRef.current.delete(key)
+    } else {
+      pendingPersistenceRef.current.set(key, task)
+    }
+  }, [])
+  useEffect(() => {
+    const retryPendingPersistence = () => {
+      pendingPersistenceRef.current.forEach((task, key) => {
+        if (task.write() && pendingPersistenceRef.current.get(key) === task) pendingPersistenceRef.current.delete(key)
+      })
+    }
+    const interval = window.setInterval(retryPendingPersistence, 1_000)
+    return () => window.clearInterval(interval)
+  }, [])
   const refreshRecurringProgress = useCallback(() => {
     const current = stateRef.current.recurringProgress
 const refreshed = normalizeRecurringProgress(current, new Date())
@@ -237,15 +257,13 @@ window.removeEventListener('focus', refreshRecurringProgress)
 document.removeEventListener('visibilitychange', handleVisibilityChange)
 }
 }, [refreshRecurringProgress])
-  const checkBadges = useCallback((currentState: GameState) => {
+  const getUnlockedBadges = useCallback((currentState: GameState) => {
     const newUnlocked = BADGES
       .filter(badge => !currentState.unlockedBadges.includes(badge.id))
       .filter(badge => badge.condition(currentState))
       .map(badge => badge.id)
     if (newUnlocked.length > 0) {
-      const updatedBadges = [...currentState.unlockedBadges, ...newUnlocked]
-writeStorage(STORAGE_KEYS.BADGES, JSON.stringify(updatedBadges))
-return updatedBadges
+      return [...currentState.unlockedBadges, ...newUnlocked]
 }
     return currentState.unlockedBadges
 }, [])
@@ -256,13 +274,10 @@ let marsGames = previousState.marsGames
 let spaceGames = previousState.spaceGames
     if (previousState.currentLevel === 1) {
       moonGames++
-writeStorage(STORAGE_KEYS.MOON_GAMES, moonGames.toString())
 } else if (previousState.currentLevel === 2) {
       marsGames++
-writeStorage(STORAGE_KEYS.MARS_GAMES, marsGames.toString())
 } else if (previousState.currentLevel === 3) {
       spaceGames++
-writeStorage(STORAGE_KEYS.SPACE_GAMES, spaceGames.toString())
 }
 
     const finishedState: GameState = {
@@ -292,16 +307,53 @@ const progressSession = createProgressSession({
         : null,
     })
 finishedState.progressSessions = [...finishedState.progressSessions, progressSession].slice(-MAX_PROGRESS_SESSIONS)
-writeProgressSessions(finishedState.progressSessions)
-finishedState.unlockedBadges = checkBadges(finishedState)
+finishedState.unlockedBadges = getUnlockedBadges(finishedState)
 return finishedState
-}, [checkBadges])
+}, [getUnlockedBadges])
+  const persistAggregateChanges = useCallback((previousState: GameState, nextState: GameState) => {
+    if (nextState.highScore > previousState.highScore) queuePersistence(STORAGE_KEYS.HIGH_SCORE, () => writeStorage(STORAGE_KEYS.HIGH_SCORE, nextState.highScore.toString()))
+    if (nextState.bestStreak > previousState.bestStreak) queuePersistence(STORAGE_KEYS.BEST_STREAK, () => writeStorage(STORAGE_KEYS.BEST_STREAK, nextState.bestStreak.toString()))
+    if (nextState.totalCorrect > previousState.totalCorrect) queuePersistence(STORAGE_KEYS.TOTAL_CORRECT, () => writeStorage(STORAGE_KEYS.TOTAL_CORRECT, nextState.totalCorrect.toString()))
+    if (nextState.totalChaosSolved > previousState.totalChaosSolved) queuePersistence(STORAGE_KEYS.TOTAL_CHAOS, () => writeStorage(STORAGE_KEYS.TOTAL_CHAOS, nextState.totalChaosSolved.toString()))
+    if (nextState.recurringProgress !== previousState.recurringProgress) {
+      queuePersistence(STORAGE_KEYS.DAILY_CHALLENGES, () => writeRecurringProgress(nextState.recurringProgress))
+    }
+    if (nextState.unlockedBadges !== previousState.unlockedBadges) {
+      queuePersistence(STORAGE_KEYS.BADGES, () => writeStorage(STORAGE_KEYS.BADGES, JSON.stringify(nextState.unlockedBadges)))
+    }
+  }, [queuePersistence])
+  const persistFinishedGame = useCallback((previousState: GameState, finishedState: GameState) => {
+    queuePersistence(STORAGE_KEYS.SCHEMA_VERSION, ensureStorageSchema)
+    persistAggregateChanges(previousState, finishedState)
+    const counterKey = finishedState.currentLevel === 1
+      ? STORAGE_KEYS.MOON_GAMES
+      : finishedState.currentLevel === 2
+        ? STORAGE_KEYS.MARS_GAMES
+        : finishedState.currentLevel === 3
+          ? STORAGE_KEYS.SPACE_GAMES
+          : null
+    if (counterKey) {
+      const counterValue = finishedState.currentLevel === 1
+        ? finishedState.moonGames
+        : finishedState.currentLevel === 2
+          ? finishedState.marsGames
+          : finishedState.spaceGames
+      queuePersistence(counterKey, () => writeStorage(counterKey, counterValue.toString()))
+    }
+    queuePersistence(STORAGE_KEYS.PROGRESS_SESSIONS, () => writeProgressSessions(finishedState.progressSessions))
+  }, [persistAggregateChanges, queuePersistence])
+  const persistAnswerAggregates = useCallback((previousState: GameState, nextState: GameState) => {
+    queuePersistence(STORAGE_KEYS.SCHEMA_VERSION, ensureStorageSchema)
+    persistAggregateChanges(previousState, nextState)
+  }, [persistAggregateChanges, queuePersistence])
   const startGame = useCallback((level: number = 1, mode: GameMode = 'blitz', isAdvanced = false, operations: readonly Operation[] = DEFAULT_OPERATIONS, selectedDifficulty?: DifficultyTier, timerOverride?: number, adaptDifficulty = selectedDifficulty !== undefined, useDifficultyTimer = selectedDifficulty !== undefined) => {
+    pendingSubmissionRef.current = false
     const difficulty = enforcePlanetDifficulty(selectedDifficulty || getDifficultyForLevel(level), level)
 const roundOperations = normalizeOperations(operations)
 const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(difficulty).timerSeconds : initialTime)
-setState(prev => ({
-      ...prev,
+    const previousState = stateRef.current
+    const nextState: GameState = {
+      ...previousState,
       score: 0,
       streak: 0,
       timeLeft: maxTime,
@@ -324,26 +376,29 @@ setState(prev => ({
       roundResponseTimeMs: 0,
       roundAllAnswersCorrect: true,
       roundBestStreak: 0,
-      roundPersonalBestScore: prev.highScore,
-      roundPersonalBestStreak: prev.bestStreak,
+      roundPersonalBestScore: previousState.highScore,
+      roundPersonalBestStreak: previousState.bestStreak,
       roundSummary: null,
       questionStartedAt: Date.now(),
       isTargetedPractice: false,
       practiceQueue: [],
       challengeCompletedThisRound: false,
-    }))
+    }
+    stateRef.current = nextState
+    setState(nextState)
 }, [initialTime])
   const startTargetedPractice = useCallback(() => {
-    setState(prev => {
-      const missedQuestions = prev.missedQuestions
-      if (missedQuestions.length === 0) return prev
+    pendingSubmissionRef.current = false
+    const previousState = stateRef.current
+    const missedQuestions = previousState.missedQuestions
+    if (missedQuestions.length === 0) return
       const [firstQuestion, ...practiceQueue] = missedQuestions
-return {
-        ...prev,
+    const nextState: GameState = {
+        ...previousState,
         score: 0,
         streak: 0,
-        timeLeft: prev.maxTime,
-        maxTime: prev.maxTime,
+        timeLeft: previousState.maxTime,
+        maxTime: previousState.maxTime,
         status: 'playing',
         mode: 'practice',
         currentQuestion: firstQuestion.question,
@@ -358,20 +413,22 @@ return {
         roundResponseTimeMs: 0,
         roundAllAnswersCorrect: true,
         roundBestStreak: 0,
-        roundPersonalBestScore: prev.highScore,
-        roundPersonalBestStreak: prev.bestStreak,
+        roundPersonalBestScore: previousState.highScore,
+        roundPersonalBestStreak: previousState.bestStreak,
         roundSummary: null,
         questionStartedAt: Date.now(),
         isTargetedPractice: true,
         practiceQueue,
         challengeCompletedThisRound: false,
       }
-})
+    stateRef.current = nextState
+    setState(nextState)
 }, [])
   const submitAnswer = useCallback((playerAnswer: number): AnswerFeedback | null => {
     const submissionState = stateRef.current
 const question = submissionState.currentQuestion
-if (submissionState.status !== 'playing' || !question || typeof playerAnswer !== 'number' || !Number.isFinite(playerAnswer)) return null
+if (pendingSubmissionRef.current || submissionState.status !== 'playing' || !question || typeof playerAnswer !== 'number' || !Number.isFinite(playerAnswer)) return null
+    pendingSubmissionRef.current = true
     const feedback: AnswerFeedback = {
       question,
       playerAnswer,
@@ -389,10 +446,6 @@ const responseTimeMs = Math.max(0, Date.now() - submissionState.questionStartedA
 const newBestStreak = Math.max(submissionState.bestStreak, newStreak)
 const newTotalCorrect = answerIsCorrect ? submissionState.totalCorrect + 1 : submissionState.totalCorrect
 const newTotalChaos = (answerIsCorrect && isChaos) ? submissionState.totalChaosSolved + 1 : submissionState.totalChaosSolved
-    if (newHighScore > submissionState.highScore) writeStorage(STORAGE_KEYS.HIGH_SCORE, newHighScore.toString())
-if (newBestStreak > submissionState.bestStreak) writeStorage(STORAGE_KEYS.BEST_STREAK, newBestStreak.toString())
-if (answerIsCorrect) writeStorage(STORAGE_KEYS.TOTAL_CORRECT, newTotalCorrect.toString())
-if (answerIsCorrect && isChaos) writeStorage(STORAGE_KEYS.TOTAL_CHAOS, newTotalChaos.toString())
     const nextLevel = getLevelForScore(newScore, submissionState.startingLevel)
 const nextTargetedQuestion = submissionState.practiceQueue[0]
 const nextQuestionLevel = submissionState.isTargetedPractice
@@ -430,6 +483,7 @@ const hasFinishedTargetedPractice = submissionState.isTargetedPractice && !nextT
 const nextRecurringProgress = recordAnswerForRecurringProgress(submissionState.recurringProgress, {
       isCorrect: answerIsCorrect,
       currentStreak: newStreak,
+      persist: false,
     })
 const challengeChanged = submissionState.recurringProgress.challenge.dateKey !== nextRecurringProgress.challenge.dateKey
       || submissionState.recurringProgress.challenge.challengeId !== nextRecurringProgress.challenge.challengeId
@@ -472,27 +526,39 @@ const nextState: GameState = {
       recurringProgress: nextRecurringProgress,
       challengeCompletedThisRound: submissionState.challengeCompletedThisRound || challengeCompletedThisAnswer,
     }
-    nextState.unlockedBadges = checkBadges(nextState)
+    nextState.unlockedBadges = getUnlockedBadges(nextState)
 const completedState = hasFinishedTargetedPractice ? finalizeGameState(nextState) : nextState
 stateRef.current = completedState
 setState(prev => {
       if (prev.status !== 'playing' || !prev.currentQuestion || prev.currentQuestion.id !== question.id) return prev
 return completedState
 })
+    if (hasFinishedTargetedPractice) persistFinishedGame(submissionState, completedState)
+    else persistAnswerAggregates(submissionState, completedState)
     return feedback
-}, [checkBadges, finalizeGameState])
+}, [finalizeGameState, getUnlockedBadges, persistAnswerAggregates, persistFinishedGame])
   const endGame = useCallback(() => {
-    setState(prev => prev.status === 'playing' ? finalizeGameState(prev) : prev)
-if (timerRef.current) clearInterval(timerRef.current)
-}, [finalizeGameState])
+    const previousState = stateRef.current
+    if (previousState.status !== 'playing') return
+    const finishedState = finalizeGameState(previousState)
+    stateRef.current = finishedState
+    setState(finishedState)
+    persistFinishedGame(previousState, finishedState)
+    if (timerRef.current) clearInterval(timerRef.current)
+}, [finalizeGameState, persistFinishedGame])
   const resetGame = useCallback(() => {
-    setState(prev => ({ ...prev, status: 'idle', timeLeft: prev.maxTime }))
+    pendingSubmissionRef.current = false
+    const nextState = { ...stateRef.current, status: 'idle' as const, timeLeft: stateRef.current.maxTime }
+    stateRef.current = nextState
+    setState(nextState)
 if (timerRef.current) clearInterval(timerRef.current)
 }, [])
   const resetStats = useCallback(() => {
-    Object.values(STORAGE_KEYS).forEach(removeStorage)
-setState(prev => ({
-      ...prev,
+    pendingSubmissionRef.current = false
+    pendingPersistenceRef.current.clear()
+    GAME_STORAGE_KEYS.forEach(removeStorage)
+    const nextState: GameState = {
+      ...stateRef.current,
       highScore: 0,
       bestStreak: 0,
       roundPersonalBestScore: 0,
@@ -507,27 +573,35 @@ setState(prev => ({
       progressSessions: [],
       recurringProgress: readRecurringProgress(),
       challengeCompletedThisRound: false,
-    }))
+    }
+    stateRef.current = nextState
+    setState(nextState)
 }, [])
   useEffect(() => {
     let interval: number | null = null
     if (state.status === 'playing' && state.mode === 'blitz') {
       interval = setInterval(() => {
-        setState(prev => {
-          if (prev.timeLeft <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current)
-            return finalizeGameState(prev, { timeLeft: 0 })
-}
-          return { ...prev, timeLeft: prev.timeLeft - 1 }
-})
-}, 1000)
+        const previousState = stateRef.current
+        if (previousState.status !== 'playing') return
+        if (previousState.timeLeft <= 1) {
+          const finishedState = finalizeGameState(previousState, { timeLeft: 0 })
+          stateRef.current = finishedState
+          setState(finishedState)
+          persistFinishedGame(previousState, finishedState)
+          if (timerRef.current) clearInterval(timerRef.current)
+          return
+        }
+        const nextState = { ...previousState, timeLeft: previousState.timeLeft - 1 }
+        stateRef.current = nextState
+        setState(nextState)
+      }, 1000)
 timerRef.current = interval
 }
 
     return () => {
       if (interval) clearInterval(interval)
 }
-}, [state.status, state.mode, finalizeGameState])
+}, [state.status, state.mode, finalizeGameState, persistFinishedGame])
   return {
     ...state,
     progressMetrics: useMemo(() => calculateProgressMetrics(state.progressSessions), [state.progressSessions]) as ProgressMetrics,

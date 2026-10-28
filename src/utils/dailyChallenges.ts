@@ -1,5 +1,6 @@
-import { readStorage, writeStorage } from './storage'
-export const DAILY_CHALLENGES_STORAGE_KEY = 'numberrush_daily_challenges'
+import { readStoredJson, writeStorage } from './storage'
+import { STORAGE_KEYS } from './storageKeys'
+export const DAILY_CHALLENGES_STORAGE_KEY = STORAGE_KEYS.DAILY_CHALLENGES
 export type DailyChallengeMetric = 'correctAnswers' | 'answers' | 'streak'
 export interface DailyChallenge {
   id: string
@@ -178,23 +179,23 @@ return {
   }
 }
 export const readRecurringProgress = (date: Date = new Date()): RecurringProgress => {
-  const saved = readStorage(DAILY_CHALLENGES_STORAGE_KEY)
-if (!saved) return createEmptyProgress(date)
-try {
-    return normalizeRecurringProgress(parseProgress(JSON.parse(saved)), date)
+  try {
+    const parsed = readStoredJson<unknown>(DAILY_CHALLENGES_STORAGE_KEY)
+    if (!parsed) return createEmptyProgress(date)
+    return normalizeRecurringProgress(parseProgress(parsed), date)
 } catch {
     return createEmptyProgress(date)
 }
 }
-export const writeRecurringProgress = (progress: RecurringProgress): void => {
-  writeStorage(DAILY_CHALLENGES_STORAGE_KEY, JSON.stringify(progress))
+export const writeRecurringProgress = (progress: RecurringProgress): boolean => {
+  return writeStorage(DAILY_CHALLENGES_STORAGE_KEY, JSON.stringify(progress))
 }
 const wasCompleted = (progress: RecurringProgress): boolean => (
   progress.completionHistory.some(completion => completion.dateKey === progress.dateKey && completion.challengeId === progress.challenge.challengeId)
 )
 export const recordAnswerForRecurringProgress = (
   saved: RecurringProgress,
-  input: { isCorrect: boolean; currentStreak: number; answeredAt?: Date },
+  input: { isCorrect: boolean; currentStreak: number; answeredAt?: Date; persist?: boolean },
 ): RecurringProgress => {
   const answeredAt = input.answeredAt ?? new Date()
 const previous = normalizeRecurringProgress(saved, answeredAt)
@@ -228,7 +229,7 @@ const completionHistory = shouldReward
     points: previous.points + (shouldReward ? challenge.rewardPoints : 0),
     completionHistory,
   }
-writeRecurringProgress(nextProgress)
+  if (input.persist !== false) writeRecurringProgress(nextProgress)
 return nextProgress
 }
 export const getChallengeProgress = (challenge: DailyChallenge, progress: RecurringProgress): number => (
