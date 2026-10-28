@@ -13,7 +13,7 @@ import { getChallengeProgress } from './utils/dailyChallenges'
 import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects'
 import { getSystemReducedMotionPreference, readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility'
 import type { AccessibilityPreferences } from './utils/accessibility'
-import { readStorage, readStoredNonNegativeInteger, writeStorage } from './utils/storage'
+import { exportProgress, getStorageStatus, importProgress, readStorage, readStoredNonNegativeInteger, writeStorage } from './utils/storage'
 import { STORAGE_KEYS } from './utils/storageKeys'
 import confetti from 'canvas-confetti'
 import './App.css'
@@ -48,12 +48,14 @@ const [moreOptionsOpen, setMoreOptionsOpen] = useState(false)
 const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyTier | undefined>()
 const [selectedOperations, setSelectedOperations] = useState<Operation[]>(QUICK_START_OPERATIONS)
 const [lastUnlockedBadge, setLastUnlockedBadge] = useState<string | null>(null)
+const [settingsPersistenceFailed, setSettingsPersistenceFailed] = useState(false)
+const [dataMessage, setDataMessage] = useState<string | null>(null)
 const previousBadgeCountRef = useRef(0)
 const hasInitializedBadgesRef = useRef(false)
   const {
     status, score, timeLeft, streak, mode, currentQuestion,
     highScore, bestStreak, unlockedBadges, currentLevel, difficulty, maxTime, playedLevels, missedQuestions,
-    roundSummary, isTargetedPractice, progressMetrics, recurringProgress, dailyChallenge, challengeCompletedThisRound, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats,
+    roundSummary, isTargetedPractice, progressMetrics, recurringProgress, dailyChallenge, challengeCompletedThisRound, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats, storageStatus, hasPendingPersistence,
   } = useGame(initialTime)
   const [input, setInput] = useState('')
 const [feedback, setFeedback] = useState<AnswerFeedback | null>(null)
@@ -85,7 +87,6 @@ document.body.className = `planet-${level}`
     document.documentElement.dataset.theme = preferences.theme
 document.documentElement.dataset.highContrast = preferences.highContrast ? 'true' : 'false'
 document.documentElement.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false'
-saveAccessibilityPreferences(preferences)
 }, [preferences])
   useEffect(() => {
     if (status !== 'playing') {
@@ -189,14 +190,43 @@ setInput('')
 }, [startTargetedPractice])
   const updateName = (val: string) => {
     setPlayerName(val)
-    writeStorage(STORAGE_KEYS.NAME, val)
+    setSettingsPersistenceFailed(!writeStorage(STORAGE_KEYS.NAME, val))
 }
   const updateTimer = (val: number) => {
     setInitialTime(val)
-    writeStorage(STORAGE_KEYS.TIMER, val.toString())
+    setSettingsPersistenceFailed(!writeStorage(STORAGE_KEYS.TIMER, val.toString()))
 }
+  const handleExportProgress = useCallback(() => {
+    const serialized = exportProgress()
+    if (!serialized || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+      setDataMessage(getStorageStatus() === 'unavailable'
+        ? 'Progress could not be exported because storage is unavailable on this device.'
+        : 'Progress could not be exported on this device.')
+      return
+    }
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(new Blob([serialized], { type: 'application/json' }))
+    link.download = `number-rush-progress-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(link.href)
+    setDataMessage('Progress exported successfully.')
+  }, [])
+  const handleImportProgress = useCallback((file: File) => {
+    void file.text().then(serialized => {
+      const result = importProgress(serialized)
+      if (!result.ok) {
+        setDataMessage(result.reason === 'unsupported'
+          ? 'This progress file is from an unsupported version.'
+          : 'Progress file could not be imported.')
+        return
+      }
+      window.location.reload()
+    }).catch(() => setDataMessage('Progress file could not be imported.'))
+  }, [])
   const updatePreferences = (patch: Partial<AccessibilityPreferences>) => {
-    setPreferences(previous => ({ ...previous, ...patch }))
+    const nextPreferences = { ...preferences, ...patch }
+    setPreferences(nextPreferences)
+    setSettingsPersistenceFailed(!saveAccessibilityPreferences(nextPreferences))
 }
   useEffect(() => {
     if (!feedback || status !== 'playing') return
@@ -270,6 +300,14 @@ else if (timeLeft === 0) playFinishSound(preferences.sound)
     selectedDifficulty || getDifficultyForLevel(selectedLevel),
     getDifficultyForLevel(selectedLevel),
   )
+  const persistenceMessage = dataMessage
+    || (storageStatus === 'unsupported'
+      ? 'Saved progress uses a newer version and was not changed.'
+      : storageStatus === 'unavailable'
+        ? 'Progress cannot be saved on this device right now. Your current game is still safe.'
+        : hasPendingPersistence || settingsPersistenceFailed
+          ? 'Progress is waiting to be saved. Keep this page open while storage recovers.'
+          : null)
   return (
     <main className="animate-pop">
       <div className={shakeClass}>
@@ -284,6 +322,12 @@ else if (timeLeft === 0) playFinishSound(preferences.sound)
             </p>
           )}
         </header>
+
+        {persistenceMessage && (
+          <div role="status" aria-live="polite" style={{ margin: '0 auto 1rem', maxWidth: '42rem', color: 'var(--text-secondary)' }}>
+            {persistenceMessage}
+          </div>
+        )}
 
         <div className="game-container">
           {status === 'idle' && (
@@ -599,6 +643,8 @@ return (
             onUpdateTimer={updateTimer}
             onUpdatePreferences={updatePreferences}
             onResetStats={resetStats}
+            onExportProgress={handleExportProgress}
+            onImportProgress={handleImportProgress}
           />
         )}
 

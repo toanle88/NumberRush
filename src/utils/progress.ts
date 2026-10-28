@@ -1,5 +1,5 @@
 import type { DifficultyTier, Operation } from './mathLogic'
-import { readStoredJson, writeStorage } from './storage'
+import { readStoredJson, writeStoredJson } from './storage'
 import { STORAGE_KEYS } from './storageKeys'
 export const PROGRESS_STORAGE_KEY = STORAGE_KEYS.PROGRESS_SESSIONS
 export const MAX_PROGRESS_SESSIONS = 60
@@ -160,7 +160,7 @@ return Array.isArray(parsed)
 }
 }
 export const writeProgressSessions = (sessions: ProgressSession[]): boolean => {
-  return writeStorage(PROGRESS_STORAGE_KEY, JSON.stringify(sessions.slice(-MAX_PROGRESS_SESSIONS)))
+  return writeStoredJson(PROGRESS_STORAGE_KEY, sessions.slice(-MAX_PROGRESS_SESSIONS))
 }
 const createBreakdownMap = <T extends string>(values: T[]): Record<T, ProgressBreakdown> => {
   return values.reduce((result, value) => {

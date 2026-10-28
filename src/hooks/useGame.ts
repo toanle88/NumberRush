@@ -12,8 +12,9 @@ import {
   writeRecurringProgress,
 } from '../utils/dailyChallenges'
 import type { RecurringProgress } from '../utils/dailyChallenges'
-import { ensureStorageSchema, readStoredJson, readStoredNonNegativeInteger, removeStorage, writeStorage } from '../utils/storage'
-import { STORAGE_KEYS } from '../utils/storageKeys'
+import { ensureStorageSchema, getStorageStatus, readStoredJson, readStoredNonNegativeInteger, removeStorage, writeStorage, writeStoredJson } from '../utils/storage'
+import type { StorageStatus } from '../utils/storage'
+import { STORAGE_KEYS, STORAGE_PROGRESS_KEYS } from '../utils/storageKeys'
 export type GameStatus = 'idle' | 'playing' | 'finished'
 export type GameMode = 'blitz' | 'practice'
 export interface Badge {
@@ -100,18 +101,7 @@ progressSessions: ProgressSession[]
 recurringProgress: RecurringProgress
 challengeCompletedThisRound: boolean}
 
-const GAME_STORAGE_KEYS = [
-  STORAGE_KEYS.HIGH_SCORE,
-  STORAGE_KEYS.BEST_STREAK,
-  STORAGE_KEYS.BADGES,
-  STORAGE_KEYS.TOTAL_CORRECT,
-  STORAGE_KEYS.TOTAL_CHAOS,
-  STORAGE_KEYS.MOON_GAMES,
-  STORAGE_KEYS.MARS_GAMES,
-  STORAGE_KEYS.SPACE_GAMES,
-  STORAGE_KEYS.PROGRESS_SESSIONS,
-  STORAGE_KEYS.DAILY_CHALLENGES,
-]
+const GAME_STORAGE_KEYS = STORAGE_PROGRESS_KEYS
 const enforcePlanetDifficulty = (difficulty: DifficultyTier, level: number): DifficultyTier => {
   return getDifficultyAtLeast(difficulty, getDifficultyForLevel(level))
 }
@@ -164,6 +154,7 @@ const averageResponseTimeMs = totalQuestions > 0 ? totalResponseTimeMs / totalQu
 }
 export const useGame = (initialTime: number = 10) => {
   const [state, setState] = useState<GameState>(() => {
+    ensureStorageSchema()
     return {
       score: 0,
       streak: 0,
@@ -212,6 +203,12 @@ const stateRef = useRef<GameState>(state)
   const pendingSubmissionRef = useRef(false)
   type PersistenceTask = { key: string; write: () => boolean }
   const pendingPersistenceRef = useRef<Map<string, PersistenceTask>>(new Map())
+  const [storageStatus, setStorageStatus] = useState<StorageStatus>(getStorageStatus)
+  const [hasPendingPersistence, setHasPendingPersistence] = useState(false)
+  const refreshPersistenceStatus = useCallback(() => {
+    setStorageStatus(getStorageStatus())
+    setHasPendingPersistence(pendingPersistenceRef.current.size > 0)
+  }, [])
   useEffect(() => {
     stateRef.current = state
     pendingSubmissionRef.current = false
@@ -223,16 +220,18 @@ const stateRef = useRef<GameState>(state)
     } else {
       pendingPersistenceRef.current.set(key, task)
     }
-  }, [])
+    refreshPersistenceStatus()
+  }, [refreshPersistenceStatus])
   useEffect(() => {
     const retryPendingPersistence = () => {
       pendingPersistenceRef.current.forEach((task, key) => {
         if (task.write() && pendingPersistenceRef.current.get(key) === task) pendingPersistenceRef.current.delete(key)
       })
+      refreshPersistenceStatus()
     }
     const interval = window.setInterval(retryPendingPersistence, 1_000)
     return () => window.clearInterval(interval)
-  }, [])
+  }, [refreshPersistenceStatus])
   const refreshRecurringProgress = useCallback(() => {
     const current = stateRef.current.recurringProgress
 const refreshed = normalizeRecurringProgress(current, new Date())
@@ -319,7 +318,7 @@ return finishedState
       queuePersistence(STORAGE_KEYS.DAILY_CHALLENGES, () => writeRecurringProgress(nextState.recurringProgress))
     }
     if (nextState.unlockedBadges !== previousState.unlockedBadges) {
-      queuePersistence(STORAGE_KEYS.BADGES, () => writeStorage(STORAGE_KEYS.BADGES, JSON.stringify(nextState.unlockedBadges)))
+      queuePersistence(STORAGE_KEYS.BADGES, () => writeStoredJson(STORAGE_KEYS.BADGES, nextState.unlockedBadges))
     }
   }, [queuePersistence])
   const persistFinishedGame = useCallback((previousState: GameState, finishedState: GameState) => {
@@ -556,6 +555,7 @@ if (timerRef.current) clearInterval(timerRef.current)
   const resetStats = useCallback(() => {
     pendingSubmissionRef.current = false
     pendingPersistenceRef.current.clear()
+    refreshPersistenceStatus()
     GAME_STORAGE_KEYS.forEach(removeStorage)
     const nextState: GameState = {
       ...stateRef.current,
@@ -611,6 +611,8 @@ timerRef.current = interval
     endGame,
     resetGame,
     resetStats,
+    storageStatus,
+    hasPendingPersistence,
     dailyChallenge: getDailyChallenge(new Date()),
   }
 }

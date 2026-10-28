@@ -24,6 +24,21 @@ Starting on Mars or Deep Space keeps the game at that difficulty; progression ne
 - **Chaos Mode**: Toggle "3-Number Chaos" for advanced arithmetic challenges (e.g., `5 + 3 - 2`).
 - **High Scores**: Local storage saves your personal bests, total solved questions, and unlocked badges.
 
+### 💾 Progress persistence
+
+NumberRush stores progress locally using a versioned JSON envelope:
+
+```json
+{ "version": 2, "data": "..." }
+```
+
+Unwrapped records from older releases (version 0) and the previous marker-only
+format (version 1) are read defensively and migrated to the current envelope.
+Future or malformed versions are ignored without replacing the stored value;
+the app keeps gameplay state in memory and reports when saving is unavailable.
+The Settings dialog can export and import the allowlisted gameplay progress
+keys as a JSON backup. Imports are size-limited and never execute imported data.
+
 ### 📱 Modern Experience
 - **PWA Support**: Installable as a native app on mobile and desktop. Works offline!
 - **Interactive Feedback**: Satisfying sound effects, screen shake animations, and confetti explosions for big achievements.

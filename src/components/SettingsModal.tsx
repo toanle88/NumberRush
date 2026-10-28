@@ -8,7 +8,9 @@ onClose: () => void
 onUpdateName: (name: string) => void
 onUpdateTimer: (time: number) => void
 onUpdatePreferences: (preferences: Partial<AccessibilityPreferences>) => void
-onResetStats: () => void}
+  onResetStats: () => void
+  onExportProgress?: () => void
+  onImportProgress?: (file: File) => void}
 
 const SettingsModal = ({
   playerName,
@@ -19,6 +21,8 @@ const SettingsModal = ({
   onUpdateTimer,
   onUpdatePreferences,
   onResetStats,
+  onExportProgress,
+  onImportProgress,
 }: SettingsModalProps) => {
   const dialogRef = useRef<HTMLDivElement>(null)
 const initialFocusRef = useRef<HTMLInputElement>(null)
@@ -146,6 +150,27 @@ previouslyFocusedRef.current?.focus()
               </button>
             ))}
           </div>
+        </div>
+        <div className="setting-item">
+          <h3>Progress data</h3>
+          <p>Save a backup of your progress or restore one from this app.</p>
+          {onExportProgress && (
+            <button type="button" onClick={onExportProgress}>Export progress</button>
+          )}
+          {onImportProgress && (
+            <label>
+              Import progress
+              <input
+                type="file"
+                accept="application/json,.json"
+                onChange={event => {
+                  const file = event.target.files?.[0]
+                  if (file) onImportProgress(file)
+                  event.currentTarget.value = ''
+                }}
+              />
+            </label>
+          )}
         </div>
         <div className="setting-item">
           <button

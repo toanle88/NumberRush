@@ -32,7 +32,7 @@ expect(progress.completionHistory).toHaveLength(1)
     const repeated = recordAnswerForRecurringProgress(progress, { isCorrect: true, currentStreak: challenge.target + 1, answeredAt: date })
 expect(repeated.points).toBe(challenge.rewardPoints)
 expect(repeated.completionHistory).toHaveLength(1)
-expect(JSON.parse(localStorage.getItem(DAILY_CHALLENGES_STORAGE_KEY)!)).toMatchObject({ points: challenge.rewardPoints })
+    expect(JSON.parse(localStorage.getItem(DAILY_CHALLENGES_STORAGE_KEY)!)).toMatchObject({ version: 2, data: { points: challenge.rewardPoints } })
 expect(readRecurringProgress(date)).toEqual(repeated)
 })
   it('resets daily and weekly counters safely at date boundaries while retaining rewards', () => {
