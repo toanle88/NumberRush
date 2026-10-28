@@ -1,37 +1,31 @@
-import type { ProgressMetrics, ProgressSession } from '../utils/progress';
-import type { DifficultyTier, Operation } from '../utils/mathLogic';
-import { DAILY_GOAL, WEEKLY_GOAL } from '../utils/dailyChallenges';
-import type { RecurringProgress } from '../utils/dailyChallenges';
-
+import type { ProgressMetrics, ProgressSession } from '../utils/progress'
+import type { DifficultyTier, Operation } from '../utils/mathLogic'
+import { DAILY_GOAL, WEEKLY_GOAL } from '../utils/dailyChallenges'
+import type { RecurringProgress } from '../utils/dailyChallenges'
 interface ProgressDashboardProps {
-  metrics: ProgressMetrics;
-  recurringProgress: RecurringProgress;
-  onBack: () => void;
-}
+  metrics: ProgressMetrics
+recurringProgress: RecurringProgress
+onBack: () => void}
 
 const operationLabels: Record<Operation, string> = {
   addition: 'Addition',
   subtraction: 'Subtraction',
   multiplication: 'Multiplication',
   division: 'Division',
-};
-
+}
 const difficultyLabels: Record<DifficultyTier, string> = {
   easy: 'Easy',
   medium: 'Medium',
   hard: 'Hard',
-};
-
+}
 const formatResponseTime = (milliseconds: number | null): string => {
-  if (milliseconds === null) return '—';
-  return `${(milliseconds / 1000).toFixed(1)}s`;
-};
-
+  if (milliseconds === null) return '—'
+return `${(milliseconds / 1000).toFixed(1)}s`
+}
 const formatChange = (value: number, unit: string): string => {
-  if (value === 0) return `No change ${unit}`;
-  return `${value > 0 ? '+' : ''}${value}${unit}`;
-};
-
+  if (value === 0) return `No change ${unit}`
+return `${value > 0 ? '+' : ''}${value}${unit}`
+}
 const SessionRow = ({ session }: { session: ProgressSession }) => (
   <li className="session-row">
     <div>
@@ -43,8 +37,7 @@ const SessionRow = ({ session }: { session: ProgressSession }) => (
       <span>{session.correctAnswers} solved · {formatResponseTime(session.averageResponseTimeMs)}</span>
     </div>
   </li>
-);
-
+)
 const RecurringGoals = ({ recurringProgress }: { recurringProgress: RecurringProgress }) => (
   <section className="progress-panel goals-panel" aria-labelledby="recurring-goals-heading">
     <div className="daily-challenge-heading">
@@ -61,8 +54,8 @@ const RecurringGoals = ({ recurringProgress }: { recurringProgress: RecurringPro
       ...WEEKLY_GOAL,
       progress: recurringProgress.weeklyCorrectAnswers,
     }].map(goal => {
-      const progress = Math.min(goal.progress, goal.target);
-      return (
+      const progress = Math.min(goal.progress, goal.target)
+return (
         <div className="goal-row" key={goal.id}>
           <div>
             <strong>{goal.title}</strong>
@@ -70,11 +63,10 @@ const RecurringGoals = ({ recurringProgress }: { recurringProgress: RecurringPro
           </div>
           <strong>{progress}/{goal.target}{progress >= goal.target ? ' ✓' : ''}</strong>
         </div>
-      );
-    })}
+      )
+})}
   </section>
-);
-
+)
 function ProgressDashboard({ metrics, recurringProgress, onBack }: ProgressDashboardProps) {
   if (metrics.totalSessions === 0) {
     return (
@@ -94,8 +86,8 @@ function ProgressDashboard({ metrics, recurringProgress, onBack }: ProgressDashb
         </div>
         <RecurringGoals recurringProgress={recurringProgress} />
       </section>
-    );
-  }
+    )
+}
 
   return (
     <section className="progress-dashboard" aria-labelledby="progress-title">
@@ -134,9 +126,9 @@ function ProgressDashboard({ metrics, recurringProgress, onBack }: ProgressDashb
               <thead><tr><th scope="col">Operator</th><th scope="col">Accuracy</th><th scope="col">Speed</th></tr></thead>
               <tbody>
                 {(Object.keys(operationLabels) as Operation[]).map(operation => {
-                  const breakdown = metrics.byOperator[operation];
-                  return <tr key={operation}><th scope="row">{operationLabels[operation]}</th><td>{breakdown.attempts === 0 ? '—' : `${breakdown.accuracy}%`}</td><td>{breakdown.attempts === 0 ? '—' : formatResponseTime(breakdown.averageResponseTimeMs)}</td></tr>;
-                })}
+                  const breakdown = metrics.byOperator[operation]
+return <tr key={operation}><th scope="row">{operationLabels[operation]}</th><td>{breakdown.attempts === 0 ? '—' : `${breakdown.accuracy}%`}</td><td>{breakdown.attempts === 0 ? '—' : formatResponseTime(breakdown.averageResponseTimeMs)}</td></tr>
+})}
               </tbody>
             </table>
           </div>
@@ -150,9 +142,9 @@ function ProgressDashboard({ metrics, recurringProgress, onBack }: ProgressDashb
               <thead><tr><th scope="col">Tier</th><th scope="col">Accuracy</th><th scope="col">Speed</th></tr></thead>
               <tbody>
                 {(Object.keys(difficultyLabels) as DifficultyTier[]).map(difficulty => {
-                  const breakdown = metrics.byDifficulty[difficulty];
-                  return <tr key={difficulty}><th scope="row">{difficultyLabels[difficulty]}</th><td>{breakdown.attempts === 0 ? '—' : `${breakdown.accuracy}%`}</td><td>{breakdown.attempts === 0 ? '—' : formatResponseTime(breakdown.averageResponseTimeMs)}</td></tr>;
-                })}
+                  const breakdown = metrics.byDifficulty[difficulty]
+return <tr key={difficulty}><th scope="row">{difficultyLabels[difficulty]}</th><td>{breakdown.attempts === 0 ? '—' : `${breakdown.accuracy}%`}</td><td>{breakdown.attempts === 0 ? '—' : formatResponseTime(breakdown.averageResponseTimeMs)}</td></tr>
+})}
               </tbody>
             </table>
           </div>
@@ -166,7 +158,7 @@ function ProgressDashboard({ metrics, recurringProgress, onBack }: ProgressDashb
         </ol>
       </section>
     </section>
-  );
+  )
 }
 
-export default ProgressDashboard;
+export default ProgressDashboard

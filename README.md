@@ -42,8 +42,8 @@ Starting on Mars or Deep Space keeps the game at that difficulty; progression ne
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18 or higher recommended)
-- npm
+- Node.js 24 or newer
+- pnpm 11 (included with Corepack)
 
 ### Installation
 
@@ -55,12 +55,12 @@ Starting on Mars or Deep Space keeps the game at that difficulty; progression ne
 
 2.  **Install dependencies:**
     ```bash
-    npm install
+    pnpm install --frozen-lockfile
     ```
 
 3.  **Start the development server:**
     ```bash
-    npm run dev
+    pnpm dev
     ```
     Open [http://localhost:5173](http://localhost:5173) in your browser.
 
@@ -68,11 +68,13 @@ Starting on Mars or Deep Space keeps the game at that difficulty; progression ne
 
 | Command | Description |
 | :--- | :--- |
-| `npm run dev` | Starts the development server with HMR. |
-| `npm run build` | Type-checks and builds the production-ready app. |
-| `npm run preview` | Previews the production build locally. |
-| `npm run test` | Runs unit tests with Vitest. |
-| `npm run lint` | Runs ESLint to check for code quality issues. |
+| `pnpm dev` | Starts the development server with HMR. |
+| `pnpm build` | Type-checks and builds the production-ready app. |
+| `pnpm preview` | Previews the production build locally. |
+| `pnpm test` | Runs unit tests with Vitest. |
+| `pnpm lint` | Runs ESLint to check for code quality issues. |
+| `pnpm format` | Fixes TypeScript and JavaScript formatting with ESLint. |
+| `pnpm format:check` | Checks formatting without changing files. |
 
 ## ☁️ Deployment
 
@@ -80,7 +82,11 @@ This project can be deployed to **Azure Static Web Apps**.
 
 - **Infrastructure**: Managed via Terraform in the `infra/` directory.
 - **Terraform backend**: Copy `infra/backend.hcl.example` to a local `backend.hcl`, fill in the approved state-storage coordinates, and run `terraform init -backend-config=backend.hcl`. Keep the filled-in file out of version control.
-- **Build**: Run `npm run build`, then deploy the generated `dist/` directory with your Azure Static Web Apps deployment tooling.
+- **Build**: Run `pnpm build`, then deploy the generated `dist/` directory with your Azure Static Web Apps deployment tooling.
+
+## 🧹 Formatting
+
+ESLint is the canonical formatter for JavaScript and TypeScript. Run `pnpm format` before opening a pull request, or use `pnpm format:check` to verify that a checkout is already normalized. Repository text files use LF line endings through `.gitattributes`; the included `.editorconfig` mirrors those settings for supported editors.
 - **Configuration**: `public/staticwebapp.config.json` supplies the static-host security headers and SPA fallback.
 - **Secrets**: Terraform state contains provider-managed resource attributes, including the Static Web App deployment key. Use the protected remote backend configured in `infra/providers.tf`; never commit state or expose the key in outputs or logs.
 

@@ -1,38 +1,33 @@
-import { memo } from 'react';
-
+import { memo } from 'react'
 interface NumpadProps {
-  onInput: (val: string) => void;
-  onClear: () => void;
-  onSubmit: () => void;
-}
+  onInput: (val: string) => void
+onClear: () => void
+onSubmit: () => void}
 
 const Numpad = memo(({ onInput, onClear, onSubmit }: NumpadProps) => {
-  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '✓'];
-
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '✓']
   return (
     <div className="numpad" role="group" aria-label="Answer keypad">
       {keys.map((key) => {
-        const isSubmit = key === '✓';
-        const isClear = key === 'C';
-
+        const isSubmit = key === '✓'
+const isClear = key === 'C'
         return (
           <button
             key={key}
             type="button"
             onClick={() => {
-              if (isClear) onClear();
-              else if (isSubmit) onSubmit();
-              else onInput(key);
-            }}
+              if (isClear) onClear()
+else if (isSubmit) onSubmit()
+else onInput(key)
+}}
             className={`num-btn ${isClear ? 'clear-btn' : ''} ${isSubmit ? 'submit-btn primary' : ''}`}
             aria-label={isClear ? 'Clear answer' : isSubmit ? 'Submit answer' : `Enter ${key}`}
           >
             {key}
           </button>
-        );
-      })}
+        )
+})}
     </div>
-  );
-});
-
-export default Numpad;
+  )
+})
+export default Numpad

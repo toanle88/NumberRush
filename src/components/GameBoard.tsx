@@ -1,19 +1,17 @@
-import { memo } from 'react';
-import type { DifficultyTier, MathQuestion } from '../utils/mathLogic';
-import { formatOperation } from '../utils/mathLogic';
-import { getPlanet } from '../utils/planetProgression';
-
+import { memo } from 'react'
+import type { DifficultyTier, MathQuestion } from '../utils/mathLogic'
+import { formatOperation } from '../utils/mathLogic'
+import { getPlanet } from '../utils/planetProgression'
 interface GameBoardProps {
-  question: MathQuestion;
-  currentInput: string;
-  score: number;
-  timeLeft: number;
-  maxTime: number;
-  streak: number;
-  showTimer: boolean;
-  level: number;
-  difficulty?: DifficultyTier;
-}
+  question: MathQuestion
+currentInput: string
+score: number
+timeLeft: number
+maxTime: number
+streak: number
+showTimer: boolean
+level: number
+difficulty?: DifficultyTier}
 
 const GameBoard = memo(({
   question,
@@ -24,18 +22,17 @@ const GameBoard = memo(({
   streak,
   showTimer,
   level,
-  difficulty = 'easy'
+  difficulty = 'easy',
 }: GameBoardProps) => {
-  const progress = (timeLeft / maxTime) * 100;
-  const planet = getPlanet(level);
-  const spokenOperation = (operation: MathQuestion['operation']) => {
-    if (operation === 'addition') return 'plus';
-    if (operation === 'subtraction') return 'minus';
-    if (operation === 'multiplication') return 'times';
-    return 'divided by';
-  };
-  const questionText = `${question.operandA} ${spokenOperation(question.operation)} ${question.operandB}${question.operandC === undefined ? '' : ` ${spokenOperation(question.operation2!)} ${question.operandC}`} equals`;
-
+  const progress = (timeLeft / maxTime) * 100
+const planet = getPlanet(level)
+const spokenOperation = (operation: MathQuestion['operation']) => {
+    if (operation === 'addition') return 'plus'
+if (operation === 'subtraction') return 'minus'
+if (operation === 'multiplication') return 'times'
+return 'divided by'
+}
+const questionText = `${question.operandA} ${spokenOperation(question.operation)} ${question.operandB}${question.operandC === undefined ? '' : ` ${spokenOperation(question.operation2!)} ${question.operandC}`} equals`
   return (
     <div className="board-content">
       {showTimer && (
@@ -50,7 +47,7 @@ const GameBoard = memo(({
             aria-valuetext={`${timeLeft} seconds remaining${timeLeft <= 3 ? ', hurry' : ''}`}
             style={{
               width: `${Math.max(0, progress)}%`,
-              backgroundColor: timeLeft <= 3 ? 'var(--color-error)' : 'var(--color-primary)'
+              backgroundColor: timeLeft <= 3 ? 'var(--color-error)' : 'var(--color-primary)',
             }}
           />
         </div>
@@ -104,7 +101,6 @@ const GameBoard = memo(({
         </div>
       </div>
     </div>
-  );
-});
-
-export default GameBoard;
+  )
+})
+export default GameBoard

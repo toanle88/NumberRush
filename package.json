@@ -8,6 +8,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "format": "eslint --fix .",
+    "format:check": "eslint .",
     "benchmark": "pnpm run build && node scripts/performance-budget.mjs",
     "test": "vitest",
     "preview": "vite preview"

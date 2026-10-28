@@ -1,8 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import GameBoard from './GameBoard';
-import Numpad from './Numpad';
-
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import GameBoard from './GameBoard'
+import Numpad from './Numpad'
 describe('game accessibility controls', () => {
   it('exposes timer progress and a non-color urgency label', () => {
     render(
@@ -15,24 +14,21 @@ describe('game accessibility controls', () => {
         streak={1}
         showTimer
         level={1}
-      />
-    );
-
-    expect(screen.getByRole('progressbar', { name: 'Time remaining' })).toHaveAttribute('aria-valuenow', '2');
-    expect(screen.getByText('2s — hurry')).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: /8 minus 3 equals current answer not entered/i })).toBeInTheDocument();
-  });
-
+      />,
+    )
+    expect(screen.getByRole('progressbar', { name: 'Time remaining' })).toHaveAttribute('aria-valuenow', '2')
+expect(screen.getByText('2s — hurry')).toBeInTheDocument()
+expect(screen.getByRole('group', { name: /8 minus 3 equals current answer not entered/i })).toBeInTheDocument()
+})
   it('gives descriptive names to clear and submit actions', () => {
-    const onClear = vi.fn();
-    const onSubmit = vi.fn();
-    render(<Numpad onInput={vi.fn()} onClear={onClear} onSubmit={onSubmit} />);
-
-    expect(screen.getByRole('button', { name: 'Clear answer' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Submit answer' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear answer' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Submit answer' }));
-    expect(onClear).toHaveBeenCalledOnce();
-    expect(onSubmit).toHaveBeenCalledOnce();
-  });
-});
+    const onClear = vi.fn()
+const onSubmit = vi.fn()
+render(<Numpad onInput={vi.fn()} onClear={onClear} onSubmit={onSubmit} />)
+    expect(screen.getByRole('button', { name: 'Clear answer' })).toBeInTheDocument()
+expect(screen.getByRole('button', { name: 'Submit answer' })).toBeInTheDocument()
+fireEvent.click(screen.getByRole('button', { name: 'Clear answer' }))
+fireEvent.click(screen.getByRole('button', { name: 'Submit answer' }))
+expect(onClear).toHaveBeenCalledOnce()
+expect(onSubmit).toHaveBeenCalledOnce()
+})
+})
