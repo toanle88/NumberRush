@@ -48,7 +48,7 @@ keys as a JSON backup. Imports are size-limited and never execute imported data.
 
 - **Core**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
 - **Build Tool**: [Vite](https://vitejs.dev/)
-- **Testing**: [Vitest](https://vitest.dev/), React Testing Library
+- **Testing**: [Vitest](https://vitest.dev/), React Testing Library, [Playwright](https://playwright.dev/)
 - **Styling**: Modern CSS3 (Variables, Animations, Responsive Design)
 - **Effects**: [canvas-confetti](https://github.com/catdad/canvas-confetti)
 - **Infrastructure**: Azure Static Web Apps (IaC with Terraform)
@@ -87,6 +87,7 @@ keys as a JSON backup. Imports are size-limited and never execute imported data.
 | `pnpm build` | Type-checks and builds the production-ready app. |
 | `pnpm preview` | Previews the production build locally. |
 | `pnpm test` | Runs unit tests with Vitest. |
+| `pnpm test:e2e` | Runs desktop and mobile-viewport browser tests with Playwright. |
 | `pnpm lint` | Runs ESLint to check for code quality issues. |
 | `pnpm format` | Fixes TypeScript and JavaScript formatting with ESLint. |
 | `pnpm format:check` | Checks formatting without changing files. |

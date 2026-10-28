@@ -12,6 +12,7 @@
     "format:check": "eslint .",
     "benchmark": "pnpm run build && node scripts/performance-budget.mjs",
     "test": "vitest",
+    "test:e2e": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -28,6 +29,7 @@
     "@types/node": "^26.6.5",
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
+    "@playwright/test": "^1.56.1",
     "@vitejs/plugin-react": "^6.1.2",
     "@vitest/ui": "^5.0.5",
     "autoprefixer": "^10.4.24",
