@@ -19,7 +19,7 @@ This workflow orchestrates a full development cycle using the defined personas: 
    - Generate a corresponding test suite (Unit/Integration).
    - Identify at least 3 edge cases (null inputs, boundary values, etc.).
    - // turbo
-     Run tests using the project's appropriate test runner (e.g. `go test`, `npm test`, `pytest`).
+     Run tests using the project's appropriate test runner (e.g. `go test`, `pnpm test`, `pytest`).
 4. **Output**: Produce a "Test Report" artifact summarizing coverage and bugs.
 
 ### Phase 3: The Security Engineer (Safety Audit)
@@ -45,7 +45,7 @@ This workflow orchestrates a full development cycle using the defined personas: 
    - Validate reports from Tester, Security, and Performance phases.
    - Enforce "String ID" and "No Comments" rules.
    - // turbo
-     Verify build success using `npm run build` or the equivalent command.
+     Verify build success using `pnpm build` or the equivalent command.
 4. **Output**: A "Code Review" artifact with "Request Changes" or "Approve".
 5. **On Approval**:
    - If the code is approved, commit the changes to git.
