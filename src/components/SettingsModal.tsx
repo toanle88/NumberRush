@@ -1,16 +1,14 @@
-import { useEffect, useRef } from 'react';
-import type { AccessibilityPreferences } from '../utils/accessibility';
-
+import { useEffect, useRef } from 'react'
+import type { AccessibilityPreferences } from '../utils/accessibility'
 interface SettingsModalProps {
-  playerName: string;
-  initialTime: number;
-  preferences: AccessibilityPreferences;
-  onClose: () => void;
-  onUpdateName: (name: string) => void;
-  onUpdateTimer: (time: number) => void;
-  onUpdatePreferences: (preferences: Partial<AccessibilityPreferences>) => void;
-  onResetStats: () => void;
-}
+  playerName: string
+initialTime: number
+preferences: AccessibilityPreferences
+onClose: () => void
+onUpdateName: (name: string) => void
+onUpdateTimer: (time: number) => void
+onUpdatePreferences: (preferences: Partial<AccessibilityPreferences>) => void
+onResetStats: () => void}
 
 const SettingsModal = ({
   playerName,
@@ -22,44 +20,40 @@ const SettingsModal = ({
   onUpdatePreferences,
   onResetStats,
 }: SettingsModalProps) => {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const initialFocusRef = useRef<HTMLInputElement>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
-
+  const dialogRef = useRef<HTMLDivElement>(null)
+const initialFocusRef = useRef<HTMLInputElement>(null)
+const previouslyFocusedRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
-    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
-    initialFocusRef.current?.focus();
-
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null
+initialFocusRef.current?.focus()
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-        return;
-      }
+        event.preventDefault()
+onClose()
+return
+}
 
-      if (event.key !== 'Tab' || !dialogRef.current) return;
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
-        'button, input, select, textarea, [href], [tabindex]:not([tabindex="-1"])'
-      )).filter(element => !element.hasAttribute('disabled'));
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      previouslyFocusedRef.current?.focus();
-    };
-  }, [onClose]);
-
+      if (event.key !== 'Tab' || !dialogRef.current) return
+const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+        'button, input, select, textarea, [href], [tabindex]:not([tabindex="-1"])',
+      )).filter(element => !element.hasAttribute('disabled'))
+if (focusable.length === 0) return
+const first = focusable[0]
+const last = focusable[focusable.length - 1]
+if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+last.focus()
+} else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+first.focus()
+}
+    }
+    document.addEventListener('keydown', handleKeyDown)
+return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+previouslyFocusedRef.current?.focus()
+}
+}, [onClose])
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
@@ -157,7 +151,9 @@ const SettingsModal = ({
           <button
             type="button"
             className="danger"
-            onClick={() => { if (confirm('Reset all stats?')) onResetStats(); }}
+            onClick={() => {
+ if (confirm('Reset all stats?')) onResetStats()
+}}
           >
             Reset progress
           </button>
@@ -165,7 +161,6 @@ const SettingsModal = ({
         <button type="button" className="close-modal" onClick={onClose}>Close settings</button>
       </div>
     </div>
-  );
-};
-
-export default SettingsModal;
+  )
+}
+export default SettingsModal

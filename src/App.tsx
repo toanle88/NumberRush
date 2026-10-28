@@ -1,312 +1,274 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useGame, BADGES } from './hooks/useGame';
-import type { AnswerFeedback, GameMode } from './hooks/useGame';
-import type { DifficultyTier, Operation } from './utils/mathLogic';
-import { getDifficultyAtLeast, getDifficultyForLevel, SUPPORTED_OPERATIONS } from './utils/mathLogic';
-import GameBoard from './components/GameBoard';
-import Numpad from './components/Numpad';
-import BadgeItem from './components/BadgeItem';
-import ProgressDashboard from './components/ProgressDashboard';
-import SettingsModal from './components/SettingsModal';
-import { getPlanet, PLANETS } from './utils/planetProgression';
-import { getChallengeProgress } from './utils/dailyChallenges';
-import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects';
-import { getSystemReducedMotionPreference, readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility';
-import type { AccessibilityPreferences } from './utils/accessibility';
-import { readStorage, readStoredNonNegativeInteger, writeStorage } from './utils/storage';
-import confetti from 'canvas-confetti';
-import './App.css';
-
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useGame, BADGES } from './hooks/useGame'
+import type { AnswerFeedback, GameMode } from './hooks/useGame'
+import type { DifficultyTier, Operation } from './utils/mathLogic'
+import { getDifficultyAtLeast, getDifficultyForLevel, SUPPORTED_OPERATIONS } from './utils/mathLogic'
+import GameBoard from './components/GameBoard'
+import Numpad from './components/Numpad'
+import BadgeItem from './components/BadgeItem'
+import ProgressDashboard from './components/ProgressDashboard'
+import SettingsModal from './components/SettingsModal'
+import { getPlanet, PLANETS } from './utils/planetProgression'
+import { getChallengeProgress } from './utils/dailyChallenges'
+import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects'
+import { getSystemReducedMotionPreference, readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility'
+import type { AccessibilityPreferences } from './utils/accessibility'
+import { readStorage, readStoredNonNegativeInteger, writeStorage } from './utils/storage'
+import confetti from 'canvas-confetti'
+import './App.css'
 interface PlanetTransition {
-  from: number;
-  to: number;
-}
+  from: number
+to: number}
 
-type RoundPreset = 'quick' | 'challenge' | 'custom';
-
-const QUICK_START_OPERATIONS: Operation[] = ['addition', 'subtraction'];
-const CHALLENGE_OPERATIONS: Operation[] = ['addition', 'subtraction', 'multiplication'];
+type RoundPreset = 'quick' | 'challenge' | 'custom'
+const QUICK_START_OPERATIONS: Operation[] = ['addition', 'subtraction']
+const CHALLENGE_OPERATIONS: Operation[] = ['addition', 'subtraction', 'multiplication']
 const DIFFICULTY_HELP: Record<DifficultyTier, string> = {
   easy: '15 second starting timer with smaller number ranges',
   medium: '10 second starting timer with wider number ranges',
   hard: '7 second starting timer with challenging number ranges',
-};
-const FEEDBACK_DURATION_MS = 1400;
-
+}
+const FEEDBACK_DURATION_MS = 1400
 function App() {
-  const [view, setView] = useState<'home' | 'progress'>('home');
-  const [initialTime, setInitialTime] = useState(() =>
-    Math.min(20, Math.max(1, readStoredNonNegativeInteger('numberrush_timer', 10, 20)))
-  );
-  const [playerName, setPlayerName] = useState(() =>
-    readStorage('numberrush_name') || 'Super Kid'
-  );
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [preferences, setPreferences] = useState<AccessibilityPreferences>(readAccessibilityPreferences);
-  const [systemReducedMotion, setSystemReducedMotion] = useState(getSystemReducedMotionPreference);
-  const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const [isAdvanced, setIsAdvanced] = useState(false);
-  const [roundPreset, setRoundPreset] = useState<RoundPreset>('quick');
-  const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyTier | undefined>();
-  const [selectedOperations, setSelectedOperations] = useState<Operation[]>(QUICK_START_OPERATIONS);
-  const [lastUnlockedBadge, setLastUnlockedBadge] = useState<string | null>(null);
-  const previousBadgeCountRef = useRef(0);
-  const hasInitializedBadgesRef = useRef(false);
-
+  const [view, setView] = useState<'home' | 'progress'>('home')
+const [initialTime, setInitialTime] = useState(() =>
+    Math.min(20, Math.max(1, readStoredNonNegativeInteger('numberrush_timer', 10, 20))),
+  )
+const [playerName, setPlayerName] = useState(() =>
+    readStorage('numberrush_name') || 'Super Kid',
+  )
+const [settingsOpen, setSettingsOpen] = useState(false)
+const [preferences, setPreferences] = useState<AccessibilityPreferences>(readAccessibilityPreferences)
+const [systemReducedMotion, setSystemReducedMotion] = useState(getSystemReducedMotionPreference)
+const closeSettings = useCallback(() => setSettingsOpen(false), [])
+const [isAdvanced, setIsAdvanced] = useState(false)
+const [roundPreset, setRoundPreset] = useState<RoundPreset>('quick')
+const [moreOptionsOpen, setMoreOptionsOpen] = useState(false)
+const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyTier | undefined>()
+const [selectedOperations, setSelectedOperations] = useState<Operation[]>(QUICK_START_OPERATIONS)
+const [lastUnlockedBadge, setLastUnlockedBadge] = useState<string | null>(null)
+const previousBadgeCountRef = useRef(0)
+const hasInitializedBadgesRef = useRef(false)
   const {
     status, score, timeLeft, streak, mode, currentQuestion,
     highScore, bestStreak, unlockedBadges, currentLevel, difficulty, maxTime, playedLevels, missedQuestions,
-    roundSummary, isTargetedPractice, progressMetrics, recurringProgress, dailyChallenge, challengeCompletedThisRound, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats
-  } = useGame(initialTime);
-
-  const [input, setInput] = useState('');
-  const [feedback, setFeedback] = useState<AnswerFeedback | null>(null);
-  const [selectedLevel, setSelectedLevel] = useState(1);
-  const [shakeClass, setShakeClass] = useState('');
-  const [planetTransition, setPlanetTransition] = useState<PlanetTransition | null>(null);
-  const previousLevelRef = useRef<number | null>(null);
-  const gameAreaRef = useRef<HTMLDivElement>(null);
-  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
-  const previousStreakRef = useRef(0);
-
+    roundSummary, isTargetedPractice, progressMetrics, recurringProgress, dailyChallenge, challengeCompletedThisRound, startGame, startTargetedPractice, submitAnswer, endGame, resetGame, resetStats,
+  } = useGame(initialTime)
+  const [input, setInput] = useState('')
+const [feedback, setFeedback] = useState<AnswerFeedback | null>(null)
+const [selectedLevel, setSelectedLevel] = useState(1)
+const [shakeClass, setShakeClass] = useState('')
+const [planetTransition, setPlanetTransition] = useState<PlanetTransition | null>(null)
+const previousLevelRef = useRef<number | null>(null)
+const gameAreaRef = useRef<HTMLDivElement>(null)
+const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
+const previousStreakRef = useRef(0)
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handleChange = (event: MediaQueryListEvent) => setSystemReducedMotion(event.matches);
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+const handleChange = (event: MediaQueryListEvent) => setSystemReducedMotion(event.matches)
+if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange)
+return () => mediaQuery.removeEventListener('change', handleChange)
+}
     if (typeof mediaQuery.addListener === 'function') {
-      mediaQuery.addListener(handleChange);
-      return () => mediaQuery.removeListener(handleChange);
-    }
-  }, []);
-
+      mediaQuery.addListener(handleChange)
+return () => mediaQuery.removeListener(handleChange)
+}
+  }, [])
   useEffect(() => {
-    const level = status === 'playing' ? currentLevel : selectedLevel;
-    document.body.className = `planet-${level}`;
-  }, [selectedLevel, status, currentLevel]);
-
+    const level = status === 'playing' ? currentLevel : selectedLevel
+document.body.className = `planet-${level}`
+}, [selectedLevel, status, currentLevel])
   useEffect(() => {
-    document.documentElement.dataset.theme = preferences.theme;
-    document.documentElement.dataset.highContrast = preferences.highContrast ? 'true' : 'false';
-    document.documentElement.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false';
-    saveAccessibilityPreferences(preferences);
-  }, [preferences]);
-
+    document.documentElement.dataset.theme = preferences.theme
+document.documentElement.dataset.highContrast = preferences.highContrast ? 'true' : 'false'
+document.documentElement.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false'
+saveAccessibilityPreferences(preferences)
+}, [preferences])
   useEffect(() => {
     if (status !== 'playing') {
-      previousLevelRef.current = null;
-      return;
-    }
+      previousLevelRef.current = null
+return
+}
 
-    const previousLevel = previousLevelRef.current;
-    if (previousLevel !== null && previousLevel !== currentLevel) {
-      setPlanetTransition({ from: previousLevel, to: currentLevel });
-      const timer = window.setTimeout(() => setPlanetTransition(null), 4000);
-      previousLevelRef.current = currentLevel;
-      return () => window.clearTimeout(timer);
-    }
+    const previousLevel = previousLevelRef.current
+if (previousLevel !== null && previousLevel !== currentLevel) {
+      setPlanetTransition({ from: previousLevel, to: currentLevel })
+const timer = window.setTimeout(() => setPlanetTransition(null), 4000)
+previousLevelRef.current = currentLevel
+return () => window.clearTimeout(timer)
+}
 
-    previousLevelRef.current = currentLevel;
-  }, [status, currentLevel]);
-
+    previousLevelRef.current = currentLevel
+}, [status, currentLevel])
   useEffect(() => {
-    if (status === 'playing') gameAreaRef.current?.focus();
-    if (status === 'finished') resultsHeadingRef.current?.focus();
-  }, [status]);
-
+    if (status === 'playing') gameAreaRef.current?.focus()
+if (status === 'finished') resultsHeadingRef.current?.focus()
+}, [status])
   useEffect(() => {
     if (!hasInitializedBadgesRef.current) {
-      previousBadgeCountRef.current = unlockedBadges.length;
-      hasInitializedBadgesRef.current = true;
-      return;
-    }
+      previousBadgeCountRef.current = unlockedBadges.length
+hasInitializedBadgesRef.current = true
+return
+}
 
     if (unlockedBadges.length > previousBadgeCountRef.current) {
-      const latest = unlockedBadges[unlockedBadges.length - 1];
-      const showTimer = setTimeout(() => setLastUnlockedBadge(latest), 0);
-      const clearTimer = setTimeout(() => setLastUnlockedBadge(null), 4000);
-      previousBadgeCountRef.current = unlockedBadges.length;
-      return () => {
-        clearTimeout(showTimer);
-        clearTimeout(clearTimer);
-      };
-    }
+      const latest = unlockedBadges[unlockedBadges.length - 1]
+const showTimer = setTimeout(() => setLastUnlockedBadge(latest), 0)
+const clearTimer = setTimeout(() => setLastUnlockedBadge(null), 4000)
+previousBadgeCountRef.current = unlockedBadges.length
+return () => {
+        clearTimeout(showTimer)
+clearTimeout(clearTimer)
+}
+}
 
-    previousBadgeCountRef.current = unlockedBadges.length;
-  }, [unlockedBadges]);
-
+    previousBadgeCountRef.current = unlockedBadges.length
+}, [unlockedBadges])
   const handleStart = (m: GameMode) => {
-    setView('home');
-    setPlanetTransition(null);
-    setFeedback(null);
-    const hasDifficultyOverride = selectedDifficulty !== undefined;
-    const timerOverride = readStorage('numberrush_timer') !== null ? initialTime : undefined;
-    startGame(selectedLevel, m, isAdvanced, selectedOperations, selectedDifficulty, timerOverride, hasDifficultyOverride, true);
-  };
-
+    setView('home')
+setPlanetTransition(null)
+setFeedback(null)
+const hasDifficultyOverride = selectedDifficulty !== undefined
+const timerOverride = readStorage('numberrush_timer') !== null ? initialTime : undefined
+startGame(selectedLevel, m, isAdvanced, selectedOperations, selectedDifficulty, timerOverride, hasDifficultyOverride, true)
+}
   const selectRoundPreset = (preset: RoundPreset) => {
-    setRoundPreset(preset);
-    if (preset === 'quick') {
-      setSelectedLevel(1);
-      setIsAdvanced(false);
-      setSelectedOperations(QUICK_START_OPERATIONS);
-      setSelectedDifficulty(undefined);
-      setMoreOptionsOpen(false);
-    }
+    setRoundPreset(preset)
+if (preset === 'quick') {
+      setSelectedLevel(1)
+setIsAdvanced(false)
+setSelectedOperations(QUICK_START_OPERATIONS)
+setSelectedDifficulty(undefined)
+setMoreOptionsOpen(false)
+}
     if (preset === 'challenge') {
-      setSelectedLevel(2);
-      setIsAdvanced(false);
-      setSelectedOperations(CHALLENGE_OPERATIONS);
-      setSelectedDifficulty('medium');
-      setMoreOptionsOpen(false);
-    }
-  };
-
+      setSelectedLevel(2)
+setIsAdvanced(false)
+setSelectedOperations(CHALLENGE_OPERATIONS)
+setSelectedDifficulty('medium')
+setMoreOptionsOpen(false)
+}
+  }
   const toggleOperation = (operation: Operation) => {
-    setRoundPreset('custom');
-    setSelectedOperations(previous => {
+    setRoundPreset('custom')
+setSelectedOperations(previous => {
       if (previous.includes(operation)) {
-        return previous.length === 1 ? previous : previous.filter(item => item !== operation);
-      }
-      return [...previous, operation];
-    });
-  };
-
+        return previous.length === 1 ? previous : previous.filter(item => item !== operation)
+}
+      return [...previous, operation]
+})
+}
   const handleInput = useCallback((val: string) => {
-    setInput(prev => (prev.length < 4 ? prev + val : prev));
-  }, []);
-
-  const handleClear = useCallback(() => setInput(''), []);
-
+    setInput(prev => (prev.length < 4 ? prev + val : prev))
+}, [])
+  const handleClear = useCallback(() => setInput(''), [])
   const handleSubmit = useCallback(() => {
-    if (input === '') return;
-    const answerFeedback = submitAnswer(parseInt(input, 10));
-    if (!answerFeedback) return;
-    setFeedback(answerFeedback);
-    if (answerFeedback.isCorrect) playCorrectSound(preferences.sound);
-    else playIncorrectSound(preferences.sound);
-    triggerHaptic(preferences.haptics, answerFeedback.isCorrect ? 20 : [50, 50, 50]);
-    setInput('');
-  }, [input, preferences.haptics, preferences.sound, submitAnswer]);
-
+    if (input === '') return
+const answerFeedback = submitAnswer(parseInt(input, 10))
+if (!answerFeedback) return
+setFeedback(answerFeedback)
+if (answerFeedback.isCorrect) playCorrectSound(preferences.sound)
+else playIncorrectSound(preferences.sound)
+triggerHaptic(preferences.haptics, answerFeedback.isCorrect ? 20 : [50, 50, 50])
+setInput('')
+}, [input, preferences.haptics, preferences.sound, submitAnswer])
   const handleExit = useCallback(() => {
-    setPlanetTransition(null);
-    setFeedback(null);
-    resetGame();
-    setInput('');
-  }, [resetGame]);
-
+    setPlanetTransition(null)
+setFeedback(null)
+resetGame()
+setInput('')
+}, [resetGame])
   const handleTargetedPractice = useCallback(() => {
-    setPlanetTransition(null);
-    setFeedback(null);
-    startTargetedPractice();
-    setInput('');
-  }, [startTargetedPractice]);
-
+    setPlanetTransition(null)
+setFeedback(null)
+startTargetedPractice()
+setInput('')
+}, [startTargetedPractice])
   const updateName = (val: string) => {
-    setPlayerName(val);
-    writeStorage('numberrush_name', val);
-  };
-
+    setPlayerName(val)
+writeStorage('numberrush_name', val)
+}
   const updateTimer = (val: number) => {
-    setInitialTime(val);
-    writeStorage('numberrush_timer', val.toString());
-  };
-
+    setInitialTime(val)
+writeStorage('numberrush_timer', val.toString())
+}
   const updatePreferences = (patch: Partial<AccessibilityPreferences>) => {
-    setPreferences(previous => ({ ...previous, ...patch }));
-  };
-
+    setPreferences(previous => ({ ...previous, ...patch }))
+}
   useEffect(() => {
-    if (!feedback || status !== 'playing') return;
-    const timer = setTimeout(() => setFeedback(null), FEEDBACK_DURATION_MS);
-    return () => clearTimeout(timer);
-  }, [feedback, status]);
-
+    if (!feedback || status !== 'playing') return
+const timer = setTimeout(() => setFeedback(null), FEEDBACK_DURATION_MS)
+return () => clearTimeout(timer)
+}, [feedback, status])
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (status !== 'playing' || settingsOpen) return;
-      if (e.target instanceof Element && e.target.closest('button, input, select, textarea, a, summary, [role="button"], [contenteditable="true"]')) return;
-      if ((e.key >= '0' && e.key <= '9') || (e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9')) {
-        e.preventDefault();
-        handleInput(e.key);
-      }
-      else if (e.key === 'Enter' || e.key === 'NumpadEnter') {
-        e.preventDefault();
-        handleSubmit();
-      }
-      else if (e.key === 'Backspace') handleClear();
-      else if (e.key === 'Escape') handleExit();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [status, handleInput, handleSubmit, handleClear, handleExit, settingsOpen]);
-
+      if (status !== 'playing' || settingsOpen) return
+if (e.target instanceof Element && e.target.closest('button, input, select, textarea, a, summary, [role="button"], [contenteditable="true"]')) return
+if ((e.key >= '0' && e.key <= '9') || (e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9')) {
+        e.preventDefault()
+handleInput(e.key)
+} else if (e.key === 'Enter' || e.key === 'NumpadEnter') {
+        e.preventDefault()
+handleSubmit()
+} else if (e.key === 'Backspace') handleClear()
+else if (e.key === 'Escape') handleExit()
+}
+window.addEventListener('keydown', handleKeyDown)
+return () => window.removeEventListener('keydown', handleKeyDown)
+}, [status, handleInput, handleSubmit, handleClear, handleExit, settingsOpen])
   useEffect(() => {
-    const previousStreak = previousStreakRef.current;
-    previousStreakRef.current = streak;
-
-    if (streak <= 0 || streak <= previousStreak || streak % 10 !== 0) return;
-
-    playCelebrationSound(preferences.sound);
-    if (preferences.reducedMotion || systemReducedMotion) return;
-
-    let shake = 'shake-small';
-    let confettiInterval: number | null = null;
-
+    const previousStreak = previousStreakRef.current
+previousStreakRef.current = streak
+    if (streak <= 0 || streak <= previousStreak || streak % 10 !== 0) return
+    playCelebrationSound(preferences.sound)
+if (preferences.reducedMotion || systemReducedMotion) return
+    let shake = 'shake-small'
+let confettiInterval: number | null = null
     if (streak >= 30) {
-      shake = 'shake-hard';
-      const duration = 1500;
-      const animationEnd = Date.now() + duration;
-      const random = (min: number, max: number) => Math.random() * (max - min) + min;
-
+      shake = 'shake-hard'
+const duration = 1500
+const animationEnd = Date.now() + duration
+const random = (min: number, max: number) => Math.random() * (max - min) + min
       confettiInterval = window.setInterval(() => {
-        const tLeft = animationEnd - Date.now();
-        if (tLeft <= 0) {
-          window.clearInterval(confettiInterval!);
-          return;
-        }
-        const pCount = 40;
-        confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } });
-        confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } });
-      }, 250);
-    } else if (streak >= 20) {
-      shake = 'shake-medium';
-      confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } });
-    } else {
-      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] });
-    }
+        const tLeft = animationEnd - Date.now()
+if (tLeft <= 0) {
+          window.clearInterval(confettiInterval!)
+return
+}
+        const pCount = 40
+confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } })
+confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } })
+}, 250)
+} else if (streak >= 20) {
+      shake = 'shake-medium'
+confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } })
+} else {
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] })
+}
 
-    let clearShakeTimer: number | null = null;
-    const animationFrame = requestAnimationFrame(() => {
-      setShakeClass(shake);
-      clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000);
-    });
-
+    let clearShakeTimer: number | null = null
+const animationFrame = requestAnimationFrame(() => {
+      setShakeClass(shake)
+clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000)
+})
     return () => {
-      cancelAnimationFrame(animationFrame);
-      if (clearShakeTimer !== null) window.clearTimeout(clearShakeTimer);
-      if (confettiInterval !== null) window.clearInterval(confettiInterval);
-    };
-  }, [preferences.reducedMotion, preferences.sound, streak, systemReducedMotion]);
-
+      cancelAnimationFrame(animationFrame)
+if (clearShakeTimer !== null) window.clearTimeout(clearShakeTimer)
+if (confettiInterval !== null) window.clearInterval(confettiInterval)
+}
+}, [preferences.reducedMotion, preferences.sound, streak, systemReducedMotion])
   useEffect(() => {
     if (status === 'playing' && mode === 'blitz') {
-      if (timeLeft <= 3 && timeLeft > 0) playTickSound(preferences.sound);
-      else if (timeLeft === 0) playFinishSound(preferences.sound);
-    }
-  }, [timeLeft, status, mode, preferences.sound]);
-
+      if (timeLeft <= 3 && timeLeft > 0) playTickSound(preferences.sound)
+else if (timeLeft === 0) playFinishSound(preferences.sound)
+}
+  }, [timeLeft, status, mode, preferences.sound])
   const displayedDifficulty = getDifficultyAtLeast(
     selectedDifficulty || getDifficultyForLevel(selectedLevel),
     getDifficultyForLevel(selectedLevel),
-  );
-
+  )
   return (
     <main className="animate-pop">
       <div className={shakeClass}>
@@ -420,9 +382,9 @@ function App() {
                               key={planet.level}
                               className={selectedLevel === planet.level ? 'primary' : ''}
                               onClick={() => {
-                                setRoundPreset('custom');
-                                setSelectedLevel(planet.level);
-                              }}
+                                setRoundPreset('custom')
+setSelectedLevel(planet.level)
+}}
                               aria-pressed={selectedLevel === planet.level}
                               title={`${planet.minimumScore === 0 ? 'Starting planet' : `Available after ${planet.minimumScore} points`}. Starts at ${getDifficultyForLevel(planet.level)} difficulty.`}
                             >
@@ -441,8 +403,8 @@ function App() {
                               subtraction: 'Subtraction −',
                               multiplication: 'Multiplication ×',
                               division: 'Division ÷',
-                            };
-                            return (
+                            }
+return (
                               <label className="choice-chip" key={operation}>
                                 <input
                                   type="checkbox"
@@ -451,8 +413,8 @@ function App() {
                                 />
                                 {labels[operation]}
                               </label>
-                            );
-                          })}
+                            )
+})}
                         </div>
                       </fieldset>
 
@@ -465,9 +427,9 @@ function App() {
                               key={tier}
                               className={displayedDifficulty === tier ? 'primary' : ''}
                               onClick={() => {
-                                setRoundPreset('custom');
-                                setSelectedDifficulty(tier);
-                              }}
+                                setRoundPreset('custom')
+setSelectedDifficulty(tier)
+}}
                               aria-pressed={displayedDifficulty === tier}
                               title={DIFFICULTY_HELP[tier]}
                             >
@@ -602,14 +564,14 @@ function App() {
                   <span className="results-label">Planets played</span>
                   <div className="progression-path" aria-label="Planets played during this round">
                     {playedLevels.map(level => {
-                      const planet = getPlanet(level);
-                      return (
+                      const planet = getPlanet(level)
+return (
                         <span className="progression-chip" key={level}>
                           {planet.icon} {planet.name}
                           <small>{planet.difficulty}</small>
                         </span>
-                      );
-                    })}
+                      )
+})}
                   </div>
                 </div>
               </div>
@@ -654,7 +616,7 @@ function App() {
         </footer>
       </div>
     </main>
-  );
+  )
 }
 
-export default App;
+export default App
