@@ -60,4 +60,88 @@ describe('daily challenges', () => {
     expect(nextWeek.dailyCorrectAnswers).toBe(0);
     expect(nextWeek.completionHistory).toEqual(progress.completionHistory);
   });
+
+  it('ignores unsafe counters and unknown persisted challenge completions', () => {
+    const date = new Date(2026, 4, 12, 12);
+    const currentChallenge = getDailyChallenge(date);
+    localStorage.setItem(DAILY_CHALLENGES_STORAGE_KEY, JSON.stringify({
+      dateKey: '2026-05-12',
+      dailyCorrectAnswers: Number.MAX_SAFE_INTEGER + 1,
+      weeklyCorrectAnswers: 0,
+      weekStartKey: '2026-05-11',
+      dailyStreak: 0,
+      lastCorrectDateKey: null,
+      challenge: {
+        dateKey: '2026-05-12',
+        challengeId: currentChallenge.id,
+        progress: 0,
+        completed: false,
+      },
+      points: 0,
+      completionHistory: [{
+        dateKey: '2026-05-12',
+        challengeId: 'untrusted-challenge',
+        completedAt: Date.now(),
+        rewardPoints: 100,
+      }],
+    }));
+
+    const progress = readRecurringProgress(date);
+
+    expect(progress.dailyCorrectAnswers).toBe(0);
+    expect(progress.completionHistory).toEqual([]);
+
+    localStorage.setItem(DAILY_CHALLENGES_STORAGE_KEY, JSON.stringify({
+      dateKey: '2026-05-12',
+      dailyCorrectAnswers: 0,
+      weeklyCorrectAnswers: 0,
+      weekStartKey: '2026-05-11',
+      dailyStreak: 0,
+      lastCorrectDateKey: null,
+      challenge: {
+        dateKey: '2026-05-12',
+        challengeId: currentChallenge.id,
+        progress: 0,
+        completed: false,
+      },
+      points: 0,
+      completionHistory: [{
+        dateKey: '2026-05-12',
+        challengeId: 'untrusted-challenge',
+        completedAt: Date.now(),
+        rewardPoints: 100,
+      }],
+    }));
+
+    expect(readRecurringProgress(date).completionHistory).toEqual([]);
+  });
+
+  it('resets an unknown active challenge from persisted progress', () => {
+    const date = new Date(2026, 4, 12, 12);
+    localStorage.setItem(DAILY_CHALLENGES_STORAGE_KEY, JSON.stringify({
+      dateKey: '2026-05-12',
+      dailyCorrectAnswers: 2,
+      weeklyCorrectAnswers: 2,
+      weekStartKey: '2026-05-11',
+      dailyStreak: 1,
+      lastCorrectDateKey: '2026-05-12',
+      challenge: {
+        dateKey: '2026-05-12',
+        challengeId: 'untrusted-challenge',
+        progress: 999,
+        completed: true,
+      },
+      points: 100,
+      completionHistory: [],
+    }));
+
+    const progress = readRecurringProgress(date);
+
+    expect(progress.challenge).toEqual({
+      dateKey: '2026-05-12',
+      challengeId: getDailyChallenge(date).id,
+      progress: 0,
+      completed: false,
+    });
+  });
 });

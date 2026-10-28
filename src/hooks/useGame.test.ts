@@ -30,6 +30,14 @@ describe('useGame Hook', () => {
     expect(result.current.recurringProgress.dailyCorrectAnswers).toBe(0);
   });
 
+  it('ignores malformed badge storage during initialization', () => {
+    localStorage.setItem('numberrush_badges', '{bad json');
+
+    const { result } = renderHook(() => useGame(10));
+
+    expect(result.current.unlockedBadges).toEqual([]);
+  });
+
   it('completes and persists the stable daily challenge without double-awarding points', () => {
     vi.setSystemTime(new Date(2026, 4, 12, 12));
     const { result, unmount } = renderHook(() => useGame(10));
@@ -93,6 +101,16 @@ describe('useGame Hook', () => {
     });
     expect(result.current.status).toBe('playing');
     expect(result.current.currentQuestion).not.toBeNull();
+  });
+
+  it('reuses progress metrics while the blitz timer changes unrelated state', () => {
+    const { result } = renderHook(() => useGame(10));
+    act(() => result.current.startGame(1, 'blitz', false, ['addition']));
+    const metrics = result.current.progressMetrics;
+
+    act(() => vi.advanceTimersByTime(1000));
+
+    expect(result.current.progressMetrics).toBe(metrics);
   });
 
   it('starts selected operator and difficulty rounds with tier settings', () => {

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { DifficultyTier, MathQuestion, Operation } from '../utils/mathLogic';
 import { DEFAULT_OPERATIONS, generateQuestion, getAdaptiveDifficulty, getDifficultyAtLeast, getDifficultyForLevel, getDifficultySettings, getQuestionExplanation, normalizeOperations } from '../utils/mathLogic';
 import { getLevelForScore } from '../utils/planetProgression';
-import { calculateProgressMetrics, createProgressSession, readProgressSessions, writeProgressSessions } from '../utils/progress';
+import { calculateProgressMetrics, createProgressSession, MAX_PROGRESS_SESSIONS, readProgressSessions, writeProgressSessions } from '../utils/progress';
 import type { ProgressMetrics, ProgressSession } from '../utils/progress';
 import {
   DAILY_CHALLENGES_STORAGE_KEY,
@@ -13,6 +13,7 @@ import {
   writeRecurringProgress,
 } from '../utils/dailyChallenges';
 import type { RecurringProgress } from '../utils/dailyChallenges';
+import { readStorage, readStoredNonNegativeInteger, removeStorage, writeStorage } from '../utils/storage';
 
 export type GameStatus = 'idle' | 'playing' | 'finished';
 export type GameMode = 'blitz' | 'practice';
@@ -134,6 +135,21 @@ export const BADGES: Badge[] = [
   { id: 'galaxy_guide', name: 'Galaxy Guide', icon: '🌌', description: 'Finish 5 games in Deep Space!', condition: state => state.spaceGames >= 5 },
 ];
 
+const readUnlockedBadges = (): string[] => {
+  const saved = readStorage(STORAGE_KEYS.BADGES);
+  if (!saved) return [];
+  try {
+    const parsed: unknown = JSON.parse(saved);
+    return Array.isArray(parsed)
+      ? parsed.filter((badge): badge is string => typeof badge === 'string' && BADGES.some(item => item.id === badge)).slice(0, BADGES.length)
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const MAX_PERSISTED_COUNTER = 1_000_000_000;
+
 export const createRoundSummary = (state: Pick<GameState, 'score' | 'history' | 'roundBestStreak' | 'bestStreak' | 'roundPersonalBestScore' | 'roundPersonalBestStreak' | 'mode'>): RoundSummary => {
   const totalQuestions = state.history.length;
   const correctAnswers = state.history.filter(entry => entry.isCorrect).length;
@@ -158,7 +174,6 @@ export const createRoundSummary = (state: Pick<GameState, 'score' | 'history' | 
 
 export const useGame = (initialTime: number = 10) => {
   const [state, setState] = useState<GameState>(() => {
-    const savedBadges = localStorage.getItem(STORAGE_KEYS.BADGES);
     return {
       score: 0,
       streak: 0,
@@ -175,8 +190,8 @@ export const useGame = (initialTime: number = 10) => {
       currentQuestion: null,
       history: [],
       missedQuestions: [],
-      highScore: parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) || '0', 10),
-      bestStreak: parseInt(localStorage.getItem(STORAGE_KEYS.BEST_STREAK) || '0', 10),
+      highScore: readStoredNonNegativeInteger(STORAGE_KEYS.HIGH_SCORE, 0, MAX_PERSISTED_COUNTER),
+      bestStreak: readStoredNonNegativeInteger(STORAGE_KEYS.BEST_STREAK, 0, MAX_PERSISTED_COUNTER),
       roundBestStreak: 0,
       roundPersonalBestScore: 0,
       roundPersonalBestStreak: 0,
@@ -184,15 +199,15 @@ export const useGame = (initialTime: number = 10) => {
       questionStartedAt: 0,
       isTargetedPractice: false,
       practiceQueue: [],
-      unlockedBadges: savedBadges ? JSON.parse(savedBadges) : [],
+      unlockedBadges: readUnlockedBadges(),
       currentLevel: 1,
       startingLevel: 1,
       playedLevels: [],
-      totalCorrect: parseInt(localStorage.getItem(STORAGE_KEYS.TOTAL_CORRECT) || '0', 10),
-      totalChaosSolved: parseInt(localStorage.getItem(STORAGE_KEYS.TOTAL_CHAOS) || '0', 10),
-      moonGames: parseInt(localStorage.getItem(STORAGE_KEYS.MOON_GAMES) || '0', 10),
-      marsGames: parseInt(localStorage.getItem(STORAGE_KEYS.MARS_GAMES) || '0', 10),
-      spaceGames: parseInt(localStorage.getItem(STORAGE_KEYS.SPACE_GAMES) || '0', 10),
+      totalCorrect: readStoredNonNegativeInteger(STORAGE_KEYS.TOTAL_CORRECT, 0, MAX_PERSISTED_COUNTER),
+      totalChaosSolved: readStoredNonNegativeInteger(STORAGE_KEYS.TOTAL_CHAOS, 0, MAX_PERSISTED_COUNTER),
+      moonGames: readStoredNonNegativeInteger(STORAGE_KEYS.MOON_GAMES, 0, MAX_PERSISTED_COUNTER),
+      marsGames: readStoredNonNegativeInteger(STORAGE_KEYS.MARS_GAMES, 0, MAX_PERSISTED_COUNTER),
+      spaceGames: readStoredNonNegativeInteger(STORAGE_KEYS.SPACE_GAMES, 0, MAX_PERSISTED_COUNTER),
       progressSessions: readProgressSessions(),
       recurringProgress: readRecurringProgress(),
       challengeCompletedThisRound: false,
@@ -240,7 +255,7 @@ export const useGame = (initialTime: number = 10) => {
 
     if (newUnlocked.length > 0) {
       const updatedBadges = [...currentState.unlockedBadges, ...newUnlocked];
-      localStorage.setItem(STORAGE_KEYS.BADGES, JSON.stringify(updatedBadges));
+      writeStorage(STORAGE_KEYS.BADGES, JSON.stringify(updatedBadges));
       return updatedBadges;
     }
     return currentState.unlockedBadges;
@@ -255,13 +270,13 @@ export const useGame = (initialTime: number = 10) => {
 
     if (previousState.currentLevel === 1) {
       moonGames++;
-      localStorage.setItem(STORAGE_KEYS.MOON_GAMES, moonGames.toString());
+      writeStorage(STORAGE_KEYS.MOON_GAMES, moonGames.toString());
     } else if (previousState.currentLevel === 2) {
       marsGames++;
-      localStorage.setItem(STORAGE_KEYS.MARS_GAMES, marsGames.toString());
+      writeStorage(STORAGE_KEYS.MARS_GAMES, marsGames.toString());
     } else if (previousState.currentLevel === 3) {
       spaceGames++;
-      localStorage.setItem(STORAGE_KEYS.SPACE_GAMES, spaceGames.toString());
+      writeStorage(STORAGE_KEYS.SPACE_GAMES, spaceGames.toString());
     }
 
     const finishedState: GameState = {
@@ -285,7 +300,7 @@ export const useGame = (initialTime: number = 10) => {
         responseTimeMs: answer.responseTimeMs,
       })),
     });
-    finishedState.progressSessions = [...finishedState.progressSessions, progressSession];
+    finishedState.progressSessions = [...finishedState.progressSessions, progressSession].slice(-MAX_PROGRESS_SESSIONS);
     writeProgressSessions(finishedState.progressSessions);
     finishedState.unlockedBadges = checkBadges(finishedState);
     return finishedState;
@@ -383,10 +398,10 @@ export const useGame = (initialTime: number = 10) => {
     const newTotalCorrect = answerIsCorrect ? submissionState.totalCorrect + 1 : submissionState.totalCorrect;
     const newTotalChaos = (answerIsCorrect && isChaos) ? submissionState.totalChaosSolved + 1 : submissionState.totalChaosSolved;
 
-    if (newHighScore > submissionState.highScore) localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, newHighScore.toString());
-    if (newBestStreak > submissionState.bestStreak) localStorage.setItem(STORAGE_KEYS.BEST_STREAK, newBestStreak.toString());
-    if (answerIsCorrect) localStorage.setItem(STORAGE_KEYS.TOTAL_CORRECT, newTotalCorrect.toString());
-    if (answerIsCorrect && isChaos) localStorage.setItem(STORAGE_KEYS.TOTAL_CHAOS, newTotalChaos.toString());
+    if (newHighScore > submissionState.highScore) writeStorage(STORAGE_KEYS.HIGH_SCORE, newHighScore.toString());
+    if (newBestStreak > submissionState.bestStreak) writeStorage(STORAGE_KEYS.BEST_STREAK, newBestStreak.toString());
+    if (answerIsCorrect) writeStorage(STORAGE_KEYS.TOTAL_CORRECT, newTotalCorrect.toString());
+    if (answerIsCorrect && isChaos) writeStorage(STORAGE_KEYS.TOTAL_CHAOS, newTotalChaos.toString());
 
     const nextLevel = getLevelForScore(newScore, submissionState.startingLevel);
     const nextTargetedQuestion = submissionState.practiceQueue[0];
@@ -482,7 +497,7 @@ export const useGame = (initialTime: number = 10) => {
   }, []);
 
   const resetStats = useCallback(() => {
-    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+    Object.values(STORAGE_KEYS).forEach(removeStorage);
     setState(prev => ({ 
       ...prev, 
       highScore: 0, 
@@ -526,7 +541,7 @@ export const useGame = (initialTime: number = 10) => {
 
   return {
     ...state,
-    progressMetrics: calculateProgressMetrics(state.progressSessions) as ProgressMetrics,
+    progressMetrics: useMemo(() => calculateProgressMetrics(state.progressSessions), [state.progressSessions]) as ProgressMetrics,
     startGame,
     startTargetedPractice,
     submitAnswer,

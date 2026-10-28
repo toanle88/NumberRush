@@ -37,7 +37,7 @@ Starting on Mars or Deep Space keeps the game at that difficulty; progression ne
 - **Styling**: Modern CSS3 (Variables, Animations, Responsive Design)
 - **Effects**: [canvas-confetti](https://github.com/catdad/canvas-confetti)
 - **Infrastructure**: Azure Static Web Apps (IaC with Terraform)
-- **CI/CD**: GitHub Actions
+- **Deployment**: Azure Static Web Apps with Terraform-managed infrastructure
 
 ## 🚀 Getting Started
 
@@ -76,10 +76,12 @@ Starting on Mars or Deep Space keeps the game at that difficulty; progression ne
 
 ## ☁️ Deployment
 
-This project is configured for continuous deployment to **Azure Static Web Apps**. 
+This project can be deployed to **Azure Static Web Apps**.
 
 - **Infrastructure**: Managed via Terraform in the `infra/` directory.
-- **Workflow**: The GitHub Action `.github/workflows/deploy.yml` automatically builds and deploys changes on push to `main`.
+- **Build**: Run `npm run build`, then deploy the generated `dist/` directory with your Azure Static Web Apps deployment tooling.
+- **Configuration**: `public/staticwebapp.config.json` supplies the static-host security headers and SPA fallback.
+- **Secrets**: Terraform state contains provider-managed resource attributes, including the Static Web App deployment key. Use the protected remote backend configured in `infra/providers.tf`; never commit state or expose the key in outputs or logs.
 
 ## 📄 License
 
