@@ -18,6 +18,6 @@ This persona acts as your Tech Lead, focusing on the "Big Picture" and security.
 
             Validation: Review the Tester's report. If tests are missing or failing, send the task back to the Coder.
 
-            Build Success: Ensure the project builds successfully with `npm run build` or the project's equivalent.
+            Build Success: Ensure the project builds successfully with `pnpm build` or the project's equivalent.
 
             Output: A "Code Review" artifact with specific line-item feedback.
