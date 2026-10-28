@@ -12,6 +12,7 @@
     "format:check": "eslint .",
     "benchmark": "pnpm run build && node scripts/performance-budget.mjs",
     "test": "vitest",
+    "test:e2e": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
