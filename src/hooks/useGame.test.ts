@@ -1,4 +1,5 @@
 import { renderHook, act } from '@testing-library/react'
+import { createElement, StrictMode, type ReactNode } from 'react'
 import { useGame } from './useGame'
 import { MAX_LIVE_HISTORY, MAX_MISSED_QUESTIONS } from './useGame'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
@@ -19,6 +20,7 @@ return {
   }
 })()
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
+const StrictModeWrapper = ({ children }: { children: ReactNode }) => createElement(StrictMode, null, children)
 describe('useGame Hook', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -402,6 +404,111 @@ act(() => {
     expect(result.current.status).toBe('finished')
 expect(result.current.moonGames).toBe(1)
 })
+  it('finalizes exactly once when manual ending is repeated under Strict Mode', () => {
+    const setItemSpy = vi.spyOn(localStorage, 'setItem')
+    const { result } = renderHook(() => useGame(10), { wrapper: StrictModeWrapper })
+    act(() => result.current.startGame(1, 'blitz', false))
+    act(() => {
+      result.current.endGame()
+      result.current.endGame()
+    })
+    expect(result.current.moonGames).toBe(1)
+    expect(result.current.progressSessions).toHaveLength(1)
+    expect(setItemSpy.mock.calls.filter(([key]) => key === 'numberrush_moon_games')).toHaveLength(1)
+    expect(setItemSpy.mock.calls.filter(([key]) => key === 'numberrush_progress_sessions')).toHaveLength(1)
+    setItemSpy.mockRestore()
+  })
+  it('lets timer expiry win the boundary race and persist one session', () => {
+    const { result } = renderHook(() => useGame(1), { wrapper: StrictModeWrapper })
+    act(() => result.current.startGame(1, 'blitz', false))
+    const answer = result.current.currentQuestion!.answer
+    act(() => vi.advanceTimersByTime(1_000))
+    expect(result.current.status).toBe('finished')
+    expect(result.current.submitAnswer(answer)).toBeNull()
+    expect(result.current.progressSessions).toHaveLength(1)
+    expect(result.current.moonGames).toBe(1)
+  })
+  it('ignores a rapid second submission after a round has finished', () => {
+    const { result } = renderHook(() => useGame(10))
+    act(() => result.current.startGame(1, 'practice', false, ['addition']))
+    act(() => {
+      result.current.submitAnswer(result.current.currentQuestion!.answer + 1)
+      result.current.endGame()
+    })
+    act(() => result.current.startTargetedPractice())
+    const answer = result.current.currentQuestion!.answer
+    let secondFeedback
+    act(() => {
+      result.current.submitAnswer(answer)
+      secondFeedback = result.current.submitAnswer(answer)
+    })
+    expect(secondFeedback).toBeNull()
+    expect(result.current.status).toBe('finished')
+    expect(result.current.progressSessions).toHaveLength(2)
+  })
+  it('rejects a same-turn double submission before the next state commits', () => {
+    const { result } = renderHook(() => useGame(10))
+    act(() => result.current.startGame(1, 'practice', false, ['addition']))
+    const answer = result.current.currentQuestion!.answer
+    let secondFeedback
+    act(() => {
+      result.current.submitAnswer(answer)
+      secondFeedback = result.current.submitAnswer(answer)
+    })
+    expect(secondFeedback).toBeNull()
+    expect(result.current.roundTotalQuestions).toBe(1)
+    expect(result.current.history).toHaveLength(1)
+    expect(result.current.recurringProgress.dailyCorrectAnswers).toBe(1)
+  })
+  it('retries a failed finalization write without creating another session', () => {
+    let failProgressWrite = true
+    const originalSetItem = localStorage.setItem.bind(localStorage)
+    const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+      if (failProgressWrite && key === 'numberrush_progress_sessions') throw new Error('temporary storage failure')
+      originalSetItem(key, value)
+    })
+    const { result } = renderHook(() => useGame(10))
+    act(() => {
+      result.current.startGame(1, 'practice', false)
+      result.current.endGame()
+    })
+    expect(result.current.progressSessions).toHaveLength(1)
+    expect(localStorage.getItem('numberrush_progress_sessions')).toBeNull()
+    failProgressWrite = false
+    act(() => vi.advanceTimersByTime(1_000))
+    expect(JSON.parse(localStorage.getItem('numberrush_progress_sessions')!)).toHaveLength(1)
+    setItemSpy.mockRestore()
+  })
+  it('persists aggregate changes when targeted practice finishes on its final answer', () => {
+    const { result } = renderHook(() => useGame(10))
+    act(() => result.current.startGame(1, 'blitz', false, ['addition']))
+    act(() => result.current.submitAnswer(result.current.currentQuestion!.answer + 1))
+    act(() => result.current.endGame())
+    act(() => result.current.startTargetedPractice())
+    act(() => result.current.submitAnswer(result.current.currentQuestion!.answer))
+    expect(result.current.status).toBe('finished')
+    expect(localStorage.getItem('numberrush_highscore')).toBe('10')
+    expect(localStorage.getItem('numberrush_beststreak')).toBe('1')
+    expect(localStorage.getItem('numberrush_total_correct')).toBe('1')
+  })
+  it('does not retry a stale aggregate snapshot after a newer write succeeds', () => {
+    let failHighScore = true
+    const originalSetItem = localStorage.setItem.bind(localStorage)
+    const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+      if (failHighScore && key === 'numberrush_highscore') throw new Error('temporary storage failure')
+      originalSetItem(key, value)
+    })
+    const { result } = renderHook(() => useGame(10))
+    act(() => result.current.startGame(1, 'practice', false, ['addition']))
+    act(() => result.current.submitAnswer(result.current.currentQuestion!.answer))
+    expect(localStorage.getItem('numberrush_highscore')).toBeNull()
+    failHighScore = false
+    act(() => result.current.submitAnswer(result.current.currentQuestion!.answer))
+    expect(localStorage.getItem('numberrush_highscore')).toBe('20')
+    act(() => vi.advanceTimersByTime(1_000))
+    expect(localStorage.getItem('numberrush_highscore')).toBe('20')
+    setItemSpy.mockRestore()
+  })
   it('counts a game on the planet where it finishes', () => {
     const { result } = renderHook(() => useGame(10))
     act(() => result.current.startGame(1, 'blitz', false, ['addition']))

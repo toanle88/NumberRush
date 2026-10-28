@@ -14,6 +14,7 @@ import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, p
 import { getSystemReducedMotionPreference, readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility'
 import type { AccessibilityPreferences } from './utils/accessibility'
 import { readStorage, readStoredNonNegativeInteger, writeStorage } from './utils/storage'
+import { STORAGE_KEYS } from './utils/storageKeys'
 import confetti from 'canvas-confetti'
 import './App.css'
 interface PlanetTransition {
@@ -32,10 +33,10 @@ const FEEDBACK_DURATION_MS = 1400
 function App() {
   const [view, setView] = useState<'home' | 'progress'>('home')
 const [initialTime, setInitialTime] = useState(() =>
-    Math.min(20, Math.max(1, readStoredNonNegativeInteger('numberrush_timer', 10, 20))),
+    Math.min(20, Math.max(1, readStoredNonNegativeInteger(STORAGE_KEYS.TIMER, 10, 20))),
   )
 const [playerName, setPlayerName] = useState(() =>
-    readStorage('numberrush_name') || 'Super Kid',
+    readStorage(STORAGE_KEYS.NAME) || 'Super Kid',
   )
 const [settingsOpen, setSettingsOpen] = useState(false)
 const [preferences, setPreferences] = useState<AccessibilityPreferences>(readAccessibilityPreferences)
@@ -131,7 +132,7 @@ clearTimeout(clearTimer)
 setPlanetTransition(null)
 setFeedback(null)
 const hasDifficultyOverride = selectedDifficulty !== undefined
-const timerOverride = readStorage('numberrush_timer') !== null ? initialTime : undefined
+const timerOverride = readStorage(STORAGE_KEYS.TIMER) !== null ? initialTime : undefined
 startGame(selectedLevel, m, isAdvanced, selectedOperations, selectedDifficulty, timerOverride, hasDifficultyOverride, true)
 }
   const selectRoundPreset = (preset: RoundPreset) => {
@@ -188,11 +189,11 @@ setInput('')
 }, [startTargetedPractice])
   const updateName = (val: string) => {
     setPlayerName(val)
-writeStorage('numberrush_name', val)
+    writeStorage(STORAGE_KEYS.NAME, val)
 }
   const updateTimer = (val: number) => {
     setInitialTime(val)
-writeStorage('numberrush_timer', val.toString())
+    writeStorage(STORAGE_KEYS.TIMER, val.toString())
 }
   const updatePreferences = (patch: Partial<AccessibilityPreferences>) => {
     setPreferences(previous => ({ ...previous, ...patch }))
