@@ -1,3 +1,5 @@
+import { readStorage, writeStorage } from './storage';
+
 export type Theme = 'dark' | 'light';
 
 export interface AccessibilityPreferences {
@@ -22,7 +24,7 @@ const isTheme = (value: unknown): value is Theme => value === 'dark' || value ==
 
 export const readAccessibilityPreferences = (): AccessibilityPreferences => {
   try {
-    const saved = localStorage.getItem(ACCESSIBILITY_STORAGE_KEY);
+    const saved = readStorage(ACCESSIBILITY_STORAGE_KEY);
     if (!saved) return DEFAULT_ACCESSIBILITY_PREFERENCES;
 
     const parsed = JSON.parse(saved) as Partial<AccessibilityPreferences>;
@@ -41,7 +43,7 @@ export const readAccessibilityPreferences = (): AccessibilityPreferences => {
 };
 
 export const saveAccessibilityPreferences = (preferences: AccessibilityPreferences) => {
-  localStorage.setItem(ACCESSIBILITY_STORAGE_KEY, JSON.stringify(preferences));
+  writeStorage(ACCESSIBILITY_STORAGE_KEY, JSON.stringify(preferences));
 };
 
 export const getSystemReducedMotionPreference = (): boolean => {

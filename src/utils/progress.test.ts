@@ -1,7 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   calculateProgressMetrics,
   createProgressSession,
+  MAX_ANSWERS_PER_SESSION,
+  MAX_PROGRESS_SESSIONS,
   PROGRESS_STORAGE_KEY,
   readProgressSessions,
   writeProgressSessions,
@@ -66,6 +68,48 @@ describe('progress metrics', () => {
     expect(readProgressSessions()).toEqual([]);
   });
 
+  it('limits untrusted session and answer arrays before parsing them', () => {
+    const answer = {
+      isCorrect: true,
+      operations: ['addition'],
+      difficulty: 'easy',
+      level: 1,
+      responseTimeMs: 100,
+    };
+    const stored = Array.from({ length: MAX_PROGRESS_SESSIONS + 5 }, (_, sessionIndex) => ({
+      id: `session-${sessionIndex}`,
+      completedAt: sessionIndex,
+      mode: 'practice',
+      finalScore: 0,
+      bestStreak: 0,
+      answers: Array.from({ length: MAX_ANSWERS_PER_SESSION + 5 }, () => answer),
+    }));
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(stored));
+
+    const sessions = readProgressSessions();
+
+    expect(sessions).toHaveLength(MAX_PROGRESS_SESSIONS);
+    expect(sessions[0].completedAt).toBe(5);
+    expect(sessions[0].answers).toHaveLength(MAX_ANSWERS_PER_SESSION);
+  });
+
+  it('rejects persisted progress values outside supported bounds', () => {
+    const answer = {
+      isCorrect: true,
+      operations: ['addition'],
+      difficulty: 'easy',
+      level: 1,
+      responseTimeMs: 100,
+    };
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify([
+      { id: 'too-large-score', completedAt: 1, mode: 'practice', finalScore: 1_000_000_001, bestStreak: 0, answers: [answer] },
+      { id: 'too-large-streak', completedAt: 2, mode: 'practice', finalScore: 0, bestStreak: 1_000_001, answers: [answer] },
+      { id: 'too-many-operations', completedAt: 3, mode: 'practice', finalScore: 0, bestStreak: 0, answers: [{ ...answer, operations: ['addition', 'subtraction', 'multiplication', 'division', 'addition'] }] },
+    ]));
+
+    expect(readProgressSessions()).toEqual([]);
+  });
+
   it('keeps empty metrics safe for a new player', () => {
     const metrics = calculateProgressMetrics([]);
 
@@ -74,5 +118,33 @@ describe('progress metrics', () => {
     expect(metrics.accuracy).toBe(0);
     expect(metrics.averageResponseTimeMs).toBeNull();
     expect(metrics.trend).toBeNull();
+  });
+
+  it('bounds persisted progress history and ignores storage failures', () => {
+    const sessions = Array.from({ length: MAX_PROGRESS_SESSIONS + 5 }, (_, sessionIndex) => createProgressSession({
+      completedAt: sessionIndex,
+      mode: 'practice',
+      finalScore: sessionIndex,
+      bestStreak: 0,
+      answers: Array.from({ length: MAX_ANSWERS_PER_SESSION + 5 }, (_, answerIndex) => ({
+        isCorrect: answerIndex % 2 === 0,
+        operations: ['addition' as const],
+        difficulty: 'easy' as const,
+        level: 1,
+        responseTimeMs: answerIndex,
+      })),
+    }));
+
+    writeProgressSessions(sessions);
+    const saved = readProgressSessions();
+    expect(saved).toHaveLength(MAX_PROGRESS_SESSIONS);
+    expect(saved[0].completedAt).toBe(5);
+    expect(saved[0].answers).toHaveLength(MAX_ANSWERS_PER_SESSION);
+
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota exceeded');
+    });
+    expect(() => writeProgressSessions(saved)).not.toThrow();
+    setItem.mockRestore();
   });
 });

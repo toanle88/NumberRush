@@ -1,3 +1,5 @@
+import { readStorage, writeStorage } from './storage';
+
 export const DAILY_CHALLENGES_STORAGE_KEY = 'numberrush_daily_challenges';
 
 export type DailyChallengeMetric = 'correctAnswers' | 'answers' | 'streak';
@@ -84,6 +86,8 @@ const CHALLENGES: readonly DailyChallenge[] = [
   },
 ];
 
+const CHALLENGE_IDS = new Set(CHALLENGES.map(challenge => challenge.id));
+
 const pad = (value: number): string => value.toString().padStart(2, '0');
 
 export const getLocalDateKey = (date: Date = new Date()): string => (
@@ -114,7 +118,7 @@ export const getDailyChallenge = (date: Date = new Date()): DailyChallenge => {
 };
 
 const isValidNonNegativeInteger = (value: unknown): value is number => (
-  typeof value === 'number' && Number.isInteger(value) && value >= 0
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 );
 
 const isValidDateKey = (value: unknown): value is string => (
@@ -144,7 +148,7 @@ const createEmptyProgress = (date: Date): RecurringProgress => {
 const parseCompletion = (value: unknown): ChallengeCompletion | null => {
   if (!value || typeof value !== 'object') return null;
   const completion = value as Partial<ChallengeCompletion>;
-  if (!isValidDateKey(completion.dateKey) || typeof completion.challengeId !== 'string' || !isValidNonNegativeInteger(completion.completedAt) || !isValidNonNegativeInteger(completion.rewardPoints)) return null;
+  if (!isValidDateKey(completion.dateKey) || typeof completion.challengeId !== 'string' || !CHALLENGE_IDS.has(completion.challengeId) || !isValidNonNegativeInteger(completion.completedAt) || !isValidNonNegativeInteger(completion.rewardPoints)) return null;
   return {
     dateKey: completion.dateKey,
     challengeId: completion.challengeId,
@@ -156,8 +160,8 @@ const parseCompletion = (value: unknown): ChallengeCompletion | null => {
 const parseProgress = (value: unknown): RecurringProgress | null => {
   if (!value || typeof value !== 'object') return null;
   const progress = value as Partial<RecurringProgress>;
-  if (!isValidDateKey(progress.dateKey) || !isValidNonNegativeInteger(progress.dailyCorrectAnswers) || !isValidDateKey(progress.weekStartKey) || !isValidNonNegativeInteger(progress.weeklyCorrectAnswers) || !isValidNonNegativeInteger(progress.dailyStreak) || (progress.lastCorrectDateKey !== null && progress.lastCorrectDateKey !== undefined && !isValidDateKey(progress.lastCorrectDateKey)) || !isValidNonNegativeInteger(progress.points) || !progress.challenge || typeof progress.challenge !== 'object' || !isValidDateKey(progress.challenge.dateKey) || typeof progress.challenge.challengeId !== 'string' || !isValidNonNegativeInteger(progress.challenge.progress) || typeof progress.challenge.completed !== 'boolean' || !Array.isArray(progress.completionHistory)) return null;
-  const completionHistory = progress.completionHistory.map(parseCompletion).filter((completion): completion is ChallengeCompletion => completion !== null).slice(-60);
+  if (!isValidDateKey(progress.dateKey) || !isValidNonNegativeInteger(progress.dailyCorrectAnswers) || !isValidDateKey(progress.weekStartKey) || !isValidNonNegativeInteger(progress.weeklyCorrectAnswers) || !isValidNonNegativeInteger(progress.dailyStreak) || (progress.lastCorrectDateKey !== null && progress.lastCorrectDateKey !== undefined && !isValidDateKey(progress.lastCorrectDateKey)) || !isValidNonNegativeInteger(progress.points) || !progress.challenge || typeof progress.challenge !== 'object' || !isValidDateKey(progress.challenge.dateKey) || typeof progress.challenge.challengeId !== 'string' || !CHALLENGE_IDS.has(progress.challenge.challengeId) || !isValidNonNegativeInteger(progress.challenge.progress) || typeof progress.challenge.completed !== 'boolean' || !Array.isArray(progress.completionHistory)) return null;
+  const completionHistory = progress.completionHistory.slice(-60).map(parseCompletion).filter((completion): completion is ChallengeCompletion => completion !== null);
   return {
     dateKey: progress.dateKey,
     dailyCorrectAnswers: progress.dailyCorrectAnswers,
@@ -196,7 +200,7 @@ export const normalizeRecurringProgress = (saved: RecurringProgress | null, date
 };
 
 export const readRecurringProgress = (date: Date = new Date()): RecurringProgress => {
-  const saved = localStorage.getItem(DAILY_CHALLENGES_STORAGE_KEY);
+  const saved = readStorage(DAILY_CHALLENGES_STORAGE_KEY);
   if (!saved) return createEmptyProgress(date);
   try {
     return normalizeRecurringProgress(parseProgress(JSON.parse(saved)), date);
@@ -206,7 +210,7 @@ export const readRecurringProgress = (date: Date = new Date()): RecurringProgres
 };
 
 export const writeRecurringProgress = (progress: RecurringProgress): void => {
-  localStorage.setItem(DAILY_CHALLENGES_STORAGE_KEY, JSON.stringify(progress));
+  writeStorage(DAILY_CHALLENGES_STORAGE_KEY, JSON.stringify(progress));
 };
 
 const wasCompleted = (progress: RecurringProgress): boolean => (

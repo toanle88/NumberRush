@@ -16,8 +16,6 @@ resource "azurerm_static_web_app" "numberrush" {
   sku_tier            = "Free"
 }
 
-# 3. Output the Token
-output "static_web_app_api_token" {
-  value     = azurerm_static_web_app.numberrush.api_key
-  sensitive = true
-}
+# The provider keeps the deployment API key in Terraform state because it is
+# an attribute of the Static Web App resource. Do not output or commit it;
+# protect the remote state backend with access controls and encryption.

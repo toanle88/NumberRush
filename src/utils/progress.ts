@@ -1,6 +1,14 @@
 import type { DifficultyTier, Operation } from './mathLogic';
+import { readStorage, writeStorage } from './storage';
 
 export const PROGRESS_STORAGE_KEY = 'numberrush_progress_sessions';
+export const MAX_PROGRESS_SESSIONS = 60;
+export const MAX_ANSWERS_PER_SESSION = 200;
+const MAX_PROGRESS_STRING_LENGTH = 128;
+const MAX_PROGRESS_LEVEL = 1_000;
+const MAX_RESPONSE_TIME_MS = 86_400_000;
+const MAX_PROGRESS_SCORE = 1_000_000_000;
+const MAX_PROGRESS_STREAK = 1_000_000;
 
 export interface ProgressAnswer {
   isCorrect: boolean;
@@ -80,7 +88,9 @@ export const createProgressSession = (input: {
   bestStreak: number;
   answers: ProgressAnswer[];
 }): ProgressSession => {
-  const answers = input.answers.map(answer => ({ ...answer, operations: [...new Set(answer.operations)] }));
+  const answers = input.answers
+    .slice(-MAX_ANSWERS_PER_SESSION)
+    .map(answer => ({ ...answer, operations: [...new Set(answer.operations)] }));
   const breakdown = getBreakdown(answers);
   return {
     id: createId(),
@@ -102,7 +112,7 @@ const isDifficulty = (value: unknown): value is DifficultyTier => DIFFICULTIES.i
 const parseAnswer = (value: unknown): ProgressAnswer | null => {
   if (!value || typeof value !== 'object') return null;
   const answer = value as Partial<ProgressAnswer>;
-  if (typeof answer.isCorrect !== 'boolean' || !isDifficulty(answer.difficulty) || typeof answer.level !== 'number' || !Number.isFinite(answer.level) || typeof answer.responseTimeMs !== 'number' || !Number.isFinite(answer.responseTimeMs) || !Array.isArray(answer.operations)) return null;
+  if (typeof answer.isCorrect !== 'boolean' || !isDifficulty(answer.difficulty) || typeof answer.level !== 'number' || !Number.isSafeInteger(answer.level) || answer.level < 0 || answer.level > MAX_PROGRESS_LEVEL || typeof answer.responseTimeMs !== 'number' || !Number.isFinite(answer.responseTimeMs) || answer.responseTimeMs < 0 || answer.responseTimeMs > MAX_RESPONSE_TIME_MS || !Array.isArray(answer.operations) || answer.operations.length > OPERATIONS.length) return null;
   const operations = [...new Set(answer.operations.filter(isOperation))];
   if (operations.length === 0) return null;
   return {
@@ -110,17 +120,16 @@ const parseAnswer = (value: unknown): ProgressAnswer | null => {
     operations,
     difficulty: answer.difficulty,
     level: answer.level,
-    responseTimeMs: Math.max(0, answer.responseTimeMs),
+    responseTimeMs: answer.responseTimeMs,
   };
 };
 
 const parseSession = (value: unknown): ProgressSession | null => {
   if (!value || typeof value !== 'object') return null;
   const session = value as Partial<ProgressSession>;
-  if (typeof session.id !== 'string' || typeof session.completedAt !== 'number' || !Number.isFinite(session.completedAt) || (session.mode !== 'blitz' && session.mode !== 'practice') || typeof session.finalScore !== 'number' || !Number.isFinite(session.finalScore) || typeof session.bestStreak !== 'number' || !Number.isFinite(session.bestStreak) || !Array.isArray(session.answers)) return null;
-  const parsedAnswers = session.answers.map(parseAnswer);
-  if (parsedAnswers.some(answer => answer === null)) return null;
-  const answers = parsedAnswers as ProgressAnswer[];
+  if (typeof session.id !== 'string' || session.id.length === 0 || session.id.length > MAX_PROGRESS_STRING_LENGTH || typeof session.completedAt !== 'number' || !Number.isSafeInteger(session.completedAt) || session.completedAt < 0 || (session.mode !== 'blitz' && session.mode !== 'practice') || typeof session.finalScore !== 'number' || !Number.isSafeInteger(session.finalScore) || session.finalScore < 0 || session.finalScore > MAX_PROGRESS_SCORE || typeof session.bestStreak !== 'number' || !Number.isSafeInteger(session.bestStreak) || session.bestStreak < 0 || session.bestStreak > MAX_PROGRESS_STREAK || !Array.isArray(session.answers)) return null;
+  const answers = session.answers.slice(-MAX_ANSWERS_PER_SESSION).map(parseAnswer).filter((answer): answer is ProgressAnswer => answer !== null);
+  if (session.answers.length > 0 && answers.length === 0) return null;
   const breakdown = getBreakdown(answers);
   return {
     id: session.id,
@@ -137,12 +146,12 @@ const parseSession = (value: unknown): ProgressSession | null => {
 };
 
 export const readProgressSessions = (): ProgressSession[] => {
-  const saved = localStorage.getItem(PROGRESS_STORAGE_KEY);
+  const saved = readStorage(PROGRESS_STORAGE_KEY);
   if (!saved) return [];
   try {
     const parsed: unknown = JSON.parse(saved);
     return Array.isArray(parsed)
-      ? parsed.map(parseSession).filter((session): session is ProgressSession => session !== null)
+      ? parsed.slice(-MAX_PROGRESS_SESSIONS).map(parseSession).filter((session): session is ProgressSession => session !== null)
       : [];
   } catch {
     return [];
@@ -150,7 +159,7 @@ export const readProgressSessions = (): ProgressSession[] => {
 };
 
 export const writeProgressSessions = (sessions: ProgressSession[]): void => {
-  localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(sessions));
+  writeStorage(PROGRESS_STORAGE_KEY, JSON.stringify(sessions.slice(-MAX_PROGRESS_SESSIONS)));
 };
 
 const createBreakdownMap = <T extends string>(values: T[]): Record<T, ProgressBreakdown> => {
