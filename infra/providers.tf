@@ -8,15 +8,13 @@ terraform {
 
   # This tells Terraform to store its memory (state) in Azure
   backend "azurerm" {
-    resource_group_name  = "shared-rg"
-    storage_account_name = "toanle88sharedsa" # Put your unique name here
-    container_name       = "numberrush-tfstate"
-    key                  = "numberrush.terraform.numberrush-tfstate"
-    use_oidc             = true # Enables passwordless login for GitHub
+    # Supply the environment-specific coordinates with -backend-config.
+    use_oidc = true # Enables passwordless login for GitHub
   }
 }
 
 provider "azurerm" {
   features {}
+  subscription_id = var.subscription_id
   use_oidc = true
 }

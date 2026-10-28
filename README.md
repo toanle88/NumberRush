@@ -79,6 +79,7 @@ Starting on Mars or Deep Space keeps the game at that difficulty; progression ne
 This project can be deployed to **Azure Static Web Apps**.
 
 - **Infrastructure**: Managed via Terraform in the `infra/` directory.
+- **Terraform backend**: Copy `infra/backend.hcl.example` to a local `backend.hcl`, fill in the approved state-storage coordinates, and run `terraform init -backend-config=backend.hcl`. Keep the filled-in file out of version control.
 - **Build**: Run `npm run build`, then deploy the generated `dist/` directory with your Azure Static Web Apps deployment tooling.
 - **Configuration**: `public/staticwebapp.config.json` supplies the static-host security headers and SPA fallback.
 - **Secrets**: Terraform state contains provider-managed resource attributes, including the Static Web App deployment key. Use the protected remote backend configured in `infra/providers.tf`; never commit state or expose the key in outputs or logs.

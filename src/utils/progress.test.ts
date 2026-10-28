@@ -147,4 +147,33 @@ describe('progress metrics', () => {
     expect(() => writeProgressSessions(saved)).not.toThrow();
     setItem.mockRestore();
   });
+
+  it('preserves session aggregates when the answer review queue is capped', () => {
+    const session = createProgressSession({
+      completedAt: 100,
+      mode: 'practice',
+      finalScore: 100,
+      bestStreak: 4,
+      answers: Array.from({ length: MAX_ANSWERS_PER_SESSION + 10 }, (_, index) => ({
+        isCorrect: index % 2 === 0,
+        operations: ['addition' as const],
+        difficulty: 'easy' as const,
+        level: 1,
+        responseTimeMs: 100,
+      })),
+      totalQuestions: MAX_ANSWERS_PER_SESSION + 10,
+      correctAnswers: 105,
+      averageResponseTimeMs: 100,
+    });
+    writeProgressSessions([session]);
+
+    const loaded = readProgressSessions()[0];
+    expect(loaded).toMatchObject({
+      totalQuestions: MAX_ANSWERS_PER_SESSION + 10,
+      correctAnswers: 105,
+      accuracy: 50,
+      averageResponseTimeMs: 100,
+    });
+    expect(calculateProgressMetrics([loaded]).questionsAttempted).toBe(MAX_ANSWERS_PER_SESSION + 10);
+  });
 });

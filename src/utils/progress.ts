@@ -87,21 +87,29 @@ export const createProgressSession = (input: {
   finalScore: number;
   bestStreak: number;
   answers: ProgressAnswer[];
+  totalQuestions?: number;
+  correctAnswers?: number;
+  averageResponseTimeMs?: number | null;
 }): ProgressSession => {
   const answers = input.answers
     .slice(-MAX_ANSWERS_PER_SESSION)
     .map(answer => ({ ...answer, operations: [...new Set(answer.operations)] }));
   const breakdown = getBreakdown(answers);
+  const totalQuestions = input.totalQuestions ?? breakdown.attempts;
+  const correctAnswers = input.correctAnswers ?? breakdown.solved;
+  const averageResponseTimeMs = input.averageResponseTimeMs === undefined
+    ? breakdown.averageResponseTimeMs
+    : input.averageResponseTimeMs;
   return {
     id: createId(),
     completedAt: input.completedAt ?? Date.now(),
     mode: input.mode,
     finalScore: input.finalScore,
     bestStreak: input.bestStreak,
-    totalQuestions: breakdown.attempts,
-    correctAnswers: breakdown.solved,
-    accuracy: breakdown.accuracy,
-    averageResponseTimeMs: breakdown.averageResponseTimeMs,
+    totalQuestions,
+    correctAnswers,
+    accuracy: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
+    averageResponseTimeMs,
     answers,
   };
 };
@@ -130,17 +138,27 @@ const parseSession = (value: unknown): ProgressSession | null => {
   if (typeof session.id !== 'string' || session.id.length === 0 || session.id.length > MAX_PROGRESS_STRING_LENGTH || typeof session.completedAt !== 'number' || !Number.isSafeInteger(session.completedAt) || session.completedAt < 0 || (session.mode !== 'blitz' && session.mode !== 'practice') || typeof session.finalScore !== 'number' || !Number.isSafeInteger(session.finalScore) || session.finalScore < 0 || session.finalScore > MAX_PROGRESS_SCORE || typeof session.bestStreak !== 'number' || !Number.isSafeInteger(session.bestStreak) || session.bestStreak < 0 || session.bestStreak > MAX_PROGRESS_STREAK || !Array.isArray(session.answers)) return null;
   const answers = session.answers.slice(-MAX_ANSWERS_PER_SESSION).map(parseAnswer).filter((answer): answer is ProgressAnswer => answer !== null);
   if (session.answers.length > 0 && answers.length === 0) return null;
-  const breakdown = getBreakdown(answers);
+  const totalQuestions = typeof session.totalQuestions === 'number' && Number.isSafeInteger(session.totalQuestions) && session.totalQuestions >= answers.length
+    ? session.totalQuestions
+    : answers.length;
+  const correctAnswers = typeof session.correctAnswers === 'number' && Number.isSafeInteger(session.correctAnswers) && session.correctAnswers >= 0 && session.correctAnswers <= totalQuestions
+    ? session.correctAnswers
+    : answers.filter(answer => answer.isCorrect).length;
+  const averageResponseTimeMs = session.averageResponseTimeMs === null
+    ? null
+    : typeof session.averageResponseTimeMs === 'number' && Number.isFinite(session.averageResponseTimeMs) && session.averageResponseTimeMs >= 0
+      ? session.averageResponseTimeMs
+      : getBreakdown(answers).averageResponseTimeMs;
   return {
     id: session.id,
     completedAt: session.completedAt,
     mode: session.mode,
     finalScore: session.finalScore,
     bestStreak: session.bestStreak,
-    totalQuestions: breakdown.attempts,
-    correctAnswers: breakdown.solved,
-    accuracy: breakdown.accuracy,
-    averageResponseTimeMs: breakdown.averageResponseTimeMs,
+    totalQuestions,
+    correctAnswers,
+    accuracy: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
+    averageResponseTimeMs,
     answers,
   };
 };
@@ -171,7 +189,15 @@ const createBreakdownMap = <T extends string>(values: T[]): Record<T, ProgressBr
 
 export const calculateProgressMetrics = (sessions: ProgressSession[]): ProgressMetrics => {
   const answers = sessions.flatMap(session => session.answers);
-  const overall = getBreakdown(answers);
+  const totalQuestions = sessions.reduce((total, session) => total + session.totalQuestions, 0);
+  const correctAnswers = sessions.reduce((total, session) => total + session.correctAnswers, 0);
+  const totalResponseTimeMs = sessions.reduce((total, session) => total + (session.averageResponseTimeMs === null ? 0 : session.averageResponseTimeMs * session.totalQuestions), 0);
+  const overall: ProgressBreakdown = {
+    attempts: totalQuestions,
+    solved: correctAnswers,
+    accuracy: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
+    averageResponseTimeMs: totalQuestions > 0 ? totalResponseTimeMs / totalQuestions : null,
+  };
   const byOperator = createBreakdownMap(OPERATIONS);
   const byDifficulty = createBreakdownMap(DIFFICULTIES);
 
