@@ -81,7 +81,7 @@ Starting on Mars or Deep Space keeps the game at that difficulty; progression ne
 This project can be deployed to **Azure Static Web Apps**.
 
 - **Infrastructure**: Managed via Terraform in the `infra/` directory.
-- **Continuous integration**: Pull requests and pushes to `main` run the locked pnpm install, lint, non-watch tests, production build, and Terraform checks.
+- **Continuous integration**: Pull requests and pushes to `main` run the locked pnpm install, high-severity dependency audit, lint, non-watch tests, production build, and Terraform checks. Static Analysis also runs CodeQL, ESLint, formatting, and the TypeScript/Vite build.
 - **Production deployment**: The `main` deployment runs only after the CI workflow succeeds. Configure the protected `production` GitHub environment with the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret. PR previews are separate and optional; enable them with a protected `preview` environment and the `AZURE_STATIC_WEB_APPS_PREVIEW_TOKEN` secret.
 - **Terraform backend**: Copy `infra/backend.hcl.example` to a local `backend.hcl`, fill in the approved state-storage coordinates, and run `terraform init -backend-config=backend.hcl`. Keep the filled-in file out of version control.
 - **Build**: Run `pnpm build`, then deploy the generated `dist/` directory with your Azure Static Web Apps deployment tooling.
