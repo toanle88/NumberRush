@@ -81,6 +81,10 @@ interface GameState {
   currentQuestion: MathQuestion | null;
   history: AnswerRecord[];
   missedQuestions: TargetedQuestion[];
+  roundTotalQuestions: number;
+  roundCorrectAnswers: number;
+  roundResponseTimeMs: number;
+  roundAllAnswersCorrect: boolean;
   highScore: number;
   bestStreak: number;
   roundBestStreak: number;
@@ -122,11 +126,11 @@ const enforcePlanetDifficulty = (difficulty: DifficultyTier, level: number): Dif
 };
 
 export const BADGES: Badge[] = [
-  { id: 'first_blastoff', name: 'First Blastoff', icon: '🚀', description: 'Finish your first game!', condition: state => state.totalCorrect > 0 },
+  { id: 'first_blastoff', name: 'First Blastoff', icon: '🚀', description: 'Finish your first game!', condition: state => state.status === 'finished' },
   { id: 'streak_king', name: 'Streak King', icon: '🔥', description: 'Get a streak of 10!', condition: state => state.bestStreak >= 10 },
   { id: 'speed_demon', name: 'Speed Demon', icon: '⚡', description: 'Perfect streak of 20!', condition: state => state.bestStreak >= 20 },
   { id: 'math_marathon', name: 'Math Marathon', icon: '🏃', description: 'Solve 50 questions total!', condition: state => state.totalCorrect >= 50 },
-  { id: 'perfect_flight', name: 'Perfect Flight', icon: '⭐', description: '100% accuracy in a Blitz game!', condition: state => state.status === 'finished' && state.history.length >= 5 && state.history.every(h => h.isCorrect) },
+  { id: 'perfect_flight', name: 'Perfect Flight', icon: '⭐', description: '100% accuracy in a Blitz game!', condition: state => state.status === 'finished' && state.mode === 'blitz' && state.roundTotalQuestions >= 5 && state.roundAllAnswersCorrect },
   { id: 'blitz_pro', name: 'Blitz Pro', icon: '🎯', description: 'Score over 200 points!', condition: state => state.highScore >= 200 },
   { id: 'chaos_legend', name: 'Chaos Legend', icon: '🛡️', description: 'Solve 25 chaos questions!', condition: state => state.totalChaosSolved >= 25 },
   { id: 'brainiac', name: 'Brainiac', icon: '🧠', description: 'Reach 500 points!', condition: state => state.highScore >= 500 },
@@ -149,11 +153,13 @@ const readUnlockedBadges = (): string[] => {
 };
 
 const MAX_PERSISTED_COUNTER = 1_000_000_000;
+export const MAX_LIVE_HISTORY = 200;
+export const MAX_MISSED_QUESTIONS = 200;
 
-export const createRoundSummary = (state: Pick<GameState, 'score' | 'history' | 'roundBestStreak' | 'bestStreak' | 'roundPersonalBestScore' | 'roundPersonalBestStreak' | 'mode'>): RoundSummary => {
-  const totalQuestions = state.history.length;
-  const correctAnswers = state.history.filter(entry => entry.isCorrect).length;
-  const totalResponseTimeMs = state.history.reduce((total, entry) => total + entry.responseTimeMs, 0);
+export const createRoundSummary = (state: Pick<GameState, 'score' | 'history' | 'roundBestStreak' | 'bestStreak' | 'roundPersonalBestScore' | 'roundPersonalBestStreak' | 'mode'> & Partial<Pick<GameState, 'roundTotalQuestions' | 'roundCorrectAnswers' | 'roundResponseTimeMs'>>): RoundSummary => {
+  const totalQuestions = state.roundTotalQuestions ?? state.history.length;
+  const correctAnswers = state.roundCorrectAnswers ?? state.history.filter(entry => entry.isCorrect).length;
+  const totalResponseTimeMs = state.roundResponseTimeMs ?? state.history.reduce((total, entry) => total + entry.responseTimeMs, 0);
   const averageResponseTimeMs = totalQuestions > 0 ? totalResponseTimeMs / totalQuestions : null;
 
   return {
@@ -190,6 +196,10 @@ export const useGame = (initialTime: number = 10) => {
       currentQuestion: null,
       history: [],
       missedQuestions: [],
+      roundTotalQuestions: 0,
+      roundCorrectAnswers: 0,
+      roundResponseTimeMs: 0,
+      roundAllAnswersCorrect: true,
       highScore: readStoredNonNegativeInteger(STORAGE_KEYS.HIGH_SCORE, 0, MAX_PERSISTED_COUNTER),
       bestStreak: readStoredNonNegativeInteger(STORAGE_KEYS.BEST_STREAK, 0, MAX_PERSISTED_COUNTER),
       roundBestStreak: 0,
@@ -299,6 +309,11 @@ export const useGame = (initialTime: number = 10) => {
         level: answer.level,
         responseTimeMs: answer.responseTimeMs,
       })),
+      totalQuestions: finishedState.roundTotalQuestions,
+      correctAnswers: finishedState.roundCorrectAnswers,
+      averageResponseTimeMs: finishedState.roundTotalQuestions > 0
+        ? finishedState.roundResponseTimeMs / finishedState.roundTotalQuestions
+        : null,
     });
     finishedState.progressSessions = [...finishedState.progressSessions, progressSession].slice(-MAX_PROGRESS_SESSIONS);
     writeProgressSessions(finishedState.progressSessions);
@@ -329,6 +344,10 @@ export const useGame = (initialTime: number = 10) => {
       playedLevels: [level],
       currentQuestion: generateQuestion(difficulty, isAdvanced, roundOperations),
       history: [],
+      roundTotalQuestions: 0,
+      roundCorrectAnswers: 0,
+      roundResponseTimeMs: 0,
+      roundAllAnswersCorrect: true,
       roundBestStreak: 0,
       roundPersonalBestScore: prev.highScore,
       roundPersonalBestStreak: prev.bestStreak,
@@ -362,6 +381,10 @@ export const useGame = (initialTime: number = 10) => {
         startingLevel: firstQuestion.level,
         playedLevels: [firstQuestion.level],
         history: [],
+        roundTotalQuestions: 0,
+        roundCorrectAnswers: 0,
+        roundResponseTimeMs: 0,
+        roundAllAnswersCorrect: true,
         roundBestStreak: 0,
         roundPersonalBestScore: prev.highScore,
         roundPersonalBestStreak: prev.bestStreak,
@@ -411,14 +434,18 @@ export const useGame = (initialTime: number = 10) => {
     const playedLevels = submissionState.playedLevels.includes(nextQuestionLevel)
       ? submissionState.playedLevels
       : [...submissionState.playedLevels, nextQuestionLevel];
-    const nextHistory = [...submissionState.history, {
+    const answerRecord = {
       question,
       playerAnswer,
       isCorrect: answerIsCorrect,
       level: submissionState.currentLevel,
       difficulty: submissionState.difficulty,
       responseTimeMs,
-    }];
+    };
+    const nextHistory = [...submissionState.history, answerRecord].slice(-MAX_LIVE_HISTORY);
+    const nextRoundTotalQuestions = submissionState.roundTotalQuestions + 1;
+    const nextRoundCorrectAnswers = submissionState.roundCorrectAnswers + (answerIsCorrect ? 1 : 0);
+    const nextRoundResponseTimeMs = submissionState.roundResponseTimeMs + responseTimeMs;
     const nextDifficulty = submissionState.isTargetedPractice
       ? nextTargetedQuestion?.difficulty ?? submissionState.difficulty
       : enforcePlanetDifficulty(
@@ -446,6 +473,10 @@ export const useGame = (initialTime: number = 10) => {
       score: newScore,
       streak: newStreak,
       roundBestStreak: newRoundBestStreak,
+      roundTotalQuestions: nextRoundTotalQuestions,
+      roundCorrectAnswers: nextRoundCorrectAnswers,
+      roundResponseTimeMs: nextRoundResponseTimeMs,
+      roundAllAnswersCorrect: submissionState.roundAllAnswersCorrect && answerIsCorrect,
       highScore: newHighScore,
       bestStreak: newBestStreak,
       totalCorrect: newTotalCorrect,
@@ -461,7 +492,7 @@ export const useGame = (initialTime: number = 10) => {
           level: submissionState.currentLevel,
           difficulty: submissionState.difficulty,
           operations: submissionState.operations,
-        }],
+        }].slice(-MAX_MISSED_QUESTIONS),
       currentLevel: nextQuestionLevel,
       playedLevels,
       currentQuestion: hasFinishedTargetedPractice

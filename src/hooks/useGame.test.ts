@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useGame } from './useGame';
+import { MAX_LIVE_HISTORY, MAX_MISSED_QUESTIONS } from './useGame';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock localStorage
@@ -375,10 +376,9 @@ describe('useGame Hook', () => {
     expect(result.current.currentQuestion).toEqual(missedQuestion);
   });
 
-  it('unlocks badges when conditions are met', () => {
+  it('unlocks First Blastoff only after the first game finishes', () => {
     const { result } = renderHook(() => useGame(10));
-    
-    // Condition: Finish first game (totalCorrect > 0)
+
     act(() => {
       result.current.startGame(1, 'blitz', false);
     });
@@ -387,7 +387,82 @@ describe('useGame Hook', () => {
       result.current.submitAnswer(result.current.currentQuestion!.answer);
     });
 
+    expect(result.current.unlockedBadges).not.toContain('first_blastoff');
+    act(() => result.current.endGame());
     expect(result.current.unlockedBadges).toContain('first_blastoff');
+  });
+
+  it('unlocks First Blastoff for a completed zero-answer game', () => {
+    const { result } = renderHook(() => useGame(10));
+
+    act(() => {
+      result.current.startGame(1, 'practice', false);
+      result.current.endGame();
+    });
+
+    expect(result.current.unlockedBadges).toContain('first_blastoff');
+  });
+
+  it('limits Perfect Flight to five-answer Blitz rounds', () => {
+    const { result } = renderHook(() => useGame(10));
+
+    act(() => result.current.startGame(1, 'practice', false, ['addition']));
+    for (let answerNumber = 0; answerNumber < 5; answerNumber += 1) {
+      act(() => result.current.submitAnswer(result.current.currentQuestion!.answer));
+    }
+    act(() => result.current.endGame());
+    expect(result.current.unlockedBadges).not.toContain('perfect_flight');
+
+    act(() => result.current.startGame(1, 'blitz', false, ['addition']));
+    for (let answerNumber = 0; answerNumber < 4; answerNumber += 1) {
+      act(() => result.current.submitAnswer(result.current.currentQuestion!.answer));
+    }
+    act(() => result.current.endGame());
+    expect(result.current.unlockedBadges).not.toContain('perfect_flight');
+
+    act(() => result.current.startGame(1, 'blitz', false, ['addition']));
+    for (let answerNumber = 0; answerNumber < 5; answerNumber += 1) {
+      act(() => result.current.submitAnswer(result.current.currentQuestion!.answer));
+    }
+    act(() => result.current.endGame());
+    expect(result.current.unlockedBadges).toContain('perfect_flight');
+  });
+
+  it('bounds live practice state while retaining exact round and persisted aggregates', () => {
+    const { result } = renderHook(() => useGame(10));
+    const answerCount = MAX_LIVE_HISTORY * 2 + 25;
+    let correctAnswers = 0;
+    let totalResponseTimeMs = 0;
+
+    vi.setSystemTime(0);
+    act(() => result.current.startGame(1, 'practice', false, ['addition']));
+    for (let answerNumber = 0; answerNumber < answerCount; answerNumber += 1) {
+      const responseTimeMs = answerNumber + 1;
+      vi.advanceTimersByTime(responseTimeMs);
+      totalResponseTimeMs += responseTimeMs;
+      const isCorrect = answerNumber % 2 === 0;
+      if (isCorrect) correctAnswers += 1;
+      act(() => result.current.submitAnswer(isCorrect
+        ? result.current.currentQuestion!.answer
+        : result.current.currentQuestion!.answer + 1));
+    }
+    act(() => result.current.endGame());
+
+    expect(result.current.history).toHaveLength(MAX_LIVE_HISTORY);
+    expect(result.current.missedQuestions).toHaveLength(MAX_MISSED_QUESTIONS);
+    expect(result.current.roundSummary).toMatchObject({
+      totalQuestions: answerCount,
+      correctAnswers,
+      accuracy: Math.round((correctAnswers / answerCount) * 100),
+      averageResponseTimeMs: totalResponseTimeMs / answerCount,
+    });
+    expect(result.current.progressSessions[0]).toMatchObject({
+      totalQuestions: answerCount,
+      correctAnswers,
+      averageResponseTimeMs: totalResponseTimeMs / answerCount,
+    });
+    expect(result.current.progressMetrics.questionsAttempted).toBe(answerCount);
+    expect(result.current.progressMetrics.questionsSolved).toBe(correctAnswers);
   });
 
   it('handles game end logic', () => {
@@ -402,6 +477,21 @@ describe('useGame Hook', () => {
 
     expect(result.current.status).toBe('finished');
     expect(result.current.moonGames).toBe(1);
+  });
+
+  it('counts a game on the planet where it finishes', () => {
+    const { result } = renderHook(() => useGame(10));
+
+    act(() => result.current.startGame(1, 'blitz', false, ['addition']));
+    for (let answerNumber = 0; answerNumber < 8; answerNumber += 1) {
+      act(() => result.current.submitAnswer(result.current.currentQuestion!.answer));
+    }
+    act(() => result.current.endGame());
+
+    expect(result.current.currentLevel).toBe(2);
+    expect(result.current.moonGames).toBe(0);
+    expect(result.current.marsGames).toBe(1);
+    expect(result.current.spaceGames).toBe(0);
   });
 
   it('builds an accurate round summary with response timing and separate streaks', () => {

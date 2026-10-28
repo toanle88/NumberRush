@@ -20,5 +20,5 @@ Defines the performance standards and monitoring criteria for the NumberRush PWA
 - **PWA**: Assets cached for sub-100ms repeat loads.
 
 ## Current Performance Status
-- **Lighthouse Score**: [Insert Score]
-- **Last Benchmarking**: 2026-02-17
+- **Lighthouse Score**: Not measured in the repository checks.
+- **Last Benchmarking**: `pnpm run benchmark` (run locally to build and enforce the artifact budgets below).
