@@ -21,7 +21,7 @@ describe('accessibility preferences', () => {
       haptics: false,
     }
 saveAccessibilityPreferences(preferences)
-    expect(JSON.parse(localStorage.getItem(ACCESSIBILITY_STORAGE_KEY)!)).toEqual(preferences)
+    expect(JSON.parse(localStorage.getItem(ACCESSIBILITY_STORAGE_KEY)!)).toEqual({ version: 2, data: preferences })
 expect(readAccessibilityPreferences()).toEqual(preferences)
 })
   it('recovers from malformed or partial saved data', () => {

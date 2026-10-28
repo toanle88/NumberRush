@@ -476,7 +476,7 @@ expect(result.current.moonGames).toBe(1)
     expect(localStorage.getItem('numberrush_progress_sessions')).toBeNull()
     failProgressWrite = false
     act(() => vi.advanceTimersByTime(1_000))
-    expect(JSON.parse(localStorage.getItem('numberrush_progress_sessions')!)).toHaveLength(1)
+    expect(JSON.parse(localStorage.getItem('numberrush_progress_sessions')!).data).toHaveLength(1)
     setItemSpy.mockRestore()
   })
   it('persists aggregate changes when targeted practice finishes on its final answer', () => {
@@ -713,7 +713,7 @@ expect(result.current.progressSessions[0].answers[0]).toMatchObject({
       difficulty: 'hard',
       responseTimeMs: 1500,
     })
-expect(JSON.parse(localStorage.getItem('numberrush_progress_sessions')!)).toHaveLength(1)
+expect(JSON.parse(localStorage.getItem('numberrush_progress_sessions')!).data).toHaveLength(1)
     unmount()
 const reloaded = renderHook(() => useGame(10))
 expect(reloaded.result.current.progressSessions).toHaveLength(1)

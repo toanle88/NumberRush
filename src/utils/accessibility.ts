@@ -1,4 +1,4 @@
-import { readStoredJson, writeStorage } from './storage'
+import { readStoredJson, writeStoredJson } from './storage'
 import { STORAGE_KEYS } from './storageKeys'
 export type Theme = 'dark' | 'light'
 export interface AccessibilityPreferences {
@@ -34,9 +34,9 @@ return {
     return DEFAULT_ACCESSIBILITY_PREFERENCES
   }
 }
-export const saveAccessibilityPreferences = (preferences: AccessibilityPreferences) => {
-  writeStorage(ACCESSIBILITY_STORAGE_KEY, JSON.stringify(preferences))
-}
+export const saveAccessibilityPreferences = (preferences: AccessibilityPreferences): boolean => (
+  writeStoredJson(ACCESSIBILITY_STORAGE_KEY, preferences)
+)
 export const getSystemReducedMotionPreference = (): boolean => {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
 return window.matchMedia('(prefers-reduced-motion: reduce)').matches

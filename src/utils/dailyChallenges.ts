@@ -1,4 +1,4 @@
-import { readStoredJson, writeStorage } from './storage'
+import { readStoredJson, writeStoredJson } from './storage'
 import { STORAGE_KEYS } from './storageKeys'
 export const DAILY_CHALLENGES_STORAGE_KEY = STORAGE_KEYS.DAILY_CHALLENGES
 export type DailyChallengeMetric = 'correctAnswers' | 'answers' | 'streak'
@@ -188,7 +188,7 @@ export const readRecurringProgress = (date: Date = new Date()): RecurringProgres
 }
 }
 export const writeRecurringProgress = (progress: RecurringProgress): boolean => {
-  return writeStorage(DAILY_CHALLENGES_STORAGE_KEY, JSON.stringify(progress))
+  return writeStoredJson(DAILY_CHALLENGES_STORAGE_KEY, progress)
 }
 const wasCompleted = (progress: RecurringProgress): boolean => (
   progress.completionHistory.some(completion => completion.dateKey === progress.dateKey && completion.challengeId === progress.challenge.challengeId)
