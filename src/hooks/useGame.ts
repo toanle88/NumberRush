@@ -242,7 +242,7 @@ if (!hasChanged) return
 writeRecurringProgress(refreshed)
 stateRef.current = { ...stateRef.current, recurringProgress: refreshed, challengeCompletedThisRound: false }
 setState(prev => ({ ...prev, recurringProgress: refreshed, challengeCompletedThisRound: false }))
-}, [])
+}, [refreshPersistenceStatus])
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') refreshRecurringProgress()
@@ -576,7 +576,7 @@ if (timerRef.current) clearInterval(timerRef.current)
     }
     stateRef.current = nextState
     setState(nextState)
-}, [])
+}, [refreshPersistenceStatus])
   useEffect(() => {
     let interval: number | null = null
     if (state.status === 'playing' && state.mode === 'blitz') {

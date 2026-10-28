@@ -46,4 +46,26 @@ Object.defineProperty(window, 'matchMedia', { configurable: true, value: matchMe
 expect(matchMedia).toHaveBeenCalledWith('(prefers-reduced-motion: reduce)')
     Object.defineProperty(window, 'matchMedia', { configurable: true, value: originalMatchMedia })
 })
+  it('falls back when optional browser APIs throw', () => {
+    const originalMatchMedia = window.matchMedia
+    const originalVibrate = navigator.vibrate
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn(() => {
+        throw new Error('browser API unavailable')
+      }),
+    })
+    Object.defineProperty(navigator, 'vibrate', {
+      configurable: true,
+      value: vi.fn(() => {
+        throw new Error('browser API unavailable')
+      }),
+    })
+
+    expect(getSystemReducedMotionPreference()).toBe(false)
+    expect(() => triggerHaptic(true, 20)).not.toThrow()
+
+    Object.defineProperty(window, 'matchMedia', { configurable: true, value: originalMatchMedia })
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: originalVibrate })
+  })
 })

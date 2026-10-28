@@ -30,6 +30,13 @@ const DIFFICULTY_HELP: Record<DifficultyTier, string> = {
   hard: '7 second starting timer with challenging number ranges',
 }
 const FEEDBACK_DURATION_MS = 1400
+const safeConfetti = (options: Parameters<typeof confetti>[0]): void => {
+  try {
+    confetti(options)
+  } catch {
+    // Celebrations are optional and must not interrupt gameplay.
+  }
+}
 function App() {
   const [view, setView] = useState<'home' | 'progress'>('home')
 const [initialTime, setInitialTime] = useState(() =>
@@ -68,16 +75,37 @@ const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
 const previousStreakRef = useRef(0)
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let mediaQuery: MediaQueryList
+    try {
+      mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    } catch {
+      return
+    }
 const handleChange = (event: MediaQueryListEvent) => setSystemReducedMotion(event.matches)
-if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleChange)
-return () => mediaQuery.removeEventListener('change', handleChange)
-}
-    if (typeof mediaQuery.addListener === 'function') {
-      mediaQuery.addListener(handleChange)
-return () => mediaQuery.removeListener(handleChange)
-}
+    try {
+      if (typeof mediaQuery.addEventListener === 'function') {
+        mediaQuery.addEventListener('change', handleChange)
+        return () => {
+          try {
+            mediaQuery.removeEventListener('change', handleChange)
+          } catch {
+            // Reduced-motion listeners are optional.
+          }
+        }
+      }
+      if (typeof mediaQuery.addListener === 'function') {
+        mediaQuery.addListener(handleChange)
+        return () => {
+          try {
+            mediaQuery.removeListener(handleChange)
+          } catch {
+            // Reduced-motion listeners are optional.
+          }
+        }
+      }
+    } catch {
+      // Some embedded browsers expose a matchMedia object whose listeners throw.
+    }
   }, [])
   useEffect(() => {
     const level = status === 'playing' ? currentLevel : selectedLevel
@@ -269,23 +297,44 @@ if (tLeft <= 0) {
 return
 }
         const pCount = 40
-confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } })
-confetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } })
+        safeConfetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } })
+safeConfetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } })
 }, 250)
 } else if (streak >= 20) {
       shake = 'shake-medium'
-confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } })
+safeConfetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } })
 } else {
-      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] })
+safeConfetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] })
 }
 
     let clearShakeTimer: number | null = null
-const animationFrame = requestAnimationFrame(() => {
-      setShakeClass(shake)
-clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000)
-})
+let animationFrame: number | null = null
+let usesAnimationFrame = false
+try {
+      if (typeof window.requestAnimationFrame === 'function') {
+        usesAnimationFrame = true
+        animationFrame = window.requestAnimationFrame(() => {
+          setShakeClass(shake)
+          clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000)
+        })
+      } else {
+        animationFrame = window.setTimeout(() => {
+          setShakeClass(shake)
+          clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000)
+        }, 0)
+      }
+    } catch {
+      // Animation is optional; the game remains usable without it.
+    }
     return () => {
-      cancelAnimationFrame(animationFrame)
+      if (animationFrame !== null) {
+        try {
+          if (usesAnimationFrame && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(animationFrame)
+          else window.clearTimeout(animationFrame)
+        } catch {
+          // Animation cleanup is optional.
+        }
+      }
 if (clearShakeTimer !== null) window.clearTimeout(clearShakeTimer)
 if (confettiInterval !== null) window.clearInterval(confettiInterval)
 }

@@ -1384,6 +1384,57 @@ header h1 {
   animation: shake-hard 0.6s ease-in-out;
 }
 
+.error-boundary-screen {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.error-boundary-card {
+  width: min(100%, 34rem);
+  padding: 2.5rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.error-boundary-card h1 {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--color-secondary);
+}
+
+.error-boundary-card > p:not(.eyebrow):not(.error-boundary-help) {
+  color: var(--text-secondary);
+}
+
+.error-boundary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.error-boundary-help {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.error-boundary-details {
+  margin-top: 1.5rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.error-boundary-details p {
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 480px) {
   .results-metrics {
     grid-template-columns: 1fr;
