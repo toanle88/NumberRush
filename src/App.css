@@ -1255,7 +1255,7 @@ html[data-high-contrast='true'] input,
 html[data-high-contrast='true'] select,
 html[data-high-contrast='true'] .progress-container,
 html[data-high-contrast='true'] .answer-box {
-  border-width: 2px;
+  border-width: 2px !important;
 }
 
 html[data-high-contrast='true'] .results-feedback {
