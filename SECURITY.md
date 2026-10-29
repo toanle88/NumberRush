@@ -1,31 +1,60 @@
-# SECURITY.md: Security Policies & Audit Notes
+# Security policy
 
-## Purpose
-Defines security practices, compliance requirements, and audit findings.
+NumberRush is a client-side educational game. The app stores gameplay progress
+and optional settings in browser storage; it does not provide an application
+backend or a remote account system. This limits the server-side attack surface
+but does not make the browser, hosting, dependencies, or deployment workflows
+risk-free.
 
-## Policies
-- **Input Validation**: Strict sanitization of numpad inputs and game configuration parameters to prevent unexpected state mutations.
-- **Data Protection**: Secure handling of user progress and high scores in `LocalStorage`.
-- **PWA Security**: Service Workers require HTTPS; caching strategies are scoped to project assets only.
-- **Workflow Security**: Slack webhook URLs and other secrets are managed via environment variables, never hardcoded.
+## Reporting a vulnerability privately
 
-## Compliance
-- **OWASP Top 10**: Regularly audited during agent reviews.
-- **GDPR**: No personally identifiable information (PII) is collected or stored.
+Please do not open a public issue, discussion, or pull request for a suspected
+vulnerability. Use the repository's private
+[GitHub Security Advisory form](../../security/advisories/new). Include:
 
-## Audit Findings
-- Recent audit of `useGame` hook showed robust state management.
-- Slack notification script refactored for secret isolation.
+- a concise description and affected file or workflow;
+- reproducible steps or a minimal proof of concept;
+- impact and any required browser, origin, permission, or deployment
+  conditions;
+- a suggested mitigation, if known.
 
-## Automated Security Controls
+If private advisories are not enabled for the hosting repository, contact the
+repository maintainers through the private channel listed in the repository's
+GitHub **Security** tab and do not publish exploit details. Maintainers aim to
+acknowledge a report within five business days, will coordinate a fix and
+disclosure timeline with the reporter, and will credit reporters who want to be
+named.
 
-- Dependabot checks npm dependencies and GitHub Actions weekly and opens grouped pull requests. Workflow references are pinned to full commit SHAs; Dependabot is configured to keep those pins current.
-- The `CI` workflow runs on pull requests targeting `main` and pushes to `main`. It performs a locked pnpm install, fails on high- or critical-severity advisories with `pnpm audit --audit-level high`, and runs lint, tests, and the production build.
-- The `Static Analysis` workflow runs CodeQL, ESLint, formatting checks, and the TypeScript/Vite production build on pull requests targeting `main` and pushes to `main`. CodeQL uploads findings with only the `security-events: write` permission required by the analysis job; the remaining workflow permissions are read-only.
-- Repository administrators must enable **Secret scanning** and **Push protection** under GitHub **Settings → Code security and analysis** (or at the organization level when the repository is covered by GitHub Advanced Security). Push protection should remain enabled for all supported secret types. Findings must be revoked and rotated rather than copied into issues, pull requests, logs, or documentation.
+## Scope and data handling
 
-These repository settings cannot be enabled from a committed file. Confirm them when the repository is connected to GitHub, and protect the `main` branch by requiring the `CI` and `Static Analysis` checks before merging.
+In scope are the application, generated PWA behavior, repository workflows,
+Terraform configuration, dependency use, and deployment configuration. The
+optional player name, progress records, and exported backup are user-controlled
+browser data. Do not include real personal data in issue examples or exported
+fixtures.
 
-## Current Security Status
-- **Status**: Automated baseline configured; GitHub secret scanning and push protection require repository settings confirmation
-- **Last Review**: 2026-10-28
+The app validates math inputs and imported progress, limits import size,
+allowlists progress keys, rejects unsupported storage versions, and keeps
+runtime state in memory when storage is unavailable. These controls reduce
+damage from malformed local data; they are not a substitute for browser or
+host security.
+
+## Repository controls
+
+- CI installs from the committed lockfile and fails on high/critical dependency
+  advisories.
+- Static Analysis runs ESLint, the build, and CodeQL.
+- Dependabot monitors npm packages and GitHub Actions.
+- GitHub Actions are pinned to commit SHAs in the committed workflows.
+- Azure deployment uses protected environments and secrets; Terraform state is
+  intended for an Azure remote backend and must not be committed.
+- Repository administrators should enable secret scanning, push protection, and
+  branch protection requiring the relevant checks. These are GitHub settings,
+  not guarantees provided by a file in this repository.
+
+## Security expectations for contributors
+
+Never commit credentials, tokens, filled Terraform backend files, private
+exports, or secrets in logs. Keep dependencies minimal, preserve the existing
+content-security and permissions policies, validate data at trust boundaries,
+and explain security-sensitive changes in the pull request.

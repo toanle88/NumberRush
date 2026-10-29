@@ -1,113 +1,263 @@
 # NumberRush 🚀
 
-> **Speed Math for Super Kids!**
+> Speed math for kids, delivered as an installable web app.
 
-NumberRush is a fast-paced, interactive arithmetic game designed to help kids improve their mental math skills through fun gameplay, visual rewards, and progressive difficulty levels. Built with modern web technologies, it offers a smooth, app-like experience on any device.
+NumberRush is an open-source arithmetic game for short, repeatable practice
+sessions. Players can use Blitz or Practice mode, select operations and
+difficulty, build streaks, review progress, and continue offline after the app
+shell has been cached.
 
-## ✨ Features
+[![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![Static Analysis](../../actions/workflows/quality.yml/badge.svg)](../../actions/workflows/quality.yml)
 
-### 🎮 Game Modes
-- **Blitz Mode ⚡**: Race against the clock! Solve questions before time runs out to build your streak and score massive points.
-- **Practice Mode 🧠**: Zen-like training with no timers. Perfect for learning at your own pace.
+## Project status
 
-### 🌍 Starting Planet & Progression
-Choose a starting planet before each round. This sets the first difficulty, while score advances the journey with dynamic visual themes:
-- **Moon Base 🌙**: Level 1 (Beginner)
-- **Mars Outpost 🔴**: Level 2 (Intermediate, from 100 points)
-- **Deep Space 🌌**: Level 3 (Advanced, from 200 points)
+NumberRush is in active development and is not currently a versioned public
+release (`package.json` reports `0.0.0`). The repository contains the source,
+tests, PWA configuration, and Azure deployment workflows. A stable hosted demo
+URL is not configured in this checkout; after starting the dev server, use the
+[local demo](http://localhost:5173).
 
-Starting on Mars or Deep Space keeps the game at that difficulty; progression never moves backward. The game shows a transition when a score threshold is reached, and results list every planet played.
+## Features
 
-### 🔥 Challenge & Rewards
-- **Streak System**: Build combos to multiply your score.
-- **Badges**: Unlock 10 unique achievements like *Streak King*, *Math Marathon*, and *Galaxy Guide*.
-- **Chaos Mode**: Toggle "3-Number Chaos" for advanced arithmetic challenges (e.g., `5 + 3 - 2`).
-- **High Scores**: Local storage saves your personal bests, total solved questions, and unlocked badges.
+- Blitz and untimed Practice modes.
+- Addition, subtraction, multiplication, and division, including optional
+  multi-step “Chaos” questions.
+- Easy, Medium, and Hard difficulty with optional adaptive difficulty.
+- Planet progression, streaks, daily challenges, badges, and a progress
+  dashboard.
+- Keyboard and touch input, sound effects, and haptics where the device
+  supports them.
+- Installable PWA behavior with a cached app shell for offline play after the
+  first successful load.
+- Local progress export/import from Settings.
 
-### 💾 Progress persistence
-
-NumberRush stores progress locally using a versioned JSON envelope:
-
-```json
-{ "version": 2, "data": "..." }
-```
-
-Unwrapped records from older releases (version 0) and the previous marker-only
-format (version 1) are read defensively and migrated to the current envelope.
-Future or malformed versions are ignored without replacing the stored value;
-the app keeps gameplay state in memory and reports when saving is unavailable.
-The Settings dialog can export and import the allowlisted gameplay progress
-keys as a JSON backup. Imports are size-limited and never execute imported data.
-
-### 📱 Modern Experience
-- **PWA Support**: Installable as a native app on mobile and desktop. Works offline!
-- **Interactive Feedback**: Satisfying sound effects, screen shake animations, and confetti explosions for big achievements.
-- **Keyboard Support**: Full numpad and keyboard control for desktop users.
-
-## 🛠️ Tech Stack
-
-- **Core**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Testing**: [Vitest](https://vitest.dev/), React Testing Library, [Playwright](https://playwright.dev/)
-- **Styling**: Modern CSS3 (Variables, Animations, Responsive Design)
-- **Effects**: [canvas-confetti](https://github.com/catdad/canvas-confetti)
-- **Infrastructure**: Azure Static Web Apps (IaC with Terraform)
-- **Deployment**: Azure Static Web Apps with Terraform-managed infrastructure
-
-## 🚀 Getting Started
+## Quick start
 
 ### Prerequisites
-- Node.js 24 or newer
-- pnpm 11 (included with Corepack)
 
-### Installation
+- Node.js 24.x. This is the version used by CI and the dev container; other
+  major versions are not part of the supported test matrix.
+- pnpm 11.24.0. This exact version is declared in `package.json` and the
+  workflows. Enable Corepack if pnpm is not already available:
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/number-rush.git
-    cd number-rush
-    ```
+  ```bash
+  corepack enable
+  corepack prepare pnpm@11.24.0 --activate
+  ```
 
-2.  **Install dependencies:**
-    ```bash
-    pnpm install --frozen-lockfile
-    ```
+### Install and run
 
-3.  **Start the development server:**
-    ```bash
-    pnpm dev
-    ```
-    Open [http://localhost:5173](http://localhost:5173) in your browser.
+```bash
+git clone https://github.com/toanle88/NumberRush.git
+cd NumberRush
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
-## 📜 Scripts
+Open <http://localhost:5173>. The committed `pnpm-lock.yaml` is authoritative;
+keep `--frozen-lockfile` for reproducible installs.
 
-| Command | Description |
-| :--- | :--- |
-| `pnpm dev` | Starts the development server with HMR. |
-| `pnpm build` | Type-checks and builds the production-ready app. |
-| `pnpm preview` | Previews the production build locally. |
-| `pnpm test` | Runs unit tests with Vitest. |
-| `pnpm test:e2e` | Runs desktop and mobile-viewport browser tests with Playwright. |
-| `pnpm lint` | Runs ESLint to check for code quality issues. |
-| `pnpm format` | Fixes TypeScript and JavaScript formatting with ESLint. |
-| `pnpm format:check` | Checks formatting without changing files. |
+## Commands
 
-## ☁️ Deployment
+Run these from the repository root:
 
-This project can be deployed to **Azure Static Web Apps**.
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Start Vite development mode with HMR. |
+| `pnpm test -- --run` | Run the one-shot Vitest unit/component suite. Use `pnpm test` for watch mode. |
+| `pnpm exec playwright install chromium` | Install the browser needed by local E2E tests. On CI, use `--with-deps`. |
+| `pnpm test:e2e` | Run the desktop and mobile Playwright suite against the dev server. |
+| `pnpm lint` | Run ESLint. |
+| `pnpm format:check` | Run the repository's formatting check. |
+| `pnpm format` | Apply ESLint's configured formatting fixes. |
+| `pnpm build` | Type-check and create `dist/`. |
+| `pnpm preview` | Serve the built `dist/` directory locally. Run `pnpm build` first. |
+| `pnpm run performance:budget` | Check generated JavaScript/CSS gzip budgets; run after `pnpm build`. |
+| `pnpm run benchmark` | Build and run the bundle budget check. |
 
-- **Infrastructure**: Managed via Terraform in the `infra/` directory.
-- **Continuous integration**: Pull requests and pushes to `main` run the locked pnpm install, high-severity dependency audit, lint, non-watch tests, production build, and Terraform checks. Static Analysis also runs CodeQL, ESLint, formatting, and the TypeScript/Vite build.
-- **Production deployment**: The `main` deployment runs only after the CI workflow succeeds. Configure the protected `production` GitHub environment with the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret. PR previews are separate and optional; enable them with a protected `preview` environment and the `AZURE_STATIC_WEB_APPS_PREVIEW_TOKEN` secret.
-- **Terraform backend**: Copy `infra/backend.hcl.example` to a local `backend.hcl`, fill in the approved state-storage coordinates, and run `terraform init -backend-config=backend.hcl`. Keep the filled-in file out of version control.
-- **Build**: Run `pnpm build`, then deploy the generated `dist/` directory with your Azure Static Web Apps deployment tooling.
+The browser tests use the dev server by default. The performance workflow uses
+`PERFORMANCE_E2E=1` and a production preview so that PWA and offline checks run
+against the built app.
 
-## 🧹 Formatting
+## Configuration and environment variables
 
-ESLint is the canonical formatter for JavaScript and TypeScript. Run `pnpm format` before opening a pull request, or use `pnpm format:check` to verify that a checkout is already normalized. Repository text files use LF line endings through `.gitattributes`; the included `.editorconfig` mirrors those settings for supported editors.
-- **Configuration**: `public/staticwebapp.config.json` supplies the static-host security headers and SPA fallback.
-- **Secrets**: Terraform state contains provider-managed resource attributes, including the Static Web App deployment key. Use the protected remote backend configured in `infra/providers.tf`; never commit state or expose the key in outputs or logs.
+There are no application-specific `VITE_*` variables. The app works without a
+`.env` file. The following variables affect tests, reports, or CI metadata:
 
-## 📄 License
+| Variable | Required? | Secret? | Use |
+| --- | --- | --- | --- |
+| `CI` | Optional locally; set by CI | No | Makes Playwright fail on `.only`, use one worker, retry once, and use CI reporters. |
+| `PERFORMANCE_E2E` | Optional | No | When truthy, selects `e2e/performance.spec.ts` and starts `pnpm preview`. |
+| `PERFORMANCE_RESULTS_DIR` | Optional | No | Directory for browser/performance output; defaults to `performance-results`. |
+| `PERFORMANCE_REPORT_PATH` | Optional | No | JSON output path for `pnpm run performance:budget`. |
+| `PERFORMANCE_MARKDOWN_PATH` | Optional | No | Markdown output path for `scripts/performance-report.mjs`. |
+| `GITHUB_SHA` | Optional | No | Commit metadata in generated performance reports; GitHub supplies it in Actions. |
 
-This project is open source and available under the [MIT License](LICENSE).
+Deployment and infrastructure credentials are GitHub secrets, not browser
+runtime configuration. The workflows expect `AZURE_STATIC_WEB_APPS_API_TOKEN`
+for production, `AZURE_STATIC_WEB_APPS_PREVIEW_TOKEN` for optional PR previews,
+and `AZURE_CLIENT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, and
+`STORAGE_ACCOUNT_NAME` for the Terraform workflow. Never commit these values,
+Terraform state, `infra/backend.hcl`, or generated reports containing secrets.
+
+## Architecture
+
+The implementation is a React 19 + TypeScript application built by Vite 8 and
+styled through the repository's CSS files and Tailwind/PostCSS entry point.
+There is no server-side application or remote progress database.
+
+- `src/main.tsx` mounts the application and error boundary.
+- `src/App.tsx` coordinates views, round setup, keyboard handling, settings,
+  and import/export actions.
+- `src/hooks/useGame.ts` owns round state, scoring, timers, progression,
+  badges, and persistence orchestration.
+- `src/components/` contains the game board, keypad, settings, progress, and
+  feedback UI.
+- `src/utils/` contains pure math, progression, accessibility, sound,
+  recurring-challenge, and storage modules.
+- `vite.config.ts` configures the build and `vite-plugin-pwa` service worker.
+- `public/staticwebapp.config.json` provides Azure Static Web Apps SPA routing
+  and security headers.
+- `infra/` contains Terraform configuration for Azure resources.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md), [PERFORMANCE.md](PERFORMANCE.md),
+[QUALITY_SCORE.md](QUALITY_SCORE.md), and [ROADMAP.md](ROADMAP.md) for the
+design, measurement, quality, and planning records.
+
+## PWA, browsers, and offline behavior
+
+The production build generates a manifest and service worker. After one
+successful online load and service-worker activation, the app shell and
+manifest are cached and the game can reload offline. Updates use the service
+worker's auto-update registration.
+
+Known limitations:
+
+- The first visit still needs network access so the app can be downloaded and
+  cached.
+- Service workers require HTTPS in deployed environments; `localhost` is the
+  normal local-development exception.
+- Install prompts and standalone behavior vary by browser, operating system,
+  and iOS/iPadOS version.
+- Browser storage can be disabled, cleared, quota-limited, or partitioned.
+  NumberRush keeps the current session in memory when persistence is
+  unavailable, but it cannot recover data the browser has removed.
+- Sound requires browser permission/user interaction, haptics are optional,
+  and background tabs can throttle timers.
+- External Google Fonts are a presentation enhancement; the app remains
+  usable when they are blocked or unavailable.
+
+## Accessibility and input support
+
+The app provides a labeled on-screen keypad for touch and pointer input. While
+a round is active, desktop keyboards can enter the top-row digits or numpad
+digits, submit with Enter, clear with Backspace, and exit with Escape. Controls
+inside settings retain their normal browser behavior.
+
+The UI includes semantic labels, live status announcements, a labeled timer
+progress bar, visible focus handling, a settings focus trap, reduced-motion and
+high-contrast preferences, and responsive layouts. Screen readers and browser
+zoom are supported to the extent provided by the browser and the current CSS.
+
+## Data storage and privacy
+
+Progress is stored in the browser's `localStorage` on the current origin. It
+includes scores, streaks, badges, challenge/session history, completed planet
+counters, and related gameplay settings. The optional player name and
+accessibility preferences are also local settings. No application backend is
+used to sync this data.
+
+Stored JSON records use a versioned envelope. Current records are version 2;
+legacy unwrapped records and the version-1 marker format are migrated
+defensively. Future or malformed records are rejected. Settings can export an
+allowlisted progress backup as JSON and import it with size and schema checks.
+Imported data is treated as data, not executable code.
+
+Clearing site data, using private browsing, changing origin, or browser storage
+policy can remove or prevent access to progress. Do not put secrets or other
+sensitive information into the player-name field or exported backup.
+
+## Deployment
+
+Production deployment is workflow-driven:
+
+1. A push to `main` runs [CI](.github/workflows/ci.yml).
+2. If CI succeeds, `.github/workflows/deploy.yml` downloads the validated
+   `dist/` artifact and deploys it to the protected `production` environment.
+3. Optional PR previews use `.github/workflows/preview.yml` and the protected
+   `preview` environment.
+
+For a local production check:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+pnpm preview
+```
+
+Infrastructure changes are validated by CI with Terraform. To work with the
+remote backend, copy `infra/backend.hcl.example` to the ignored
+`infra/backend.hcl`, fill in approved Azure state-storage coordinates, then use
+the Terraform commands in `.github/workflows/infrastructure.yml`. Do not run
+`terraform apply` without the required Azure identity, state backend, and
+production approval.
+
+## Troubleshooting and FAQ
+
+**`pnpm install --frozen-lockfile` fails.** Confirm Node.js 24.x and pnpm
+11.24.0, then make sure the lockfile was not edited independently of
+`package.json`. Do not switch to npm or yarn for the repository workflow.
+
+**The browser tests cannot launch.** Run `pnpm exec playwright install chromium`.
+On Ubuntu CI or a fresh Linux machine, use
+`pnpm exec playwright install --with-deps chromium`.
+
+**Offline mode does not work on the first load.** Load the production build once
+while online, wait for the service worker to become active, then reload before
+disconnecting. Development mode is not the offline acceptance environment.
+
+**My progress disappeared.** Check that you are using the same browser origin
+and have not cleared site data or switched to private browsing. Use Settings →
+Progress data to restore a valid NumberRush export.
+
+**Why is there no `pnpm deploy` command?** Deployment is intentionally handled
+by the protected GitHub/Azure workflows. Local commands build and preview the
+artifact; they do not bypass deployment approvals.
+
+## Contributing and support
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change. Pull requests
+should include focused tests or a written reason tests are not applicable and
+must pass the same checks described above. Use the
+[bug report](.github/ISSUE_TEMPLATE/bug_report.md) or
+[feature request](.github/ISSUE_TEMPLATE/feature_request.md) template for
+public issues. For general questions or support, open a public
+[support issue](../../issues/new/choose) with reproducible details.
+
+Please also follow the [Code of Conduct](CODE_OF_CONDUCT.md) when participating
+in the project.
+
+Please do not disclose security vulnerabilities in public issues. Follow
+[SECURITY.md](SECURITY.md) and use the private GitHub Security Advisory form.
+
+## Quality and CI expectations
+
+CI currently runs locked installation, a high-severity dependency audit, lint,
+one-shot unit tests, the production build, Playwright browser tests, and
+Terraform validation. Static Analysis adds formatting, TypeScript/build, and
+CodeQL checks. The scheduled Performance workflow checks bundle budgets, PWA
+offline behavior, browser performance thresholds, and a small accessibility
+audit. These workflows report the current repository state; a green local run
+does not by itself prove a hosted deployment is live.
+
+See [QUALITY_SCORE.md](QUALITY_SCORE.md) for the distinction between targets
+and verified metrics, and [PERFORMANCE.md](PERFORMANCE.md) for measurement
+provenance.
+
+## License and security
+
+NumberRush is available under the [MIT License](LICENSE). Security reports
+should be submitted privately through
+[GitHub Security Advisories](../../security/advisories/new), as described in
+[SECURITY.md](SECURITY.md).

@@ -1,24 +1,46 @@
-# ROADMAP.md: Future Goals & Feature Backlog
+# Roadmap
 
-## Purpose
-A high-level view of the direction for NumberRush.
+Roadmap status is intentionally separated into completed, active, and planned
+work. Dates and priorities can change as user feedback arrives.
 
-## Phase 1: Foundation (Current)
-- [x] Basic Math Math logic (Addition/Subtraction)
-- [x] Responsive Numpad UI
-- [x] PWA Support & Offline Play
-- [x] Multi-agent orchestration
+## Completed
 
-## Phase 2: Engagement (Next)
-- [ ] **Multiplication & Division**: Advanced math modes.
-- [ ] **Difficulty Tiers**: Easy, Medium, Hard (dynamic timers).
-- [ ] **Sound Effects**: Haptic and audio feedback for correct/incorrect answers.
-- [ ] **Themes**: Dark/Light mode and custom color palettes.
+- [x] Addition, subtraction, multiplication, and division question generation.
+- [x] Easy, Medium, and Hard difficulty tiers with adaptive difficulty option.
+- [x] Blitz and Practice modes, timer controls, scoring, and streaks.
+- [x] Planet progression and round summaries.
+- [x] Chaos/multi-step questions and operation selection.
+- [x] Daily challenges, progress dashboard, badges, and local high scores.
+- [x] Sound effects, optional haptics, themes, reduced motion, and high
+      contrast preferences.
+- [x] PWA manifest, service-worker caching, and offline reload coverage.
+- [x] Versioned localStorage migration plus progress export/import.
+- [x] CI, Static Analysis, browser tests, performance gates, and protected
+      Azure deployment workflows.
 
-## Phase 3: Competitive (Future)
-- [ ] **Leaderboards**: Global high scores (Firebase or similar).
-- [ ] **Multiplayer**: Real-time head-to-head racing.
-- [ ] **Achievements**: Badge system for milestones (e.g., "100 correct in a row").
+## Active
 
-## Notes
-- Feature priority is determined by user feedback and the Reviewer agent's complexity analysis.
+- [ ] Bring open-source documentation and contribution workflows to a stable
+      release standard.
+- [ ] Establish a public release process and publish a stable demo URL when
+      hosting and ownership are finalized.
+- [ ] Keep browser, accessibility, storage, and performance evidence current as
+      the app evolves.
+
+## Planned
+
+- [ ] Expand learning analytics and learner-facing review tools without adding
+      remote tracking by default.
+- [ ] Evaluate optional account-backed leaderboards only with an explicit
+      privacy and threat-model review.
+- [ ] Evaluate multiplayer or shared challenges after the single-device
+      experience is stable.
+- [ ] Broaden browser/device coverage beyond the current Chromium-centered CI
+      checks.
+
+## Prioritization
+
+Priorities are based on reproducible user feedback, accessibility impact,
+maintenance cost, privacy implications, and evidence from the quality and
+performance checks. Proposed work should be discussed in an issue before it is
+treated as committed scope.

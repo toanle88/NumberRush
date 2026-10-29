@@ -1,27 +1,66 @@
-# ARCHITECTURE.md: Technical Design & Patterns
+# Architecture
 
-## Purpose
-Documents the high-level architecture and technical decisions of the NumberRush project.
+This document describes the implementation currently in the repository. It is
+an implementation guide, not a promise about future features.
 
-## Tech Stack
-- **Framework**: React 19 (Hooks-heavy approach)
-- **Build Tool**: Vite 7
-- **Styling**: Tailwind CSS 4 (Modern utility-first CSS)
-- **Deployment**: PWA-first (Vite Plugin PWA)
-- **State Management**: Local React context and custom hooks (`useGame`).
+## System shape
 
-## Core Patterns
-- **Functional Components**: Zero class components.
-- **Custom Hooks**: Business logic (math, timer, state) isolated from the UI.
-- **Modular Actions**: Game actions are handled via functional state updates to ensure predictability.
-- **Responsive Design**: Mobile-first layout emphasizing touch targets for the numpad.
+NumberRush is a client-only React 19 + TypeScript single-page application. Vite
+8 builds the app, and `vite-plugin-pwa` generates the manifest and service
+worker. There is no application server or remote database: gameplay state is
+managed in React and persisted to the browser's localStorage when available.
 
-## Directory Structure
-- `src/components/`: Pure UI components and layout wrappers.
-- `src/hooks/`: Reusable game logic and state management.
-- `src/utils/`: Pure helper functions (e.g., math generators).
-- `infra/`: Internal automation scripts and infrastructure config.
+The UI is written with React components and custom CSS in `src/App.css` and
+`src/index.css`. Tailwind/PostCSS is present in the build pipeline through
+`src/index.css`, but the application layout is not based on a separate Tailwind
+component library.
 
-## Decision Log
-- **2026-02-17**: Migrated to Tailwind 4 for improved build performance and modern CSS features.
-- **2026-02-17**: Implemented multi-agent orchestration for high-velocity quality assurance.
+## Runtime flow
+
+1. `src/main.tsx` mounts `App` inside `ErrorBoundary`.
+2. `src/App.tsx` selects the home, game, results, progress, and settings views;
+   translates keypad/keyboard input into actions; and renders feedback.
+3. `src/hooks/useGame.ts` owns the round state machine, timer, scoring,
+   adaptive difficulty, progression, badges, recurring challenges, and
+   persistence retries.
+4. `src/utils/mathLogic.ts` generates valid questions for the selected
+   operations and difficulty. Other utility modules calculate progression,
+   accessibility preferences, sound/haptic feedback, and progress metrics.
+5. `src/utils/storage.ts` reads/writes the versioned localStorage envelope and
+   handles migrations, unavailable storage, and progress backups.
+
+## Key boundaries
+
+- `src/components/`: presentational UI and interaction surfaces.
+- `src/hooks/`: stateful application behavior reusable by the UI.
+- `src/utils/`: deterministic or isolated domain helpers.
+- `public/`: static host configuration and public assets.
+- `e2e/`: Playwright tests for user-visible behavior, PWA behavior, and the
+  production preview.
+- `infra/`: Terraform configuration for Azure resources and remote state.
+- `.github/workflows/`: validation, security analysis, performance, preview,
+  and production deployment automation.
+
+## Persistence model
+
+JSON records are stored as `{ version: 2, data: ... }`. Version 0 unwrapped
+records and the version-1 marker format are migrated defensively. Unsupported
+future versions are not overwritten. Progress export/import only handles the
+allowlisted gameplay keys and validates imported data before writing it.
+
+## Delivery and security boundaries
+
+The production artifact is the `dist/` directory. Azure Static Web Apps uses
+`public/staticwebapp.config.json` for SPA fallback and response headers. The
+production workflow deploys only the artifact produced by a successful CI run;
+it does not rebuild unreviewed source during deployment. Terraform manages
+infrastructure and uses an Azure remote backend configured outside version
+control.
+
+## Design references
+
+- [README.md](README.md) — setup, supported behavior, and operational guide.
+- [PERFORMANCE.md](PERFORMANCE.md) — budgets, measurement method, and evidence.
+- [QUALITY_SCORE.md](QUALITY_SCORE.md) — quality targets versus verified checks.
+- [ROADMAP.md](ROADMAP.md) — completed, active, and planned work.
+- [SECURITY.md](SECURITY.md) — reporting process and repository controls.

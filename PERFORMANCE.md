@@ -1,66 +1,58 @@
-# PERFORMANCE.md: Performance Budget & Targets
+# Performance
 
-## Purpose
-Defines the performance standards and monitoring criteria for the NumberRush PWA.
+This document separates enforceable budgets from measurements. A target is not
+evidence that the target has been met. Generated workflow artifacts are the
+authoritative result for a particular commit.
 
-## Core Web Vitals (Targets)
+## Enforced budgets and thresholds
 
-The production Chromium check measures the lab equivalents available to a browser
-test. LCP and CLS are collected with `PerformanceObserver`; INP is collected from
-interaction event entries after opening and closing Settings. When headless
-Chromium exposes no LCP or FCP entry, the report labels the measured time at which
-the primary heading became visible as `heading-visible fallback`. FID is a
-field-only metric and is represented by the INP check for this repeatable lab gate.
+`pnpm run performance:budget` measures gzip sizes of the generated `dist/`
+files and fails when any limit is exceeded:
 
-- **Largest Contentful Paint (LCP)**: <= 1.2s
-- **Cumulative Layout Shift (CLS)**: <= 0.1
-- **Interaction to Next Paint (INP)**: <= 200ms
+- Total generated assets: 150 KiB gzip.
+- JavaScript assets under `dist/assets`: 100 KiB gzip.
+- CSS assets under `dist/assets`: 25 KiB gzip.
 
-## Asset Budgets
+The production Playwright check in `e2e/performance.spec.ts` also requires:
 
-The budget script gzips every generated `dist` file and reports the JavaScript
-and CSS under `dist/assets` separately. A check fails when any limit is exceeded:
+- LCP or its documented fallback: at most 1,200 ms.
+- CLS: at most 0.1.
+- INP proxy: at most 200 ms.
+- PWA manifest, service-worker control, cached app shell/manifest, and offline
+  reload checks: 100%.
+- The test's four-item accessibility audit: 100%.
 
-- **Total generated assets (gzipped)**: <= 150 KiB
-- **First-load JavaScript assets (gzipped)**: <= 100 KiB
-- **CSS assets (gzipped)**: <= 25 KiB
-- **PWA installability**: The manifest must be standalone, scoped to `/`, expose
-  192x192 and 512x512 icons, and serve both icon resources successfully.
-- **Image/asset cache**: The generated service worker must control the page and
-  cache the app shell (`/` or `/index.html`) and `/manifest.webmanifest` before
-  the offline reload check.
+These are repository gates, not a guarantee of performance on every device,
+browser, network, or assistive technology.
 
-## Checks and reports
+## How to measure
 
-`pnpm run performance:budget` performs the deterministic bundle check. The
-production browser check is in `e2e/performance.spec.ts`; it validates manifest
-installability fields, service-worker control, cached assets, offline reload,
-Core Web Vitals, and a 100-point accessibility audit covering document language,
-title, image alternatives, and names for interactive controls.
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+pnpm run performance:budget
+pnpm exec playwright install chromium
+PERFORMANCE_E2E=1 PERFORMANCE_RESULTS_DIR=performance-results \
+  pnpm exec playwright test --project=desktop-chromium
+```
 
-`.github/workflows/performance.yml` runs on every pull request, weekly, and by
-manual dispatch. It builds the production preview, runs the budget and browser
-checks, and retains `bundle-report.json` and `browser-performance.json` for 14
-days. It also generates `performance-results/PERFORMANCE.md`, a Markdown summary
-containing the actual measured values, test date, commit, Node version, and
-browser for that run.
+The scheduled `.github/workflows/performance.yml` runs the same production
+checks, generates JSON and Markdown reports, and retains them as the
+`performance-reports` artifact for 14 days. `PERFORMANCE_REPORT_PATH` controls
+the bundle JSON path; `PERFORMANCE_MARKDOWN_PATH` controls the Markdown path.
 
-The browser gate blocks remote web-font requests so repeated LCP measurements
-exercise the application bundle under the same local-only conditions.
+## Baseline evidence
 
-## Baseline measurements
+This fresh local run was completed on 2026-10-29 after installing the committed
+lockfile from the existing offline pnpm store. The JSON reports were generated
+under the ignored `performance-results/` directory and are not committed or
+retained as a workflow artifact by this checkout.
 
-The first local benchmark completed on 2026-10-29 after restoring the locked
-dependencies from the existing offline pnpm content store. The browser run used
-the stable fallback above because this headless Chromium did not expose an LCP
-entry; it still records a real navigation-relative render time rather than an
-invented LCP value.
+| Date | Environment | Measured result | Evidence status |
+| --- | --- | --- | --- |
+| 2026-10-29 | Node 24.14.0, pnpm 11.24.0, Chromium 156.0.8078.4 | 101.8 KiB total gzip; 87.2 KiB JS; 6.7 KiB CSS; 436 ms heading-visible fallback; CLS 0; INP 80 ms; PWA 100/100; accessibility 100/100 | Fresh local run; JSON generated but not committed |
 
-| Date | Environment | Bundle gzip | LCP / CLS / INP | PWA | Accessibility | Report |
-| --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-29 | Local checkout; Node 24.14.0 / pnpm 11.24.0; Chromium 156.0.8078.4 | 101.9 KiB total; 87.2 KiB JS; 6.8 KiB CSS | 529.7 ms (heading-visible fallback) / 0 / 120 ms | 100/100 | 100/100 | Generated JSON and Markdown are retained as the `performance-reports` artifact |
-
-The generated Markdown and JSON files are retained as the authoritative measured
-result for each workflow run. Thresholds remain explicit guardrails and are
-compared with the measured baseline above; future runs should be added here when
-the baseline materially changes.
+The heading-visible value is the documented fallback because this headless
+Chromium run did not expose an LCP entry. Do not describe this table as a live
+service-level guarantee. Future baseline rows should include the workflow
+artifact or linked JSON/Markdown reports from a reproducible run.
