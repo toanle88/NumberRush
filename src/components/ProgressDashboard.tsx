@@ -120,7 +120,7 @@ function ProgressDashboard({ metrics, recurringProgress, onBack }: ProgressDashb
       <div className="progress-breakdown-grid">
         <section className="progress-panel" aria-labelledby="operator-title">
           <h3 id="operator-title">By operator</h3>
-          <div className="progress-table-wrap">
+          <div className="progress-table-wrap" tabIndex={0}>
             <table>
               <caption className="sr-only">Performance by math operator</caption>
               <thead><tr><th scope="col">Operator</th><th scope="col">Accuracy</th><th scope="col">Speed</th></tr></thead>
@@ -136,7 +136,7 @@ return <tr key={operation}><th scope="row">{operationLabels[operation]}</th><td>
 
         <section className="progress-panel" aria-labelledby="difficulty-title">
           <h3 id="difficulty-title">By difficulty</h3>
-          <div className="progress-table-wrap">
+          <div className="progress-table-wrap" tabIndex={0}>
             <table>
               <caption className="sr-only">Performance by difficulty</caption>
               <thead><tr><th scope="col">Tier</th><th scope="col">Accuracy</th><th scope="col">Speed</th></tr></thead>

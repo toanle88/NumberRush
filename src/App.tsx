@@ -72,6 +72,8 @@ const [planetTransition, setPlanetTransition] = useState<PlanetTransition | null
 const previousLevelRef = useRef<number | null>(null)
 const gameAreaRef = useRef<HTMLDivElement>(null)
 const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
+const startButtonRef = useRef<HTMLButtonElement>(null)
+const restoreStartFocusRef = useRef(false)
 const previousStreakRef = useRef(0)
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
@@ -135,6 +137,10 @@ return () => window.clearTimeout(timer)
   useEffect(() => {
     if (status === 'playing') gameAreaRef.current?.focus()
 if (status === 'finished') resultsHeadingRef.current?.focus()
+    if (status === 'idle' && restoreStartFocusRef.current) {
+      restoreStartFocusRef.current = false
+      startButtonRef.current?.focus()
+    }
 }, [status])
   useEffect(() => {
     if (!hasInitializedBadgesRef.current) {
@@ -207,6 +213,7 @@ setInput('')
   const handleExit = useCallback(() => {
     setPlanetTransition(null)
 setFeedback(null)
+    restoreStartFocusRef.current = true
 resetGame()
 setInput('')
 }, [resetGame])
@@ -420,7 +427,7 @@ else if (timeLeft === 0) playFinishSound(preferences.sound)
               </section>
 
               <div className="primary-action">
-                <button type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
+                <button ref={startButtonRef} type="button" className="primary" onClick={() => handleStart('blitz')}>Start Blitz Rush! ⚡</button>
               </div>
 
               <details className="customize-round">

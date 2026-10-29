@@ -1131,8 +1131,12 @@
 
 .setting-item button.danger {
   background: rgba(239, 68, 68, 0.1);
-  color: var(--color-error);
+  color: #fca5a5;
   border-color: rgba(239, 68, 68, 0.2);
+}
+
+html[data-theme='light'] .setting-item button.danger {
+  color: var(--color-error);
 }
 
 .setting-item button.danger:hover {
@@ -1256,6 +1260,10 @@ html[data-high-contrast='true'] .answer-box {
 
 html[data-high-contrast='true'] .results-feedback {
   border-width: 3px;
+}
+
+html[data-high-contrast='true'] button.primary {
+  border: 2px solid var(--card-border);
 }
 
 .unlocked-toast {

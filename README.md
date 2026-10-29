@@ -88,6 +88,7 @@ keys as a JSON backup. Imports are size-limited and never execute imported data.
 | `pnpm preview` | Previews the production build locally. |
 | `pnpm test` | Runs unit tests with Vitest. |
 | `pnpm test:e2e` | Runs desktop and mobile-viewport browser tests with Playwright. |
+| `pnpm test:a11y` | Runs axe accessibility checks across supported views and states. |
 | `pnpm lint` | Runs ESLint to check for code quality issues. |
 | `pnpm format` | Fixes TypeScript and JavaScript formatting with ESLint. |
 | `pnpm format:check` | Checks formatting without changing files. |
