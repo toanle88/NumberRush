@@ -158,7 +158,7 @@ test('checks populated progress and preference-driven accessibility modes', asyn
   await expect(page.locator('html')).toHaveAttribute('data-high-contrast', 'true')
   await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true')
   await expect(page.getByRole('button', { name: /Start Blitz Rush/ })).toHaveCSS('border-width', '2px')
-  expect(await readAnimationDurationMs(page)).toBeLessThanOrEqual(0.01)
+  await expect.poll(() => readAnimationDurationMs(page)).toBeLessThanOrEqual(0.01)
   await assertAccessibility(page)
 
   await dialog.getByLabel('Reduce motion and animation').uncheck()
@@ -167,10 +167,11 @@ test('checks populated progress and preference-driven accessibility modes', asyn
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'false')
-  expect(await readAnimationDurationMs(page)).toBeLessThanOrEqual(0.01)
+  await expect.poll(() => readAnimationDurationMs(page)).toBeLessThanOrEqual(0.01)
   await assertAccessibility(page)
 
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.reload()
-  expect(await readAnimationDurationMs(page)).toBeGreaterThan(0.01)
+  await expect(page.getByRole('heading', { name: 'NumberRush' })).toBeVisible()
+  await expect.poll(() => readAnimationDurationMs(page)).toBeGreaterThan(0.01)
 })
