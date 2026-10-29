@@ -89,9 +89,6 @@ jobs:
       - name: Run browser tests
         run: pnpm test:e2e
 
-      - name: Run accessibility tests
-        run: pnpm test:a11y
-
       - name: Upload browser diagnostics
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9

@@ -1009,6 +1009,10 @@
   transform: rotate(45deg);
 }
 
+html[data-high-contrast='true'] .settings-btn {
+  opacity: 1;
+}
+
 .best-stats {
   display: flex;
   justify-content: center;

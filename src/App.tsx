@@ -714,7 +714,7 @@ return (
           </div>
         )}
 
-        <footer style={{ marginTop: '3rem', fontSize: '0.875rem', opacity: 0.6 }}>
+        <footer style={{ marginTop: '3rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
           <p>Made with ❤️ for simple learning</p>
         </footer>
       </div>
