@@ -12,6 +12,7 @@ dist
 dist-ssr
 test-results
 playwright-report
+performance-results
 *.local
 infra/.terraform/
 infra/backend.hcl
