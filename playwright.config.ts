@@ -1,7 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const performanceE2E = Boolean(process.env.PERFORMANCE_E2E)
+
 export default defineConfig({
   testDir: './e2e',
+  testMatch: performanceE2E ? '**/performance.spec.ts' : '**/*.spec.ts',
+  testIgnore: performanceE2E ? [] : '**/performance.spec.ts',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
@@ -24,7 +28,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev --host 127.0.0.1 --port 4173',
+    command: performanceE2E
+      ? 'pnpm preview --host 127.0.0.1 --port 4173'
+      : 'pnpm dev --host 127.0.0.1 --port 4173',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
