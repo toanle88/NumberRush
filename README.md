@@ -9,14 +9,15 @@ shell has been cached.
 
 [![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 [![Static Analysis](../../actions/workflows/quality.yml/badge.svg)](../../actions/workflows/quality.yml)
+[![Production deployment](../../actions/workflows/deploy.yml/badge.svg)](../../actions/workflows/deploy.yml)
 
 ## Project status
 
 NumberRush is in active development and is not currently a versioned public
-release (`package.json` reports `0.0.0`). The repository contains the source,
-tests, PWA configuration, and Azure deployment workflows. A stable hosted demo
-URL is not configured in this checkout; after starting the dev server, use the
-[local demo](http://localhost:5173).
+release. The version in the root `package.json` is the single release version
+source; the build injects it into the app and release checks require it to match
+the `vMAJOR.MINOR.PATCH` Git tag. A stable hosted demo URL is not configured in
+this checkout; after starting the dev server, use the [local demo](http://localhost:5173).
 
 ## Features
 
@@ -89,9 +90,6 @@ There are no application-specific `VITE_*` variables. The app works without a
 | --- | --- | --- | --- |
 | `CI` | Optional locally; set by CI | No | Makes Playwright fail on `.only`, use one worker, retry once, and use CI reporters. |
 | `PERFORMANCE_E2E` | Optional | No | When truthy, selects `e2e/performance.spec.ts` and starts `pnpm preview`. |
-| `PERFORMANCE_RESULTS_DIR` | Optional | No | Directory for browser/performance output; defaults to `performance-results`. |
-| `PERFORMANCE_REPORT_PATH` | Optional | No | JSON output path for `pnpm run performance:budget`. |
-| `PERFORMANCE_MARKDOWN_PATH` | Optional | No | Markdown output path for `scripts/performance-report.mjs`. |
 | `GITHUB_SHA` | Optional | No | Commit metadata in generated performance reports; GitHub supplies it in Actions. |
 
 Deployment and infrastructure credentials are GitHub secrets, not browser
@@ -202,6 +200,62 @@ remote backend, copy `infra/backend.hcl.example` to the ignored
 the Terraform commands in `.github/workflows/infrastructure.yml`. Do not run
 `terraform apply` without the required Azure identity, state backend, and
 production approval.
+
+## Release management
+
+NumberRush uses Semantic Versioning. Stable release tags are `vMAJOR.MINOR.PATCH`;
+prereleases use a SemVer suffix such as `v1.2.0-rc.1`. Build metadata is allowed
+by the release checker but is not used for deployment decisions. Application
+release versions are independent of browser storage schema versions.
+
+The repository maintainers own releases. The release owner prepares the version
+and changelog pull request, a second maintainer reviews it, and the maintainer
+with access to the protected `production` environment approves deployment. The
+release owner remains responsible for the smoke test and rollback decision.
+
+### Creating a release
+
+1. Add all user-visible changes to `CHANGELOG.md` under `[Unreleased]`.
+2. In a pull request, set the root `package.json` `version` to the intended
+   SemVer value and move the entries into `## [VERSION] - YYYY-MM-DD`.
+3. Run `pnpm release:check -- vVERSION`, `pnpm format:check`, `pnpm lint`,
+   `pnpm test -- --run`, and `pnpm build`. Merge only after CI is green.
+4. Confirm the merge commit has deployed through the `production` environment.
+   Open the environment URL shown on the Deploy production workflow, load the
+   app, open Settings, confirm the displayed version, and run one short round.
+   For a PWA update, reload once after the service worker activates and repeat
+   the version check in a fresh tab.
+5. From that deployed merge commit, create and push an annotated tag:
+
+   ```bash
+   git tag -a vVERSION -m "NumberRush vVERSION"
+   git push origin vVERSION
+   ```
+
+   The Release workflow validates the tag against `package.json` and the
+   changelog, builds the same source, creates a GitHub Release with changelog
+   notes, and attaches `numberrush-vVERSION.zip` plus its
+   `numberrush-vVERSION.zip.sha256` checksum.
+
+6. Confirm the Release workflow is green, the GitHub Release contains the zip
+   artifact, checksum, and notes, and the production environment still reports
+   the expected URL and successful deployment. Verify the downloaded archive
+   with `sha256sum -c numberrush-vVERSION.zip.sha256`. Record any failed
+   verification in the release discussion before announcing the release.
+
+### Rollback
+
+Do not move or overwrite a published tag. If production verification fails,
+the release owner marks the GitHub Release as needing rollback and the
+maintainer reverts the release commit on `main`. The normal CI and protected
+production deployment then redeploy the reverted commit. If the problem is
+limited to a deployment attempt, rerun the successful CI workflow for the
+known-good commit and verify the production environment URL again.
+
+Because the app uses a service worker with automatic updates, already-open PWA
+clients can retain an older shell briefly. A rollback is complete only after a
+fresh tab and a reload have fetched the expected version; do not change storage
+schema versions as part of an application release rollback.
 
 ## Troubleshooting and FAQ
 

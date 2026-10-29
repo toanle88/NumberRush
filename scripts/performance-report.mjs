@@ -1,9 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises'
 
-const reportDirectory = process.env.PERFORMANCE_RESULTS_DIR ?? 'performance-results'
+const reportDirectory = 'performance-results'
 const bundlePath = `${reportDirectory}/bundle-report.json`
 const browserPath = `${reportDirectory}/browser-performance.json`
-const outputPath = process.env.PERFORMANCE_MARKDOWN_PATH ?? `${reportDirectory}/PERFORMANCE.md`
+const outputPath = `${reportDirectory}/PERFORMANCE.md`
 
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'))
 const formatKiB = (bytes) => `${(bytes / 1024).toFixed(1)} KiB`

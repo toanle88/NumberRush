@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import SettingsModal from './SettingsModal'
 import type { AccessibilityPreferences } from '../utils/accessibility'
+import { APP_VERSION } from '../version'
 const preferences: AccessibilityPreferences = {
   theme: 'dark',
   highContrast: false,
@@ -31,6 +32,7 @@ expect(screen.getByLabelText('High contrast')).toBeInTheDocument()
 expect(screen.getByLabelText('Reduce motion and animation')).toBeInTheDocument()
 expect(screen.getByLabelText('Sound effects')).toBeInTheDocument()
 expect(screen.getByLabelText('Haptic feedback when supported')).toBeInTheDocument()
+expect(screen.getByText(`NumberRush version ${APP_VERSION}`)).toBeInTheDocument()
 })
   it('focuses the first field, closes on Escape, and restores focus', () => {
     const trigger = document.createElement('button')

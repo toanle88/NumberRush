@@ -6,7 +6,7 @@ const DIST_DIRECTORY = 'dist'
 const MAX_GZIPPED_BYTES = 150 * 1024
 const MAX_FIRST_LOAD_JS_BYTES = 100 * 1024
 const MAX_CSS_BYTES = 25 * 1024
-const REPORT_PATH = process.env.PERFORMANCE_REPORT_PATH
+const REPORT_PATH = 'performance-results/bundle-report.json'
 
 const collectFiles = async (directory) => {
   const entries = await readdir(directory, { withFileTypes: true })
@@ -56,11 +56,9 @@ console.log(`Gzipped dist assets: ${(totalGzippedBytes / 1024).toFixed(1)} KiB`)
 console.log(`JavaScript assets: ${(firstLoadJsBytes / 1024).toFixed(1)} KiB`)
 console.log(`CSS assets: ${(cssBytes / 1024).toFixed(1)} KiB`)
 
-if (REPORT_PATH) {
-  await mkdir(dirname(REPORT_PATH), { recursive: true })
-  await writeFile(REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`)
-  console.log(`Performance report: ${REPORT_PATH}`)
-}
+await mkdir(dirname(REPORT_PATH), { recursive: true })
+await writeFile(REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`)
+console.log(`Performance report: ${REPORT_PATH}`)
 
 if (totalGzippedBytes > MAX_GZIPPED_BYTES || firstLoadJsBytes > MAX_FIRST_LOAD_JS_BYTES || cssBytes > MAX_CSS_BYTES) {
   process.exitCode = 1
