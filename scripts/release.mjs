@@ -1,7 +1,35 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const semverPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
+const numericIdentifierPattern = /^(0|[1-9]\d*)$/
+const identifierPattern = /^[0-9A-Za-z-]+$/
+
+const isValidNumericIdentifier = value => numericIdentifierPattern.test(value)
+
+const isValidIdentifier = (value, { allowLeadingZero = false } = {}) => {
+  if (!identifierPattern.test(value)) return false
+  if (allowLeadingZero || !/^\d+$/.test(value)) return true
+  return isValidNumericIdentifier(value)
+}
+
+const isValidSemVer = version => {
+  const plusParts = version.split('+')
+  if (plusParts.length > 2) return false
+
+  const [coreAndPrerelease, build] = plusParts
+  const hyphenIndex = coreAndPrerelease.indexOf('-')
+  const core = hyphenIndex < 0 ? coreAndPrerelease : coreAndPrerelease.slice(0, hyphenIndex)
+  const prerelease = hyphenIndex < 0 ? null : coreAndPrerelease.slice(hyphenIndex + 1)
+  const coreParts = core.split('.')
+
+  if (coreParts.length !== 3 || !coreParts.every(isValidNumericIdentifier)) return false
+  if (prerelease !== null && (!prerelease || !prerelease.split('.').every(isValidIdentifier))) return false
+  if (build !== undefined && (!build || !build.split('.').every(value => isValidIdentifier(value, { allowLeadingZero: true })))) {
+    return false
+  }
+
+  return true
+}
 
 export const extractReleaseNotes = (source, version) => {
   const heading = `## [${version}]`
@@ -20,7 +48,7 @@ export const validateRelease = ({ packageVersion, tag, source }) => {
   const errors = []
   const version = tag?.replace(/^v/, '')
 
-  if (!tag?.startsWith('v') || !semverPattern.test(version ?? '')) {
+  if (!tag?.startsWith('v') || !isValidSemVer(version ?? '')) {
     errors.push('The release tag must use the vMAJOR.MINOR.PATCH SemVer format.')
   }
   if (packageVersion !== version) {
