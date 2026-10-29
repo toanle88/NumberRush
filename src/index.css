@@ -211,6 +211,13 @@ html[data-theme='light'] body.planet-1,
 html[data-theme='light'] body.planet-2,
 html[data-theme='light'] body.planet-3 {
   background: var(--bg-gradient) !important;
+  --color-primary: #4338ca;
+}
+
+html[data-theme='light'][data-high-contrast='true'] body.planet-1,
+html[data-theme='light'][data-high-contrast='true'] body.planet-2,
+html[data-theme='light'][data-high-contrast='true'] body.planet-3 {
+  --color-primary: #312e81;
 }
 
 .sr-only {
