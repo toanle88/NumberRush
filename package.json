@@ -14,7 +14,8 @@
     "performance:budget": "node scripts/performance-budget.mjs",
     "test": "vitest",
     "test:e2e": "playwright test",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "release:check": "node scripts/release.mjs --check"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

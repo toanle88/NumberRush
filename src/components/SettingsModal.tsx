@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { AccessibilityPreferences } from '../utils/accessibility'
+import { APP_VERSION } from '../version'
 interface SettingsModalProps {
   playerName: string
 initialTime: number
@@ -171,6 +172,10 @@ previouslyFocusedRef.current?.focus()
               />
             </label>
           )}
+        </div>
+        <div className="setting-item">
+          <h3>About</h3>
+          <p>NumberRush version {APP_VERSION}</p>
         </div>
         <div className="setting-item">
           <button
