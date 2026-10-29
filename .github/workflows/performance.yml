@@ -45,8 +45,6 @@ jobs:
         run: pnpm build
 
       - name: Check JavaScript and CSS budgets
-        env:
-          PERFORMANCE_REPORT_PATH: performance-results/bundle-report.json
         run: pnpm run performance:budget
 
       - name: Install Chromium
@@ -57,13 +55,10 @@ jobs:
         if: ${{ always() && steps.build.outcome == 'success' }}
         env:
           PERFORMANCE_E2E: '1'
-          PERFORMANCE_RESULTS_DIR: performance-results
         run: pnpm exec playwright test --project=desktop-chromium
 
       - name: Generate measured Markdown report
         if: always()
-        env:
-          PERFORMANCE_RESULTS_DIR: performance-results
         run: |
           if test -f performance-results/bundle-report.json && test -f performance-results/browser-performance.json; then
             node scripts/performance-report.mjs

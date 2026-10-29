@@ -32,14 +32,14 @@ pnpm install --frozen-lockfile
 pnpm build
 pnpm run performance:budget
 pnpm exec playwright install chromium
-PERFORMANCE_E2E=1 PERFORMANCE_RESULTS_DIR=performance-results \
+PERFORMANCE_E2E=1 \
   pnpm exec playwright test --project=desktop-chromium
 ```
 
 The scheduled `.github/workflows/performance.yml` runs the same production
 checks, generates JSON and Markdown reports, and retains them as the
-`performance-reports` artifact for 14 days. `PERFORMANCE_REPORT_PATH` controls
-the bundle JSON path; `PERFORMANCE_MARKDOWN_PATH` controls the Markdown path.
+`performance-reports` artifact for 14 days. Reports are written to the ignored
+`performance-results/` directory.
 
 ## Baseline evidence
 

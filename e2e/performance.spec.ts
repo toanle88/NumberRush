@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { test, expect } from '@playwright/test'
 
-const reportDirectory = process.env.PERFORMANCE_RESULTS_DIR ?? 'performance-results'
+const reportDirectory = 'performance-results'
 const reportPath = `${reportDirectory}/browser-performance.json`
 
 type BrowserPerformance = {

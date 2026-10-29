@@ -90,9 +90,6 @@ There are no application-specific `VITE_*` variables. The app works without a
 | --- | --- | --- | --- |
 | `CI` | Optional locally; set by CI | No | Makes Playwright fail on `.only`, use one worker, retry once, and use CI reporters. |
 | `PERFORMANCE_E2E` | Optional | No | When truthy, selects `e2e/performance.spec.ts` and starts `pnpm preview`. |
-| `PERFORMANCE_RESULTS_DIR` | Optional | No | Directory for browser/performance output; defaults to `performance-results`. |
-| `PERFORMANCE_REPORT_PATH` | Optional | No | JSON output path for `pnpm run performance:budget`. |
-| `PERFORMANCE_MARKDOWN_PATH` | Optional | No | Markdown output path for `scripts/performance-report.mjs`. |
 | `GITHUB_SHA` | Optional | No | Commit metadata in generated performance reports; GitHub supplies it in Actions. |
 
 Deployment and infrastructure credentials are GitHub secrets, not browser
