@@ -100,7 +100,7 @@ function ProgressDashboard({ metrics, recurringProgress, onBack }: ProgressDashb
         <button type="button" onClick={onBack}>Back to home</button>
       </div>
 
-      <div className="progress-metric-grid" aria-label="Overall progress metrics">
+      <div className="progress-metric-grid" role="group" aria-label="Overall progress metrics">
         <div className="progress-metric"><span>Accuracy</span><strong>{metrics.accuracy}%</strong><small>{metrics.questionsAttempted} attempted</small></div>
         <div className="progress-metric"><span>Average response</span><strong>{formatResponseTime(metrics.averageResponseTimeMs)}</strong><small>Across all answers</small></div>
         <div className="progress-metric"><span>Questions solved</span><strong>{metrics.questionsSolved}</strong><small>{metrics.totalSessions} {metrics.totalSessions === 1 ? 'session' : 'sessions'}</small></div>
@@ -120,7 +120,7 @@ function ProgressDashboard({ metrics, recurringProgress, onBack }: ProgressDashb
       <div className="progress-breakdown-grid">
         <section className="progress-panel" aria-labelledby="operator-title">
           <h3 id="operator-title">By operator</h3>
-          <div className="progress-table-wrap">
+            <div className="progress-table-wrap" role="region" aria-label="Performance by math operator" tabIndex={0}>
             <table>
               <caption className="sr-only">Performance by math operator</caption>
               <thead><tr><th scope="col">Operator</th><th scope="col">Accuracy</th><th scope="col">Speed</th></tr></thead>
@@ -136,7 +136,7 @@ return <tr key={operation}><th scope="row">{operationLabels[operation]}</th><td>
 
         <section className="progress-panel" aria-labelledby="difficulty-title">
           <h3 id="difficulty-title">By difficulty</h3>
-          <div className="progress-table-wrap">
+            <div className="progress-table-wrap" role="region" aria-label="Performance by difficulty" tabIndex={0}>
             <table>
               <caption className="sr-only">Performance by difficulty</caption>
               <thead><tr><th scope="col">Tier</th><th scope="col">Accuracy</th><th scope="col">Speed</th></tr></thead>

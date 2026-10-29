@@ -1009,6 +1009,10 @@
   transform: rotate(45deg);
 }
 
+html[data-high-contrast='true'] .settings-btn {
+  opacity: 1;
+}
+
 .best-stats {
   display: flex;
   justify-content: center;
@@ -1131,8 +1135,12 @@
 
 .setting-item button.danger {
   background: rgba(239, 68, 68, 0.1);
-  color: var(--color-error);
+  color: #fca5a5;
   border-color: rgba(239, 68, 68, 0.2);
+}
+
+html[data-theme='light'] .setting-item button.danger {
+  color: var(--color-error);
 }
 
 .setting-item button.danger:hover {
@@ -1251,11 +1259,15 @@ html[data-high-contrast='true'] input,
 html[data-high-contrast='true'] select,
 html[data-high-contrast='true'] .progress-container,
 html[data-high-contrast='true'] .answer-box {
-  border-width: 2px;
+  border: 2px solid var(--card-border) !important;
 }
 
 html[data-high-contrast='true'] .results-feedback {
   border-width: 3px;
+}
+
+html[data-high-contrast='true'] button.primary {
+  border: 2px solid var(--card-border);
 }
 
 .unlocked-toast {

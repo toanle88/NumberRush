@@ -242,7 +242,7 @@ if (!hasChanged) return
 writeRecurringProgress(refreshed)
 stateRef.current = { ...stateRef.current, recurringProgress: refreshed, challengeCompletedThisRound: false }
 setState(prev => ({ ...prev, recurringProgress: refreshed, challengeCompletedThisRound: false }))
-}, [refreshPersistenceStatus])
+}, [])
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') refreshRecurringProgress()
