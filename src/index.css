@@ -137,6 +137,7 @@ button:focus-visible {
 button.primary {
   background: linear-gradient(135deg, var(--color-primary), #4f46e5);
   border: none;
+  color: #fff;
 }
 
 button.primary:hover {
