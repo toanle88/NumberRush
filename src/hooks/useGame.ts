@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
+import { useCommittedGameStateRef, useInterval, usePageActivity } from './useInterval'
 import type { DifficultyTier, MathQuestion, Operation } from '../utils/mathLogic'
 import { DEFAULT_OPERATIONS, generateQuestion, getAdaptiveDifficulty, getDifficultyAtLeast, getDifficultyForLevel, getDifficultySettings, getQuestionExplanation, normalizeOperations } from '../utils/mathLogic'
 import { getLevelForScore } from '../utils/planetProgression'
@@ -198,9 +199,9 @@ export const useGame = (initialTime: number = 10) => {
       challengeCompletedThisRound: false,
     }
 })
-  const timerRef = useRef<number | null>(null)
-const stateRef = useRef<GameState>(state)
   const pendingSubmissionRef = useRef(false)
+  const timerRef = useRef<number | null>(null)
+  const stateRef = useCommittedGameStateRef(state, pendingSubmissionRef)
   type PersistenceTask = { key: string; write: () => boolean }
   const pendingPersistenceRef = useRef<Map<string, PersistenceTask>>(new Map())
   const [storageStatus, setStorageStatus] = useState<StorageStatus>(getStorageStatus)
@@ -209,10 +210,6 @@ const stateRef = useRef<GameState>(state)
     setStorageStatus(getStorageStatus())
     setHasPendingPersistence(pendingPersistenceRef.current.size > 0)
   }, [])
-  useEffect(() => {
-    stateRef.current = state
-    pendingSubmissionRef.current = false
-}, [state])
   const queuePersistence = useCallback((key: string, write: () => boolean) => {
     const task = { key, write }
     if (task.write()) {
@@ -222,16 +219,12 @@ const stateRef = useRef<GameState>(state)
     }
     refreshPersistenceStatus()
   }, [refreshPersistenceStatus])
-  useEffect(() => {
-    const retryPendingPersistence = () => {
-      pendingPersistenceRef.current.forEach((task, key) => {
-        if (task.write() && pendingPersistenceRef.current.get(key) === task) pendingPersistenceRef.current.delete(key)
-      })
-      refreshPersistenceStatus()
-    }
-    const interval = window.setInterval(retryPendingPersistence, 1_000)
-    return () => window.clearInterval(interval)
-  }, [refreshPersistenceStatus])
+  useInterval(() => {
+    pendingPersistenceRef.current.forEach((task, key) => {
+      if (task.write() && pendingPersistenceRef.current.get(key) === task) pendingPersistenceRef.current.delete(key)
+    })
+    refreshPersistenceStatus()
+  }, 1_000)
   const refreshRecurringProgress = useCallback(() => {
     const current = stateRef.current.recurringProgress
 const refreshed = normalizeRecurringProgress(current, new Date())
@@ -242,20 +235,8 @@ if (!hasChanged) return
 writeRecurringProgress(refreshed)
 stateRef.current = { ...stateRef.current, recurringProgress: refreshed, challengeCompletedThisRound: false }
 setState(prev => ({ ...prev, recurringProgress: refreshed, challengeCompletedThisRound: false }))
-}, [])
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') refreshRecurringProgress()
-}
-const interval = window.setInterval(refreshRecurringProgress, 60_000)
-window.addEventListener('focus', refreshRecurringProgress)
-document.addEventListener('visibilitychange', handleVisibilityChange)
-return () => {
-      window.clearInterval(interval)
-window.removeEventListener('focus', refreshRecurringProgress)
-document.removeEventListener('visibilitychange', handleVisibilityChange)
-}
-}, [refreshRecurringProgress])
+}, [stateRef])
+  usePageActivity(refreshRecurringProgress, 60_000)
   const getUnlockedBadges = useCallback((currentState: GameState) => {
     const newUnlocked = BADGES
       .filter(badge => !currentState.unlockedBadges.includes(badge.id))
@@ -385,7 +366,7 @@ const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(dif
     }
     stateRef.current = nextState
     setState(nextState)
-}, [initialTime])
+}, [initialTime, stateRef])
   const startTargetedPractice = useCallback(() => {
     pendingSubmissionRef.current = false
     const previousState = stateRef.current
@@ -422,7 +403,7 @@ const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(dif
       }
     stateRef.current = nextState
     setState(nextState)
-}, [])
+}, [stateRef])
   const submitAnswer = useCallback((playerAnswer: number): AnswerFeedback | null => {
     const submissionState = stateRef.current
 const question = submissionState.currentQuestion
@@ -535,7 +516,7 @@ return completedState
     if (hasFinishedTargetedPractice) persistFinishedGame(submissionState, completedState)
     else persistAnswerAggregates(submissionState, completedState)
     return feedback
-}, [finalizeGameState, getUnlockedBadges, persistAnswerAggregates, persistFinishedGame])
+}, [finalizeGameState, getUnlockedBadges, persistAnswerAggregates, persistFinishedGame, stateRef])
   const endGame = useCallback(() => {
     const previousState = stateRef.current
     if (previousState.status !== 'playing') return
@@ -544,14 +525,14 @@ return completedState
     setState(finishedState)
     persistFinishedGame(previousState, finishedState)
     if (timerRef.current) clearInterval(timerRef.current)
-}, [finalizeGameState, persistFinishedGame])
+}, [finalizeGameState, persistFinishedGame, stateRef])
   const resetGame = useCallback(() => {
     pendingSubmissionRef.current = false
     const nextState = { ...stateRef.current, status: 'idle' as const, timeLeft: stateRef.current.maxTime }
     stateRef.current = nextState
     setState(nextState)
 if (timerRef.current) clearInterval(timerRef.current)
-}, [])
+}, [stateRef])
   const resetStats = useCallback(() => {
     pendingSubmissionRef.current = false
     pendingPersistenceRef.current.clear()
@@ -576,32 +557,22 @@ if (timerRef.current) clearInterval(timerRef.current)
     }
     stateRef.current = nextState
     setState(nextState)
-}, [refreshPersistenceStatus])
-  useEffect(() => {
-    let interval: number | null = null
-    if (state.status === 'playing' && state.mode === 'blitz') {
-      interval = setInterval(() => {
-        const previousState = stateRef.current
-        if (previousState.status !== 'playing') return
-        if (previousState.timeLeft <= 1) {
-          const finishedState = finalizeGameState(previousState, { timeLeft: 0 })
-          stateRef.current = finishedState
-          setState(finishedState)
-          persistFinishedGame(previousState, finishedState)
-          if (timerRef.current) clearInterval(timerRef.current)
-          return
-        }
-        const nextState = { ...previousState, timeLeft: previousState.timeLeft - 1 }
-        stateRef.current = nextState
-        setState(nextState)
-      }, 1000)
-timerRef.current = interval
-}
-
-    return () => {
-      if (interval) clearInterval(interval)
-}
-}, [state.status, state.mode, finalizeGameState, persistFinishedGame])
+}, [refreshPersistenceStatus, stateRef])
+  useInterval(() => {
+    const previousState = stateRef.current
+    if (previousState.status !== 'playing') return
+    if (previousState.timeLeft <= 1) {
+      const finishedState = finalizeGameState(previousState, { timeLeft: 0 })
+      stateRef.current = finishedState
+      setState(finishedState)
+      persistFinishedGame(previousState, finishedState)
+      if (timerRef.current) clearInterval(timerRef.current)
+      return
+    }
+    const nextState = { ...previousState, timeLeft: previousState.timeLeft - 1 }
+    stateRef.current = nextState
+    setState(nextState)
+  }, state.status === 'playing' && state.mode === 'blitz' ? 1_000 : null, timerRef)
   return {
     ...state,
     progressMetrics: useMemo(() => calculateProgressMetrics(state.progressSessions), [state.progressSessions]) as ProgressMetrics,

@@ -23,10 +23,13 @@ component library.
 3. `src/hooks/useGame.ts` owns the round state machine, timer, scoring,
    adaptive difficulty, progression, badges, recurring challenges, and
    persistence retries.
-4. `src/utils/mathLogic.ts` generates valid questions for the selected
+4. Focused hooks in `src/hooks/` isolate browser lifecycle concerns: media
+   queries, document preferences, focus management, keyboard input, timers,
+   intervals, and streak/audio effects.
+5. `src/utils/mathLogic.ts` generates valid questions for the selected
    operations and difficulty. Other utility modules calculate progression,
    accessibility preferences, sound/haptic feedback, and progress metrics.
-5. `src/utils/storage.ts` reads/writes the versioned localStorage envelope and
+6. `src/utils/storage.ts` reads/writes the versioned localStorage envelope and
    handles migrations, unavailable storage, and progress backups.
 
 ## Key boundaries
@@ -59,8 +62,8 @@ control.
 
 ## Design references
 
-- [README.md](README.md) — setup, supported behavior, and operational guide.
+- [README.md](../README.md) — setup, supported behavior, and operational guide.
 - [PERFORMANCE.md](PERFORMANCE.md) — budgets, measurement method, and evidence.
 - [QUALITY_SCORE.md](QUALITY_SCORE.md) — quality targets versus verified checks.
 - [ROADMAP.md](ROADMAP.md) — completed, active, and planned work.
-- [SECURITY.md](SECURITY.md) — reporting process and repository controls.
+- [SECURITY.md](../SECURITY.md) — reporting process and repository controls.

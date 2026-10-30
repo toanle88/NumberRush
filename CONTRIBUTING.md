@@ -34,7 +34,7 @@ pnpm test:e2e
 ```
 
 For PWA/performance changes, also run the production performance commands in
-[PERFORMANCE.md](PERFORMANCE.md). Keep generated `dist/`, Playwright reports,
+[docs/PERFORMANCE.md](docs/PERFORMANCE.md). Keep generated `dist/`, Playwright reports,
 and performance output out of commits.
 
 ## Making changes

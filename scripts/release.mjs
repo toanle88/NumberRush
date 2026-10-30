@@ -61,7 +61,10 @@ export const validateRelease = ({ packageVersion, tag, source }) => {
   return { errors, notes: version ? extractReleaseNotes(source, version) : null }
 }
 
-const getTag = () => process.argv[3] ?? process.env.GITHUB_REF_NAME
+const getTag = () => process.argv
+  .slice(2)
+  .find(argument => argument !== '--check' && argument !== '--notes' && argument !== '--')
+  ?? process.env.GITHUB_REF_NAME
 
 const main = () => {
   const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))

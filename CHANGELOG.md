@@ -8,6 +8,12 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ## [Unreleased]
 
+### Changed
+
+- Release artifacts now include a SHA-256 checksum for maintainer verification.
+
+## [1.0.0] - 2026-10-30
+
 ### Added
 
 - Open-source setup, architecture, privacy, security, contribution, and
@@ -16,12 +22,10 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ### Changed
 
-- Release artifacts now include a SHA-256 checksum for maintainer verification.
+- Reorganized detailed project documentation under `docs/`.
+- Split browser lifecycle behavior into focused React hooks for media queries,
+  document preferences, focus management, keyboard input, timers, intervals,
+  and streak/audio effects.
 
-## [0.0.0] - 2026-10-29
-
-The initial unreleased project state. The project is not yet a public versioned
-release.
-
-[Unreleased]: https://github.com/toanle88/NumberRush/compare/v0.0.0...HEAD
-[0.0.0]: https://github.com/toanle88/NumberRush/releases/tag/v0.0.0
+[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.0

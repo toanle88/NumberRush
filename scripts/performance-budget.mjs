@@ -62,5 +62,5 @@ console.log(`Performance report: ${REPORT_PATH}`)
 
 if (totalGzippedBytes > MAX_GZIPPED_BYTES || firstLoadJsBytes > MAX_FIRST_LOAD_JS_BYTES || cssBytes > MAX_CSS_BYTES) {
   process.exitCode = 1
-  console.error('Performance budget exceeded. See PERFORMANCE.md for thresholds.')
+  console.error('Performance budget exceeded. See docs/PERFORMANCE.md for thresholds.')
 }

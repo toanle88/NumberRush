@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useGame, BADGES } from './hooks/useGame'
 import type { AnswerFeedback, GameMode } from './hooks/useGame'
 import type { DifficultyTier, Operation } from './utils/mathLogic'
@@ -10,16 +10,18 @@ import ProgressDashboard from './components/ProgressDashboard'
 import SettingsModal from './components/SettingsModal'
 import { getPlanet, PLANETS } from './utils/planetProgression'
 import { getChallengeProgress } from './utils/dailyChallenges'
-import { playCorrectSound, playIncorrectSound, playFinishSound, playTickSound, playCelebrationSound } from './utils/soundEffects'
-import { getSystemReducedMotionPreference, readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility'
+import { playCorrectSound, playIncorrectSound } from './utils/soundEffects'
+import { readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility'
 import type { AccessibilityPreferences } from './utils/accessibility'
 import { exportProgress, getStorageStatus, importProgress, readStorage, readStoredNonNegativeInteger, writeStorage } from './utils/storage'
 import { STORAGE_KEYS } from './utils/storageKeys'
-import confetti from 'canvas-confetti'
+import { useMediaQuery } from './hooks/useMediaQuery'
+import { useDocumentPreferences } from './hooks/useDocumentPreferences'
+import { useGameFocus } from './hooks/useFocusTrap'
+import { useKeyboardGameInput } from './hooks/useKeyboardGameInput'
+import { useBadgeUnlockNotice, useFeedbackExpiry, usePlanetTransition } from './hooks/useTimeout'
+import { useBlitzSounds, useStreakCelebration } from './hooks/useStreakCelebration'
 import './App.css'
-interface PlanetTransition {
-  from: number
-to: number}
 
 type RoundPreset = 'quick' | 'challenge' | 'custom'
 const QUICK_START_OPERATIONS: Operation[] = ['addition', 'subtraction']
@@ -28,14 +30,6 @@ const DIFFICULTY_HELP: Record<DifficultyTier, string> = {
   easy: '15 second starting timer with smaller number ranges',
   medium: '10 second starting timer with wider number ranges',
   hard: '7 second starting timer with challenging number ranges',
-}
-const FEEDBACK_DURATION_MS = 1400
-const safeConfetti = (options: Parameters<typeof confetti>[0]): void => {
-  try {
-    confetti(options)
-  } catch {
-    // Celebrations are optional and must not interrupt gameplay.
-  }
 }
 function App() {
   const [view, setView] = useState<'home' | 'progress'>('home')
@@ -47,18 +41,15 @@ const [playerName, setPlayerName] = useState(() =>
   )
 const [settingsOpen, setSettingsOpen] = useState(false)
 const [preferences, setPreferences] = useState<AccessibilityPreferences>(readAccessibilityPreferences)
-const [systemReducedMotion, setSystemReducedMotion] = useState(getSystemReducedMotionPreference)
+const systemReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 const closeSettings = useCallback(() => setSettingsOpen(false), [])
 const [isAdvanced, setIsAdvanced] = useState(false)
 const [roundPreset, setRoundPreset] = useState<RoundPreset>('quick')
 const [moreOptionsOpen, setMoreOptionsOpen] = useState(false)
 const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyTier | undefined>()
 const [selectedOperations, setSelectedOperations] = useState<Operation[]>(QUICK_START_OPERATIONS)
-const [lastUnlockedBadge, setLastUnlockedBadge] = useState<string | null>(null)
 const [settingsPersistenceFailed, setSettingsPersistenceFailed] = useState(false)
 const [dataMessage, setDataMessage] = useState<string | null>(null)
-const previousBadgeCountRef = useRef(0)
-const hasInitializedBadgesRef = useRef(false)
   const {
     status, score, timeLeft, streak, mode, currentQuestion,
     highScore, bestStreak, unlockedBadges, currentLevel, difficulty, maxTime, playedLevels, missedQuestions,
@@ -67,101 +58,15 @@ const hasInitializedBadgesRef = useRef(false)
   const [input, setInput] = useState('')
 const [feedback, setFeedback] = useState<AnswerFeedback | null>(null)
 const [selectedLevel, setSelectedLevel] = useState(1)
-const [shakeClass, setShakeClass] = useState('')
-const [planetTransition, setPlanetTransition] = useState<PlanetTransition | null>(null)
-const previousLevelRef = useRef<number | null>(null)
 const gameAreaRef = useRef<HTMLDivElement>(null)
 const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
 const startButtonRef = useRef<HTMLButtonElement>(null)
 const restoreStartFocusRef = useRef(false)
-const previousStreakRef = useRef(0)
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-    let mediaQuery: MediaQueryList
-    try {
-      mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-    } catch {
-      return
-    }
-const handleChange = (event: MediaQueryListEvent) => setSystemReducedMotion(event.matches)
-    try {
-      if (typeof mediaQuery.addEventListener === 'function') {
-        mediaQuery.addEventListener('change', handleChange)
-        return () => {
-          try {
-            mediaQuery.removeEventListener('change', handleChange)
-          } catch {
-            // Reduced-motion listeners are optional.
-          }
-        }
-      }
-      if (typeof mediaQuery.addListener === 'function') {
-        mediaQuery.addListener(handleChange)
-        return () => {
-          try {
-            mediaQuery.removeListener(handleChange)
-          } catch {
-            // Reduced-motion listeners are optional.
-          }
-        }
-      }
-    } catch {
-      // Some embedded browsers expose a matchMedia object whose listeners throw.
-    }
-  }, [])
-  useEffect(() => {
-    const level = status === 'playing' ? currentLevel : selectedLevel
-document.body.className = `planet-${level}`
-}, [selectedLevel, status, currentLevel])
-  useEffect(() => {
-    document.documentElement.dataset.theme = preferences.theme
-document.documentElement.dataset.highContrast = preferences.highContrast ? 'true' : 'false'
-document.documentElement.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false'
-}, [preferences])
-  useEffect(() => {
-    if (status !== 'playing') {
-      previousLevelRef.current = null
-return
-}
-
-    const previousLevel = previousLevelRef.current
-if (previousLevel !== null && previousLevel !== currentLevel) {
-      setPlanetTransition({ from: previousLevel, to: currentLevel })
-const timer = window.setTimeout(() => setPlanetTransition(null), 4000)
-previousLevelRef.current = currentLevel
-return () => window.clearTimeout(timer)
-}
-
-    previousLevelRef.current = currentLevel
-}, [status, currentLevel])
-  useEffect(() => {
-    if (status === 'playing') gameAreaRef.current?.focus()
-if (status === 'finished') resultsHeadingRef.current?.focus()
-    if (status === 'idle' && restoreStartFocusRef.current) {
-      restoreStartFocusRef.current = false
-      startButtonRef.current?.focus()
-    }
-}, [status])
-  useEffect(() => {
-    if (!hasInitializedBadgesRef.current) {
-      previousBadgeCountRef.current = unlockedBadges.length
-hasInitializedBadgesRef.current = true
-return
-}
-
-    if (unlockedBadges.length > previousBadgeCountRef.current) {
-      const latest = unlockedBadges[unlockedBadges.length - 1]
-const showTimer = setTimeout(() => setLastUnlockedBadge(latest), 0)
-const clearTimer = setTimeout(() => setLastUnlockedBadge(null), 4000)
-previousBadgeCountRef.current = unlockedBadges.length
-return () => {
-        clearTimeout(showTimer)
-clearTimeout(clearTimer)
-}
-}
-
-    previousBadgeCountRef.current = unlockedBadges.length
-}, [unlockedBadges])
+  const { planetTransition, setPlanetTransition } = usePlanetTransition(status, currentLevel)
+  const currentPlanetLevel = status === 'playing' ? currentLevel : selectedLevel
+  useDocumentPreferences(currentPlanetLevel, preferences)
+  useGameFocus(status, gameAreaRef, resultsHeadingRef, startButtonRef, restoreStartFocusRef)
+  const lastUnlockedBadge = useBadgeUnlockNotice(unlockedBadges)
   const handleStart = (m: GameMode) => {
     setView('home')
 setPlanetTransition(null)
@@ -216,13 +121,13 @@ setFeedback(null)
     restoreStartFocusRef.current = true
 resetGame()
 setInput('')
-}, [resetGame])
+}, [resetGame, setPlanetTransition])
   const handleTargetedPractice = useCallback(() => {
     setPlanetTransition(null)
 setFeedback(null)
 startTargetedPractice()
 setInput('')
-}, [startTargetedPractice])
+}, [setPlanetTransition, startTargetedPractice])
   const updateName = (val: string) => {
     setPlayerName(val)
     setSettingsPersistenceFailed(!writeStorage(STORAGE_KEYS.NAME, val))
@@ -263,95 +168,11 @@ setInput('')
     setPreferences(nextPreferences)
     setSettingsPersistenceFailed(!saveAccessibilityPreferences(nextPreferences))
 }
-  useEffect(() => {
-    if (!feedback || status !== 'playing') return
-const timer = setTimeout(() => setFeedback(null), FEEDBACK_DURATION_MS)
-return () => clearTimeout(timer)
-}, [feedback, status])
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (status !== 'playing' || settingsOpen) return
-if (e.target instanceof Element && e.target.closest('button, input, select, textarea, a, summary, [role="button"], [contenteditable="true"]')) return
-if ((e.key >= '0' && e.key <= '9') || (e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9')) {
-        e.preventDefault()
-handleInput(e.key)
-} else if (e.key === 'Enter' || e.key === 'NumpadEnter') {
-        e.preventDefault()
-handleSubmit()
-} else if (e.key === 'Backspace') handleClear()
-else if (e.key === 'Escape') handleExit()
-}
-window.addEventListener('keydown', handleKeyDown)
-return () => window.removeEventListener('keydown', handleKeyDown)
-}, [status, handleInput, handleSubmit, handleClear, handleExit, settingsOpen])
-  useEffect(() => {
-    const previousStreak = previousStreakRef.current
-previousStreakRef.current = streak
-    if (streak <= 0 || streak <= previousStreak || streak % 10 !== 0) return
-    playCelebrationSound(preferences.sound)
-if (preferences.reducedMotion || systemReducedMotion) return
-    let shake = 'shake-small'
-let confettiInterval: number | null = null
-    if (streak >= 30) {
-      shake = 'shake-hard'
-const duration = 1500
-const animationEnd = Date.now() + duration
-const random = (min: number, max: number) => Math.random() * (max - min) + min
-      confettiInterval = window.setInterval(() => {
-        const tLeft = animationEnd - Date.now()
-if (tLeft <= 0) {
-          window.clearInterval(confettiInterval!)
-return
-}
-        const pCount = 40
-        safeConfetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } })
-safeConfetti({ particleCount: pCount, startVelocity: 30, spread: 360, ticks: 60, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } })
-}, 250)
-} else if (streak >= 20) {
-      shake = 'shake-medium'
-safeConfetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } })
-} else {
-safeConfetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#a855f7', '#ec4899'] })
-}
-
-    let clearShakeTimer: number | null = null
-let animationFrame: number | null = null
-let usesAnimationFrame = false
-try {
-      if (typeof window.requestAnimationFrame === 'function') {
-        usesAnimationFrame = true
-        animationFrame = window.requestAnimationFrame(() => {
-          setShakeClass(shake)
-          clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000)
-        })
-      } else {
-        animationFrame = window.setTimeout(() => {
-          setShakeClass(shake)
-          clearShakeTimer = window.setTimeout(() => setShakeClass(''), 1000)
-        }, 0)
-      }
-    } catch {
-      // Animation is optional; the game remains usable without it.
-    }
-    return () => {
-      if (animationFrame !== null) {
-        try {
-          if (usesAnimationFrame && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(animationFrame)
-          else window.clearTimeout(animationFrame)
-        } catch {
-          // Animation cleanup is optional.
-        }
-      }
-if (clearShakeTimer !== null) window.clearTimeout(clearShakeTimer)
-if (confettiInterval !== null) window.clearInterval(confettiInterval)
-}
-}, [preferences.reducedMotion, preferences.sound, streak, systemReducedMotion])
-  useEffect(() => {
-    if (status === 'playing' && mode === 'blitz') {
-      if (timeLeft <= 3 && timeLeft > 0) playTickSound(preferences.sound)
-else if (timeLeft === 0) playFinishSound(preferences.sound)
-}
-  }, [timeLeft, status, mode, preferences.sound])
+  const clearFeedback = useCallback(() => setFeedback(null), [])
+  useFeedbackExpiry(feedback, status, clearFeedback)
+  useKeyboardGameInput(status, settingsOpen, { handleInput, handleSubmit, handleClear, handleExit })
+  const shakeClass = useStreakCelebration(streak, preferences.sound, preferences.reducedMotion, systemReducedMotion)
+  useBlitzSounds(timeLeft, status, mode, preferences.sound)
   const displayedDifficulty = getDifficultyAtLeast(
     selectedDifficulty || getDifficultyForLevel(selectedLevel),
     getDifficultyForLevel(selectedLevel),
