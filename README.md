@@ -225,7 +225,12 @@ release owner remains responsible for the smoke test and rollback decision.
    app, open Settings, confirm the displayed version, and run one short round.
    For a PWA update, reload once after the service worker activates and repeat
    the version check in a fresh tab.
-5. From that deployed merge commit, create and push an annotated tag:
+5. From that deployed merge commit, open the **Release** workflow under the
+   GitHub Actions tab, choose **Run workflow**, select `main`, and enter the
+   version without the `v` prefix (for example, `1.0.0`). The workflow runs
+   the release checks, creates and pushes the annotated `vVERSION` tag, and
+   publishes the GitHub Release. The tag-push trigger remains available for
+   maintainers who prefer to create the tag locally:
 
    ```bash
    git tag -a vVERSION -m "NumberRush vVERSION"
