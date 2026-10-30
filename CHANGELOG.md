@@ -21,6 +21,8 @@ No unreleased changes.
   heading while preserving focus-based announcements.
 - Remove application inline styles so the strict production CSP can apply
   without blocking UI updates.
+- Render confetti on the main thread so celebrations do not require a
+  blob-created worker under the strict worker CSP.
 
 ## [1.0.0] - 2026-10-30
 

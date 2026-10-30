@@ -3,9 +3,11 @@ import confetti from 'canvas-confetti'
 import { playCelebrationSound, playFinishSound, playTickSound } from '../utils/soundEffects'
 import type { GameMode, GameStatus } from './useGame'
 
+const confettiWithoutWorker = confetti.create(undefined, { resize: true, useWorker: false })
+
 const safeConfetti = (options: Parameters<typeof confetti>[0]): void => {
   try {
-    confetti(options)
+    confettiWithoutWorker(options)
   } catch {
     // Celebrations are optional and must not interrupt gameplay.
   }
