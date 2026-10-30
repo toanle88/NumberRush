@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
 import type { AnswerFeedback, GameStatus } from './useGame'
-
-export interface PlanetTransition {
-  from: number
-  to: number
-}
 
 export const useTimeout = (callback: () => void, delay: number | null): void => {
   const callbackRef = useRef(callback)
@@ -17,32 +11,6 @@ export const useTimeout = (callback: () => void, delay: number | null): void => 
     const timer = window.setTimeout(() => callbackRef.current(), delay)
     return () => window.clearTimeout(timer)
   }, [delay])
-}
-
-export const usePlanetTransition = (
-  status: GameStatus,
-  currentLevel: number,
-): {
-  planetTransition: PlanetTransition | null
-  setPlanetTransition: Dispatch<SetStateAction<PlanetTransition | null>>
-} => {
-  const [planetTransition, setPlanetTransition] = useState<PlanetTransition | null>(null)
-  const previousLevelRef = useRef<number | null>(null)
-  useEffect(() => {
-    if (status !== 'playing') {
-      previousLevelRef.current = null
-      return
-    }
-    const previousLevel = previousLevelRef.current
-    if (previousLevel !== null && previousLevel !== currentLevel) {
-      setPlanetTransition({ from: previousLevel, to: currentLevel })
-      previousLevelRef.current = currentLevel
-      return
-    }
-    previousLevelRef.current = currentLevel
-  }, [currentLevel, status])
-  useTimeout(() => setPlanetTransition(null), planetTransition === null ? null : 4000)
-  return { planetTransition, setPlanetTransition }
 }
 
 export const useFeedbackExpiry = (

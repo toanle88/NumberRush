@@ -16,7 +16,7 @@ import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDocumentPreferences } from './hooks/useDocumentPreferences'
 import { useGameFocus } from './hooks/useFocusTrap'
 import { useKeyboardGameInput } from './hooks/useKeyboardGameInput'
-import { useBadgeUnlockNotice, useFeedbackExpiry, usePlanetTransition } from './hooks/useTimeout'
+import { useBadgeUnlockNotice, useFeedbackExpiry } from './hooks/useTimeout'
 import { useBlitzSounds, useStreakCelebration } from './hooks/useStreakCelebration'
 import { usePlayerSettings } from './hooks/usePlayerSettings'
 import { useProgressTransfer } from './hooks/useProgressTransfer'
@@ -59,7 +59,6 @@ const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
 const startButtonRef = useRef<HTMLButtonElement>(null)
 const settingsButtonRef = useRef<HTMLButtonElement>(null)
 const restoreStartFocusRef = useRef(false)
-  const { planetTransition, setPlanetTransition } = usePlanetTransition(status, currentLevel)
   const currentPlanetLevel = status === 'playing' ? currentLevel : selectedLevel
   useDocumentPreferences(currentPlanetLevel, preferences, locale)
   useGameFocus(status, gameAreaRef, resultsHeadingRef, startButtonRef, restoreStartFocusRef)
@@ -72,7 +71,6 @@ const restoreStartFocusRef = useRef(false)
   const closeSettings = useCallback(() => setView(settingsReturnViewRef.current), [])
   const handleStart = (m: GameMode) => {
     setView('home')
-setPlanetTransition(null)
 setFeedback(null)
 const hasDifficultyOverride = selectedDifficulty !== undefined
   const timerOverride = hasStoredTimer ? initialTime : undefined
@@ -119,18 +117,16 @@ triggerHaptic(preferences.haptics, answerFeedback.isCorrect ? 20 : [50, 50, 50])
 setInput('')
 }, [input, preferences.haptics, preferences.sound, submitAnswer])
   const handleExit = useCallback(() => {
-    setPlanetTransition(null)
 setFeedback(null)
     restoreStartFocusRef.current = true
 resetGame()
 setInput('')
-}, [resetGame, setPlanetTransition])
+  }, [resetGame])
   const handleTargetedPractice = useCallback(() => {
-    setPlanetTransition(null)
 setFeedback(null)
 startTargetedPractice()
 setInput('')
-}, [setPlanetTransition, startTargetedPractice])
+  }, [startTargetedPractice])
   const clearFeedback = useCallback(() => setFeedback(null), [])
   useFeedbackExpiry(feedback, status, clearFeedback)
   useKeyboardGameInput(status, view === 'settings', { handleInput, handleSubmit, handleClear, handleExit })
@@ -157,14 +153,14 @@ setInput('')
             <button ref={settingsButtonRef} type="button" className="settings-btn" onClick={openSettings} aria-label={translate('openSettings')}>⚙️</button>
           </div>
           {status === 'idle' && (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginBottom: '2rem' }}>
+            <p className="app-greeting">
               {translate('appGreeting', { name: playerName })}
             </p>
           )}
         </header>
 
         {persistenceMessage && (
-          <div role="status" aria-live="polite" style={{ margin: '0 auto 1rem', maxWidth: '42rem', color: 'var(--text-secondary)' }}>
+          <div className="persistence-message" role="status" aria-live="polite">
             {persistenceMessage}
           </div>
         )}
@@ -208,16 +204,15 @@ setInput('')
                   <span className="challenge-icon" aria-hidden="true">🎯</span>
                 </div>
                 <div className="challenge-progress-line">
-                  <div
+                  <progress
                     className="challenge-progress-bar"
-                    role="progressbar"
                     aria-label={translate('challengeProgress', { title: translate(getChallengeTranslationKeys(dailyChallenge.id)[0]) })}
                     aria-valuemin={0}
                     aria-valuemax={dailyChallenge.target}
                     aria-valuenow={getChallengeProgress(dailyChallenge, recurringProgress)}
-                  >
-                    <span style={{ width: `${(getChallengeProgress(dailyChallenge, recurringProgress) / dailyChallenge.target) * 100}%` }} />
-                  </div>
+                    value={getChallengeProgress(dailyChallenge, recurringProgress)}
+                    max={dailyChallenge.target}
+                  />
                   <strong>{getChallengeProgress(dailyChallenge, recurringProgress)}/{dailyChallenge.target}</strong>
                 </div>
                 <p className="challenge-status" role="status">
@@ -379,14 +374,6 @@ setSelectedDifficulty(tier)
               tabIndex={-1}
             >
               <button type="button" className="exit-btn" onClick={handleExit} title={translate('exitGame')} aria-label={translate('exitGame')}>✕</button>
-              {planetTransition && (
-                <div className="planet-transition" role="status" aria-live="polite">
-                  <span>{getPlanet(planetTransition.from).icon} {translate(getPlanetTranslationKeys(planetTransition.from)[0])}</span>
-                  <span aria-hidden="true">→</span>
-                  <strong>{translate('nowEntering', { planet: `${getPlanet(planetTransition.to).icon} ${translate(getPlanetTranslationKeys(planetTransition.to)[0])}` })}</strong>
-                  <small>{translate('reachedPoints', { difficulty: translate(difficulty), score })}</small>
-                </div>
-              )}
               <div className="board-wrapper">
                 <GameBoard
                   question={currentQuestion}
@@ -426,7 +413,7 @@ setSelectedDifficulty(tier)
 
           {status === 'finished' && roundSummary && (
             <div className="results-screen animate-pop">
-              <h2 ref={resultsHeadingRef} tabIndex={-1}>{mode === 'blitz' ? translate('timesUp') : isTargetedPractice ? translate('missedReviewed') : translate('roundComplete')}</h2>
+              <h2 ref={resultsHeadingRef} className="results-heading" tabIndex={-1}>{mode === 'blitz' ? translate('timesUp') : isTargetedPractice ? translate('missedReviewed') : translate('roundComplete')}</h2>
               {challengeCompletedThisRound && (
                 <div className="challenge-complete-banner" role="status">
                   <strong>{translate('dailyChallengeComplete')}</strong>
@@ -490,17 +477,17 @@ return (
 
         {lastUnlockedBadge && (
           <div className="unlocked-toast">
-            <span style={{ fontSize: '2rem' }}>{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
+            <span className="badge-toast-icon">{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
             <div>
               <strong>{translate('badgeUnlocked')}</strong>
-              <p style={{ fontSize: '0.8rem', margin: 0 }}>{(() => {
+              <p className="badge-toast-name">{(() => {
  const badge = BADGES.find(b => b.id === lastUnlockedBadge); return badge ? translate(getBadgeTranslationKeys(badge.id)[0]) : ''
 })()}</p>
             </div>
           </div>
         )}
 
-        <footer style={{ marginTop: '3rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+        <footer className="app-footer">
           <p>{translate('madeWithLove')}</p>
         </footer>
       </div>

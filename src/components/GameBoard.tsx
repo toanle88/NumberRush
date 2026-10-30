@@ -29,7 +29,6 @@ const GameBoard = memo(({
   difficulty = 'easy',
   translate = createTranslator('en'),
 }: GameBoardProps) => {
-  const progress = (timeLeft / maxTime) * 100
 const planet = getPlanet(level)
 const [planetNameKey] = getPlanetTranslationKeys(level)
 const spokenOperation = (operation: MathQuestion['operation']) => {
@@ -43,18 +42,15 @@ const questionText = `${question.operandA} ${spokenOperation(question.operation)
     <div className="board-content">
       {showTimer && (
         <div className="progress-container">
-          <div
-            className="progress-bar"
-            role="progressbar"
+          <progress
+            className={`progress-bar ${timeLeft <= 3 ? 'progress-bar-urgent' : ''}`}
             aria-label={translate('timeRemaining')}
             aria-valuemin={0}
             aria-valuemax={maxTime}
             aria-valuenow={timeLeft}
             aria-valuetext={translate('secondsRemaining', { seconds: timeLeft, hurry: timeLeft <= 3 ? translate('hurry') : '' })}
-            style={{
-              width: `${Math.max(0, progress)}%`,
-              backgroundColor: timeLeft <= 3 ? 'var(--color-error)' : 'var(--color-primary)',
-            }}
+            value={timeLeft}
+            max={maxTime}
           />
         </div>
       )}
@@ -73,7 +69,7 @@ const questionText = `${question.operandA} ${spokenOperation(question.operation)
           <span className="value">{score}</span>
         </div>
         {streak > 0 && (
-          <div className="stat-item" style={{ color: 'var(--color-secondary)' }}>
+          <div className="stat-item streak-stat">
             <span className="label">{translate('streak')}</span>
             <span className="value">🔥 {streak}</span>
           </div>
@@ -89,19 +85,19 @@ const questionText = `${question.operandA} ${spokenOperation(question.operation)
       <div className="question-display" role="group" aria-label={translate('currentAnswer', { question: questionText, answer: currentInput || translate('answerNotEntered') })}>
         <span className="sr-only" role="status" aria-live="polite">{translate('currentAnswer', { question: questionText, answer: currentInput || translate('answerNotEntered') })}</span>
         <span>{question.operandA}</span>
-        <span style={{ color: 'var(--color-primary)' }}>
+        <span className="operation-symbol">
           {formatOperation(question.operation)}
         </span>
         <span>{question.operandB}</span>
         {question.operandC !== undefined && (
           <>
-            <span style={{ color: 'var(--color-primary)' }}>
+            <span className="operation-symbol">
               {formatOperation(question.operation2!)}
             </span>
             <span>{question.operandC}</span>
           </>
         )}
-        <span style={{ color: 'var(--text-secondary)' }}>=</span>
+        <span className="equals-symbol">=</span>
         <div className="answer-box">
           {currentInput || '?'}
         </div>

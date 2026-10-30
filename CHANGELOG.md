@@ -10,11 +10,26 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 No unreleased changes.
 
+## [1.0.1] - 2026-10-30
+
+### Fixed
+
+- Add consistent spacing between progress metric cards and recurring goals.
+- Remove planet-transition notifications so the answer controls never move
+  during a round.
+- Remove the browser focus outline from the programmatically focused results
+  heading while preserving focus-based announcements.
+- Remove application inline styles so the strict production CSP can apply
+  without blocking UI updates.
+- Render confetti on the main thread so celebrations do not require a
+  blob-created worker under the strict worker CSP.
+
 ## [1.0.0] - 2026-10-30
 
 ### Added
 
 - Initial stable release of NumberRush.
 
-[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.1
 [1.0.0]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.0
