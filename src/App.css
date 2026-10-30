@@ -587,7 +587,7 @@
 .planet-indicator {
   position: absolute;
   top: 0.85rem;
-  left: 4rem;
+  left: 1rem;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -906,7 +906,7 @@
   }
 
   .planet-indicator {
-    left: 3.5rem;
+    left: 1rem;
     font-size: 0.9rem;
   }
 
