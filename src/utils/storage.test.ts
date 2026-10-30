@@ -4,6 +4,7 @@ import {
   exportProgress,
   getStorageStatus,
   importProgress,
+  readStoredBoolean,
   removeStorage,
   readStoredJson,
   writeStorage,
@@ -13,6 +14,14 @@ import { STORAGE_KEYS, STORAGE_SCHEMA_VERSION } from './storageKeys'
 
 describe('versioned storage', () => {
   beforeEach(() => localStorage.clear())
+
+  it('reads persisted boolean settings defensively', () => {
+    expect(readStoredBoolean('setting', true)).toBe(true)
+    localStorage.setItem('setting', 'false')
+    expect(readStoredBoolean('setting', true)).toBe(false)
+    localStorage.setItem('setting', 'not-a-boolean')
+    expect(readStoredBoolean('setting', false)).toBe(false)
+  })
 
   it('reads legacy unwrapped records and migrates them idempotently', () => {
     localStorage.setItem(STORAGE_KEYS.BADGES, JSON.stringify(['first_blastoff']))

@@ -72,6 +72,7 @@ isAdvanced: boolean
 operations: Operation[]
 difficulty: DifficultyTier
 adaptiveDifficulty: boolean
+  autoIncreaseDifficulty: boolean
 timerOverride: number | null
 useDifficultyTimer: boolean
 currentQuestion: MathQuestion | null
@@ -168,6 +169,7 @@ export const useGame = (initialTime: number = 10) => {
       operations: [...DEFAULT_OPERATIONS],
       difficulty: 'easy',
       adaptiveDifficulty: false,
+      autoIncreaseDifficulty: true,
       timerOverride: null,
       useDifficultyTimer: false,
       currentQuestion: null,
@@ -327,7 +329,7 @@ return finishedState
     queuePersistence(STORAGE_KEYS.SCHEMA_VERSION, ensureStorageSchema)
     persistAggregateChanges(previousState, nextState)
   }, [persistAggregateChanges, queuePersistence])
-  const startGame = useCallback((level: number = 1, mode: GameMode = 'blitz', isAdvanced = false, operations: readonly Operation[] = DEFAULT_OPERATIONS, selectedDifficulty?: DifficultyTier, timerOverride?: number, adaptDifficulty = selectedDifficulty !== undefined, useDifficultyTimer = selectedDifficulty !== undefined) => {
+  const startGame = useCallback((level: number = 1, mode: GameMode = 'blitz', isAdvanced = false, operations: readonly Operation[] = DEFAULT_OPERATIONS, selectedDifficulty?: DifficultyTier, timerOverride?: number, adaptDifficulty = selectedDifficulty !== undefined, useDifficultyTimer = selectedDifficulty !== undefined, autoIncreaseDifficulty = true) => {
     pendingSubmissionRef.current = false
     const difficulty = enforcePlanetDifficulty(selectedDifficulty || getDifficultyForLevel(level), level)
 const roundOperations = normalizeOperations(operations)
@@ -345,6 +347,7 @@ const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(dif
       operations: roundOperations,
       difficulty,
       adaptiveDifficulty: adaptDifficulty,
+      autoIncreaseDifficulty,
       timerOverride: timerOverride ?? null,
       useDifficultyTimer,
       currentLevel: level,
@@ -449,12 +452,14 @@ const nextRoundCorrectAnswers = submissionState.roundCorrectAnswers + (answerIsC
 const nextRoundResponseTimeMs = submissionState.roundResponseTimeMs + responseTimeMs
 const nextDifficulty = submissionState.isTargetedPractice
       ? nextTargetedQuestion?.difficulty ?? submissionState.difficulty
-      : enforcePlanetDifficulty(
-        submissionState.adaptiveDifficulty
-          ? getAdaptiveDifficulty(submissionState.difficulty, nextHistory)
-          : getDifficultyForLevel(nextQuestionLevel),
-        nextQuestionLevel,
-      )
+      : !submissionState.autoIncreaseDifficulty
+        ? submissionState.difficulty
+        : enforcePlanetDifficulty(
+          submissionState.adaptiveDifficulty
+            ? getAdaptiveDifficulty(submissionState.difficulty, nextHistory)
+            : getDifficultyForLevel(nextQuestionLevel),
+          nextQuestionLevel,
+        )
 const nextMaxTime = submissionState.timerOverride ?? (
       submissionState.useDifficultyTimer || submissionState.adaptiveDifficulty
         ? getDifficultySettings(nextDifficulty).timerSeconds

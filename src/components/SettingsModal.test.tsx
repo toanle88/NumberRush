@@ -14,10 +14,12 @@ const renderSettings = (onClose = vi.fn()) => render(
   <SettingsView
     playerName="Super Kid"
     initialTime={10}
+    autoIncreaseDifficulty={true}
     preferences={preferences}
     onClose={onClose}
     onUpdateName={vi.fn()}
     onUpdateTimer={vi.fn()}
+    onUpdateAutoIncreaseDifficulty={vi.fn()}
     onUpdatePreferences={vi.fn()}
     onResetStats={vi.fn()}
   />,
@@ -30,6 +32,7 @@ expect(screen.getByLabelText('Your name')).toBeInTheDocument()
 expect(screen.getByLabelText('Theme')).toHaveValue('dark')
 expect(screen.getByLabelText('High contrast')).toBeInTheDocument()
 expect(screen.getByLabelText('Reduce motion and animation')).toBeInTheDocument()
+expect(screen.getByLabelText('Difficulty progression')).toHaveValue('automatic')
 expect(screen.getByLabelText('Sound effects')).toBeInTheDocument()
 expect(screen.getByLabelText('Haptic feedback when supported')).toBeInTheDocument()
 expect(screen.getByText(`NumberRush version ${APP_VERSION}`)).toBeInTheDocument()
@@ -57,6 +60,7 @@ trigger.remove()
       <SettingsView
         playerName="Super Kid"
         initialTime={10}
+        autoIncreaseDifficulty={true}
         preferences={preferences}
         locale="vi"
         translate={key => {
@@ -70,6 +74,7 @@ trigger.remove()
         onClose={vi.fn()}
         onUpdateName={vi.fn()}
         onUpdateTimer={vi.fn()}
+        onUpdateAutoIncreaseDifficulty={vi.fn()}
         onUpdatePreferences={vi.fn()}
         onUpdateLocale={vi.fn()}
         onResetStats={vi.fn()}

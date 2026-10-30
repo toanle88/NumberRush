@@ -7,10 +7,12 @@ import type { Locale, Translator } from '../utils/i18n'
 interface SettingsViewProps {
   playerName: string
 initialTime: number
+  autoIncreaseDifficulty: boolean
 preferences: AccessibilityPreferences
 onClose: () => void
 onUpdateName: (name: string) => void
 onUpdateTimer: (time: number) => void
+  onUpdateAutoIncreaseDifficulty: (value: boolean) => void
 onUpdatePreferences: (preferences: Partial<AccessibilityPreferences>) => void
   locale?: Locale
   onUpdateLocale?: (locale: Locale) => void
@@ -22,10 +24,12 @@ onUpdatePreferences: (preferences: Partial<AccessibilityPreferences>) => void
 const SettingsView = ({
   playerName,
   initialTime,
+  autoIncreaseDifficulty,
   preferences,
   onClose,
   onUpdateName,
   onUpdateTimer,
+  onUpdateAutoIncreaseDifficulty,
   onUpdatePreferences,
   locale = 'en',
   onUpdateLocale = () => undefined,
@@ -156,6 +160,20 @@ const SettingsView = ({
             ))}
           </div>
       </div>
+      <fieldset className="settings-section setting-item">
+          <legend>{translate('difficultyProgression')}</legend>
+          <p id="difficulty-progression-description">{translate('difficultyProgressionDescription')}</p>
+          <label htmlFor="difficulty-progression">{translate('difficultyProgression')}</label>
+          <select
+            id="difficulty-progression"
+            aria-describedby="difficulty-progression-description"
+            value={autoIncreaseDifficulty ? 'automatic' : 'fixed'}
+            onChange={event => onUpdateAutoIncreaseDifficulty(event.target.value === 'automatic')}
+          >
+            <option value="automatic">{translate('automaticDifficulty')}</option>
+            <option value="fixed">{translate('fixedDifficulty')}</option>
+          </select>
+      </fieldset>
       <div className="settings-section setting-item">
           <h3>{translate('progressData')}</h3>
           <p>{translate('backupDescription')}</p>

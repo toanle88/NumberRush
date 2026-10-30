@@ -22,8 +22,8 @@ component library.
    translates keypad/keyboard input into actions; and renders feedback.
    `usePlayerSettings` owns settings state, while `useProgressTransfer` owns
    export/import browser-file behavior.
-3. `src/hooks/useGame.ts` owns the round state machine, timer, adaptive
-   difficulty, progression, badges, recurring challenges, and persistence
+3. `src/hooks/useGame.ts` owns the round state machine, timer, automatic or
+   fixed difficulty progression, badges, recurring challenges, and persistence
    retries. Pure score transitions live in `src/utils/gameScoring.ts`.
 4. Focused hooks in `src/hooks/` isolate browser lifecycle concerns: media
    queries, document preferences, focus management, keyboard input, timers,

@@ -187,6 +187,13 @@ export const readStoredNonNegativeInteger = (key: string, fallback = 0, maximum 
   return Number.isSafeInteger(value) && value >= 0 && value <= maximum ? value : fallback
 }
 
+export const readStoredBoolean = (key: string, fallback: boolean): boolean => {
+  const raw = readStorage(key)
+  if (raw === 'true') return true
+  if (raw === 'false') return false
+  return fallback
+}
+
 export const ensureStorageSchema = (): boolean => {
   const rawVersion = readStorage(STORAGE_KEYS.SCHEMA_VERSION)
   if (rawVersion !== null) {

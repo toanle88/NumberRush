@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   SCHEMA_VERSION: 'numberrush_storage_version',
   NAME: 'numberrush_name',
   TIMER: 'numberrush_timer',
+  AUTO_INCREASE_DIFFICULTY: 'numberrush_auto_increase_difficulty',
   HIGH_SCORE: 'numberrush_highscore',
   BEST_STREAK: 'numberrush_beststreak',
   BADGES: 'numberrush_badges',

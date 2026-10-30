@@ -11,7 +11,7 @@ shell has been cached.
 
 ## Project status
 
-NumberRush is version `1.0.1` (`package.json`). The repository contains the
+NumberRush is version `1.0.2` (`package.json`). The repository contains the
 source, tests, PWA configuration, and Azure deployment workflows. A stable
 hosted demo URL is not configured in this checkout; after starting the dev
 server, use the [local demo](http://localhost:5173).
@@ -21,7 +21,7 @@ server, use the [local demo](http://localhost:5173).
 - Blitz and untimed Practice modes.
 - Addition, subtraction, multiplication, and division, including optional
   multi-step “Chaos” questions.
-- Easy, Medium, and Hard difficulty with optional adaptive difficulty.
+- Easy, Medium, and Hard difficulty with optional automatic or fixed progression.
 - Planet progression, streaks, daily challenges, badges, and a progress
   dashboard.
 - Keyboard and touch input, sound effects, and haptics where the device
