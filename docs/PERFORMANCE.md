@@ -36,7 +36,7 @@ PERFORMANCE_E2E=1 \
   pnpm exec playwright test --project=desktop-chromium
 ```
 
-The scheduled `.github/workflows/performance.yml` runs the same production
+The scheduled performance job in `.github/workflows/ci.yml` runs the same production
 checks, generates JSON and Markdown reports, and retains them as the
 `performance-reports` artifact for 14 days. Reports are written to the ignored
 `performance-results/` directory.

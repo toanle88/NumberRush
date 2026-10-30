@@ -41,9 +41,9 @@ host security.
 
 ## Repository controls
 
-- CI installs from the committed lockfile and fails on high/critical dependency
+- Pull Request Checks installs from the committed lockfile and fails on high/critical dependency
   advisories.
-- Static Analysis runs ESLint, the build, and CodeQL.
+- Pull Request Checks runs formatting, ESLint, the build, and CodeQL.
 - Dependabot monitors npm packages and GitHub Actions.
 - GitHub Actions are pinned to commit SHAs in the committed workflows.
 - Azure deployment uses protected environments and secrets; Terraform state is

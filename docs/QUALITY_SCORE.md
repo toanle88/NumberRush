@@ -5,7 +5,7 @@ measured facts.
 
 ## Required checks
 
-The repository's CI and Static Analysis workflows currently provide these
+The repository's Pull Request Checks workflow currently provides these
 repeatable checks:
 
 - locked dependency installation and high/critical dependency audit;
