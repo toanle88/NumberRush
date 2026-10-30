@@ -153,14 +153,14 @@ setInput('')
             <button ref={settingsButtonRef} type="button" className="settings-btn" onClick={openSettings} aria-label={translate('openSettings')}>⚙️</button>
           </div>
           {status === 'idle' && (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginBottom: '2rem' }}>
+            <p className="app-greeting">
               {translate('appGreeting', { name: playerName })}
             </p>
           )}
         </header>
 
         {persistenceMessage && (
-          <div role="status" aria-live="polite" style={{ margin: '0 auto 1rem', maxWidth: '42rem', color: 'var(--text-secondary)' }}>
+          <div className="persistence-message" role="status" aria-live="polite">
             {persistenceMessage}
           </div>
         )}
@@ -204,16 +204,15 @@ setInput('')
                   <span className="challenge-icon" aria-hidden="true">🎯</span>
                 </div>
                 <div className="challenge-progress-line">
-                  <div
+                  <progress
                     className="challenge-progress-bar"
-                    role="progressbar"
                     aria-label={translate('challengeProgress', { title: translate(getChallengeTranslationKeys(dailyChallenge.id)[0]) })}
                     aria-valuemin={0}
                     aria-valuemax={dailyChallenge.target}
                     aria-valuenow={getChallengeProgress(dailyChallenge, recurringProgress)}
-                  >
-                    <span style={{ width: `${(getChallengeProgress(dailyChallenge, recurringProgress) / dailyChallenge.target) * 100}%` }} />
-                  </div>
+                    value={getChallengeProgress(dailyChallenge, recurringProgress)}
+                    max={dailyChallenge.target}
+                  />
                   <strong>{getChallengeProgress(dailyChallenge, recurringProgress)}/{dailyChallenge.target}</strong>
                 </div>
                 <p className="challenge-status" role="status">
@@ -478,17 +477,17 @@ return (
 
         {lastUnlockedBadge && (
           <div className="unlocked-toast">
-            <span style={{ fontSize: '2rem' }}>{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
+            <span className="badge-toast-icon">{BADGES.find(b => b.id === lastUnlockedBadge)?.icon}</span>
             <div>
               <strong>{translate('badgeUnlocked')}</strong>
-              <p style={{ fontSize: '0.8rem', margin: 0 }}>{(() => {
+              <p className="badge-toast-name">{(() => {
  const badge = BADGES.find(b => b.id === lastUnlockedBadge); return badge ? translate(getBadgeTranslationKeys(badge.id)[0]) : ''
 })()}</p>
             </div>
           </div>
         )}
 
-        <footer style={{ marginTop: '3rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+        <footer className="app-footer">
           <p>{translate('madeWithLove')}</p>
         </footer>
       </div>

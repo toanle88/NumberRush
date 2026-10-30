@@ -16,9 +16,11 @@ const securityHeaders = {
 }
 const developmentSecurityHeaders = {
   ...securityHeaders,
-  // Vite's React refresh preamble is an inline development-only script. The
-  // production preview and Azure headers remain strict.
-  'Content-Security-Policy': securityHeaders['Content-Security-Policy'].replace("script-src 'self'", "script-src 'self' 'unsafe-inline'"),
+  // Vite's React refresh preamble and HMR style updates are development-only
+  // inline resources. The production preview and Azure headers remain strict.
+  'Content-Security-Policy': securityHeaders['Content-Security-Policy']
+    .replace("script-src 'self'", "script-src 'self' 'unsafe-inline'")
+    .replace("style-src 'self'", "style-src 'self' 'unsafe-inline'"),
 }
 
 export default defineConfig({

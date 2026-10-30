@@ -19,6 +19,8 @@ No unreleased changes.
   during a round.
 - Remove the browser focus outline from the programmatically focused results
   heading while preserving focus-based announcements.
+- Remove application inline styles so the strict production CSP can apply
+  without blocking UI updates.
 
 ## [1.0.0] - 2026-10-30
 

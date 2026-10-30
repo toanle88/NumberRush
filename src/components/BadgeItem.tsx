@@ -16,7 +16,7 @@ const BadgeItem = memo(({ badge, isUnlocked, translate = createTranslator('en') 
         <div className="badge-tooltip">
             <strong>{translate(nameKey)}</strong>
             <p>{translate(descriptionKey)}</p>
-            {!isUnlocked && <span style={{ fontSize: '0.6rem', color: 'var(--color-accent)' }}>{translate('locked')}</span>}
+            {!isUnlocked && <span className="badge-locked-label">{translate('locked')}</span>}
         </div>
     </div>
     )
