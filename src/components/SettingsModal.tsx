@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { AccessibilityPreferences } from '../utils/accessibility'
 import { MAX_PLAYER_NAME_LENGTH } from '../utils/playerName'
 import { APP_VERSION } from '../version'
@@ -35,6 +35,7 @@ const SettingsView = ({
   onImportProgress,
 }: SettingsViewProps) => {
   const settingsHeadingRef = useRef<HTMLHeadingElement>(null)
+  const [selectedFileName, setSelectedFileName] = useState('')
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null
@@ -162,18 +163,31 @@ const SettingsView = ({
             <button type="button" onClick={onExportProgress}>{translate('exportProgress')}</button>
           )}
           {onImportProgress && (
-            <label>
-            {translate('importProgress')}
+            <div className="file-input-group">
+              <label className="file-input-label" htmlFor="import-progress">{translate('importProgress')}</label>
+              <div className="file-input-control">
+                <label className="file-input-trigger" htmlFor="import-progress">
+                  {translate('chooseFile')}
+                </label>
+                <span className="file-input-name" aria-live="polite">
+                  {selectedFileName || translate('noFileChosen')}
+                </span>
+              </div>
               <input
+                id="import-progress"
+                className="file-input-native"
                 type="file"
                 accept="application/json,.json"
                 onChange={event => {
                   const file = event.target.files?.[0]
-                  if (file) onImportProgress(file)
+                  if (file) {
+                    setSelectedFileName(file.name)
+                    onImportProgress(file)
+                  }
                   event.currentTarget.value = ''
                 }}
               />
-            </label>
+            </div>
           )}
       </div>
       <div className="settings-section setting-item">
