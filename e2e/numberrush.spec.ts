@@ -62,6 +62,7 @@ test('keeps the game stats inside the mobile game card', async ({ page }) => {
   await page.getByRole('button', { name: /Start Blitz Rush/ }).click()
   const questionDisplay = page.locator('.question-display')
   const initialQuestionTop = await questionDisplay.boundingBox()
+  await expect(page.locator('.streak-stat')).toContainText('0')
   await enterAnswer(page, await readAnswer(page), 'keyboard')
 
   await expect(page.locator('.stats-header')).toBeVisible()

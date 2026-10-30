@@ -20,6 +20,8 @@ No unreleased changes.
   without shifting the question when streak statistics appear.
 - Move the current planet indicator above the statistics and remove its
   redundant label.
+- Always show the streak statistic so the mobile layout keeps four stable
+  columns.
 
 ## [1.0.1] - 2026-10-30
 

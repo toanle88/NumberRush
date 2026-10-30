@@ -68,12 +68,10 @@ const questionText = `${question.operandA} ${spokenOperation(question.operation)
           <span className="label">{translate('score')}</span>
           <span className="value">{score}</span>
         </div>
-        {streak > 0 && (
-          <div className="stat-item streak-stat">
-            <span className="label">{translate('streak')}</span>
-            <span className="value">🔥 {streak}</span>
-          </div>
-        )}
+        <div className="stat-item streak-stat">
+          <span className="label">{translate('streak')}</span>
+          <span className="value">🔥 {streak}</span>
+        </div>
         {showTimer && (
           <div className="stat-item timer" aria-live="polite">
             <span className="label">{translate('time')}</span>
