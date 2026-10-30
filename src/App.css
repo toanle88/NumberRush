@@ -869,7 +869,7 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.4rem;
     align-items: start;
-    min-height: 4.1rem;
+    min-height: 3.75rem;
     margin-bottom: 1.5rem;
   }
 
@@ -880,7 +880,7 @@
   }
 
   .stats-header .stat-item .label {
-    font-size: 0.62rem;
+    font-size: 0.55rem;
     line-height: 1.15;
     letter-spacing: 0.03em;
     white-space: nowrap;
@@ -888,13 +888,13 @@
 
   .stats-header .stat-item .value {
     max-width: 100%;
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     line-height: 1.2;
     overflow-wrap: anywhere;
   }
 
   .stats-header .planet-stat .value {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
   }
 
   .progress-container {
