@@ -18,7 +18,7 @@ describe('game accessibility controls', () => {
     )
     expect(screen.getByRole('progressbar', { name: 'Time remaining' })).toHaveAttribute('aria-valuenow', '2')
 expect(screen.getByText('2s — hurry')).toBeInTheDocument()
-expect(screen.getByRole('group', { name: /8 minus 3 equals current answer not entered/i })).toBeInTheDocument()
+expect(screen.getByRole('group', { name: /8 minus 3 equals Your current answer is not entered/i })).toBeInTheDocument()
 })
   it('gives descriptive names to clear and submit actions', () => {
     const onClear = vi.fn()

@@ -21,9 +21,9 @@ describe('App keyboard gameplay', () => {
     render(<App />)
 fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }))
     fireEvent.keyDown(window, { key: '1' })
-expect(screen.getByRole('group', { name: /current answer 1/i })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Your current answer is 1/i })).toBeInTheDocument()
 fireEvent.keyDown(window, { key: 'Backspace' })
-expect(screen.getByRole('group', { name: /current answer not entered/i })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Your current answer is not entered/i })).toBeInTheDocument()
 })
   it('preserves native Enter activation for focused game controls', () => {
     render(<App />)
@@ -31,17 +31,17 @@ fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }))
     fireEvent.keyDown(window, { key: '1' })
 const digitButton = screen.getByRole('button', { name: 'Enter 2' })
     fireEvent.keyDown(digitButton, { key: 'Enter', code: 'Enter' })
-expect(screen.getByRole('group', { name: /current answer 1/i })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Your current answer is 1/i })).toBeInTheDocument()
 expect(screen.queryByText('Correct answer')).not.toBeInTheDocument()
 expect(screen.queryByText('Incorrect answer')).not.toBeInTheDocument()
     // Browsers dispatch the button's click after an unhandled Enter keydown.
     fireEvent.click(digitButton)
-expect(screen.getByRole('group', { name: /current answer 12/i })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Your current answer is 12/i })).toBeInTheDocument()
 })
   it('renders correct feedback inline without covering the keypad', () => {
     render(<App />)
 fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }))
-    const question = screen.getByRole('group', { name: /current answer not entered/i })
+    const question = screen.getByRole('group', { name: /Your current answer is not entered/i })
 const questionLabel = question.getAttribute('aria-label')!
 const [, left, operation, right] = questionLabel.match(/(\d+) (plus|minus) (\d+) equals/)!
 const answer = operation === 'plus' ? Number(left) + Number(right) : Number(left) - Number(right)
@@ -59,7 +59,7 @@ expect(screen.queryByText('Correct answer:')).not.toBeInTheDocument()
     vi.useFakeTimers()
 render(<App />)
 fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }))
-    const question = screen.getByRole('group', { name: /current answer not entered/i })
+    const question = screen.getByRole('group', { name: /Your current answer is not entered/i })
 const [, left, operation, right] = question.getAttribute('aria-label')!.match(/(\d+) (plus|minus) (\d+) equals/)!
 const answer = operation === 'plus' ? Number(left) + Number(right) : Number(left) - Number(right)
     for (const digit of String(answer)) fireEvent.keyDown(window, { key: digit })
@@ -78,10 +78,10 @@ fireEvent.click(screen.getByRole('button', { name: 'Submit answer' }))
     const feedback = screen.getByText(/Correct answer:/).closest('[role="status"]')
 expect(feedback).toHaveClass('feedback-inline', 'feedback-inline-incorrect')
 expect(feedback).toHaveTextContent(/^Correct answer: \d+$/)
-expect(screen.getByRole('group', { name: /current answer not entered/i })).toBeInTheDocument()
+expect(screen.getByRole('group', { name: /Your current answer is not entered/i })).toBeInTheDocument()
     fireEvent.keyDown(window, { key: '1' })
 fireEvent.click(screen.getByRole('button', { name: 'Submit answer' }))
-expect(screen.getByRole('group', { name: /current answer not entered/i })).toBeInTheDocument()
+expect(screen.getByRole('group', { name: /Your current answer is not entered/i })).toBeInTheDocument()
 })
   it('keeps the final incorrect answer feedback when the timer ends the round', () => {
     localStorage.setItem('numberrush_timer', '1')
@@ -143,7 +143,7 @@ fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }))
 fireEvent.keyDown(window, { key: '2' })
 fireEvent.keyDown(window, { key: '3' })
 fireEvent.keyDown(window, { key: '4' })
-    expect(screen.getByRole('group', { name: /current answer 1234/i })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Your current answer is 1234/i })).toBeInTheDocument()
 })
   it('opens an empty progress view from the home screen', () => {
     render(<App />)
@@ -169,6 +169,32 @@ expect(screen.getByRole('button', { name: /Back to home/i })).toBeInTheDocument(
     fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
 
     expect(screen.getByLabelText('Your name')).toHaveValue('A'.repeat(20))
+  })
+  it('selects Vietnamese immediately and restores it after reload', () => {
+    const firstRender = render(<App />)
+    expect(document.documentElement.lang).toBe('en')
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
+    fireEvent.change(screen.getByLabelText('Language'), { target: { value: 'vi' } })
+
+    expect(screen.getByRole('region', { name: 'Cài đặt' })).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('vi')
+    expect(localStorage.getItem('numberrush_locale')).toBe('vi')
+    expect(screen.getByLabelText('Ngôn ngữ')).toHaveValue('vi')
+
+    firstRender.unmount()
+    render(<App />)
+    expect(document.documentElement.lang).toBe('vi')
+    fireEvent.click(screen.getByRole('button', { name: 'Mở cài đặt' }))
+    expect(screen.getByRole('region', { name: 'Cài đặt' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Ngôn ngữ')).toHaveValue('vi')
+  })
+  it('translates gameplay accessibility text in Vietnamese', () => {
+    localStorage.setItem('numberrush_locale', 'vi')
+
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu Blitz Rush! ⚡' }))
+
+    expect(screen.getByRole('group', { name: /Đáp án hiện tại của bạn là/ })).toBeInTheDocument()
   })
   it('rejects oversized progress files before reading their contents', () => {
     render(<App />)
@@ -198,7 +224,7 @@ expect(screen.getByRole('button', { name: /Back to home/i })).toBeInTheDocument(
   it('preserves an active round while settings is open', () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }))
-    const question = screen.getByRole('group', { name: /current answer not entered/i })
+    const question = screen.getByRole('group', { name: /Your current answer is not entered/i })
     const questionLabel = question.getAttribute('aria-label')
 
     fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
@@ -207,7 +233,7 @@ expect(screen.getByRole('button', { name: /Back to home/i })).toBeInTheDocument(
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to game' }))
     expect(screen.getByRole('region', { name: 'Math game' })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: /current answer not entered/i })).toHaveAttribute('aria-label', questionLabel)
+    expect(screen.getByRole('group', { name: /Your current answer is not entered/i })).toHaveAttribute('aria-label', questionLabel)
   })
   it('shows presets before custom controls and keeps Chaos behind More options', () => {
     render(<App />)

@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react'
 import type { AccessibilityPreferences } from '../utils/accessibility'
 import { MAX_PLAYER_NAME_LENGTH } from '../utils/playerName'
 import { APP_VERSION } from '../version'
+import { createTranslator, SUPPORTED_LOCALES } from '../utils/i18n'
+import type { Locale, Translator } from '../utils/i18n'
 interface SettingsViewProps {
   playerName: string
 initialTime: number
@@ -10,6 +12,9 @@ onClose: () => void
 onUpdateName: (name: string) => void
 onUpdateTimer: (time: number) => void
 onUpdatePreferences: (preferences: Partial<AccessibilityPreferences>) => void
+  locale?: Locale
+  onUpdateLocale?: (locale: Locale) => void
+  translate?: Translator
   onResetStats: () => void
   onExportProgress?: () => void
   onImportProgress?: (file: File) => void}
@@ -22,6 +27,9 @@ const SettingsView = ({
   onUpdateName,
   onUpdateTimer,
   onUpdatePreferences,
+  locale = 'en',
+  onUpdateLocale = () => undefined,
+  translate = createTranslator('en'),
   onResetStats,
   onExportProgress,
   onImportProgress,
@@ -48,35 +56,35 @@ const SettingsView = ({
   return (
     <section className="settings-view animate-pop" role="region" aria-labelledby="settings-title">
       <div className="settings-heading">
-        <div>
-          <p className="eyebrow">Your preferences</p>
-          <h2 ref={settingsHeadingRef} id="settings-title" tabIndex={-1}>Settings</h2>
+      <div>
+          <p className="eyebrow">{translate('settingsEyebrow')}</p>
+          <h2 ref={settingsHeadingRef} id="settings-title" tabIndex={-1}>{translate('settings')}</h2>
         </div>
-        <button type="button" className="settings-back" aria-label="Back to game" onClick={onClose}>← Back to game</button>
+        <button type="button" className="settings-back" aria-label={translate('backToGame')} onClick={onClose}>← {translate('backToGame')}</button>
       </div>
 
       <div className="settings-section setting-item">
-        <h3>Profile</h3>
-          <label htmlFor="player-name">Your name</label>
+        <h3>{translate('profile')}</h3>
+          <label htmlFor="player-name">{translate('yourName')}</label>
           <input
             id="player-name"
             type="text"
             value={playerName}
             onChange={event => onUpdateName(event.target.value)}
-            placeholder="Enter your name"
+            placeholder={translate('enterName')}
             maxLength={MAX_PLAYER_NAME_LENGTH}
           />
       </div>
       <fieldset className="settings-section setting-item">
-          <legend>Appearance</legend>
-          <label htmlFor="theme-select">Theme</label>
+          <legend>{translate('appearance')}</legend>
+          <label htmlFor="theme-select">{translate('theme')}</label>
           <select
             id="theme-select"
             value={preferences.theme}
             onChange={event => onUpdatePreferences({ theme: event.target.value as AccessibilityPreferences['theme'] })}
           >
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
+            <option value="dark">{translate('dark')}</option>
+            <option value="light">{translate('light')}</option>
           </select>
           <label className="checkbox-setting" htmlFor="high-contrast">
             <input
@@ -85,11 +93,11 @@ const SettingsView = ({
               checked={preferences.highContrast}
               onChange={event => onUpdatePreferences({ highContrast: event.target.checked })}
             />
-            High contrast
+            {translate('highContrast')}
           </label>
       </fieldset>
       <fieldset className="settings-section setting-item">
-          <legend>Accessibility</legend>
+          <legend>{translate('accessibility')}</legend>
           <label className="checkbox-setting" htmlFor="reduced-motion">
             <input
               id="reduced-motion"
@@ -97,11 +105,11 @@ const SettingsView = ({
               checked={preferences.reducedMotion}
               onChange={event => onUpdatePreferences({ reducedMotion: event.target.checked })}
             />
-            Reduce motion and animation
+            {translate('reducedMotion')}
           </label>
       </fieldset>
       <fieldset className="settings-section setting-item">
-          <legend>Feedback</legend>
+          <legend>{translate('feedback')}</legend>
           <label className="checkbox-setting" htmlFor="sound-feedback">
             <input
               id="sound-feedback"
@@ -109,7 +117,7 @@ const SettingsView = ({
               checked={preferences.sound}
               onChange={event => onUpdatePreferences({ sound: event.target.checked })}
             />
-            Sound effects
+            {translate('soundEffects')}
           </label>
           <label className="checkbox-setting" htmlFor="haptic-feedback">
             <input
@@ -118,13 +126,22 @@ const SettingsView = ({
               checked={preferences.haptics}
               onChange={event => onUpdatePreferences({ haptics: event.target.checked })}
             />
-            Haptic feedback when supported
+            {translate('hapticFeedback')}
           </label>
       </fieldset>
+      <fieldset className="settings-section setting-item">
+          <legend>{translate('language')}</legend>
+          <label htmlFor="language-select">{translate('language')}</label>
+          <select id="language-select" value={locale} onChange={event => onUpdateLocale(event.target.value as Locale)}>
+            {SUPPORTED_LOCALES.map(option => (
+              <option key={option} value={option}>{translate(option === 'en' ? 'english' : 'vietnamese')}</option>
+            ))}
+          </select>
+      </fieldset>
       <div className="settings-section setting-item">
-          <h3>Game speed</h3>
-          <p>Choose how much time you get for each Blitz Rush.</p>
-          <div className="timer-options" role="group" aria-label="Blitz timer duration">
+          <h3>{translate('gameSpeed')}</h3>
+          <p>{translate('speedDescription')}</p>
+          <div className="timer-options" role="group" aria-label={translate('blitzTimer')}>
             {[5, 10, 15, 20].map(time => (
               <button
                 type="button"
@@ -133,20 +150,20 @@ const SettingsView = ({
                 aria-pressed={initialTime === time}
                 onClick={() => onUpdateTimer(time)}
               >
-                {time}s{initialTime === time ? ' (selected)' : ''}
+                {initialTime === time ? translate('secondsSelected', { seconds: time }) : `${time}s`}
               </button>
             ))}
           </div>
       </div>
       <div className="settings-section setting-item">
-          <h3>Progress data</h3>
-          <p>Save a backup of your progress or restore one from this app.</p>
+          <h3>{translate('progressData')}</h3>
+          <p>{translate('backupDescription')}</p>
           {onExportProgress && (
-            <button type="button" onClick={onExportProgress}>Export progress</button>
+            <button type="button" onClick={onExportProgress}>{translate('exportProgress')}</button>
           )}
           {onImportProgress && (
             <label>
-              Import progress
+            {translate('importProgress')}
               <input
                 type="file"
                 accept="application/json,.json"
@@ -160,20 +177,20 @@ const SettingsView = ({
           )}
       </div>
       <div className="settings-section setting-item">
-          <h3>About</h3>
-          <p>NumberRush version {APP_VERSION}</p>
+          <h3>{translate('about')}</h3>
+          <p>{translate('version', { version: APP_VERSION })}</p>
       </div>
       <div className="settings-reset-section">
         <div className="setting-item">
-          <h3>Reset progress</h3>
+          <h3>{translate('resetProgress')}</h3>
           <button
             type="button"
             className="danger"
             onClick={() => {
- if (confirm('Reset all stats?')) onResetStats()
+ if (confirm(translate('resetConfirm'))) onResetStats()
 }}
           >
-            Reset progress
+            {translate('resetProgress')}
           </button>
         </div>
       </div>
