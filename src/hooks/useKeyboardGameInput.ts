@@ -10,12 +10,12 @@ interface GameInputHandlers {
 
 export const useKeyboardGameInput = (
   status: GameStatus,
-  settingsOpen: boolean,
+  settingsViewOpen: boolean,
   { handleInput, handleSubmit, handleClear, handleExit }: GameInputHandlers,
 ): void => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (status !== 'playing' || settingsOpen) return
+      if (status !== 'playing' || settingsViewOpen) return
       if (event.target instanceof Element && event.target.closest('button, input, select, textarea, a, summary, [role="button"], [contenteditable="true"]')) return
       if ((event.key >= '0' && event.key <= '9') || (event.code.startsWith('Numpad') && event.key >= '0' && event.key <= '9')) {
         event.preventDefault()
@@ -28,5 +28,5 @@ export const useKeyboardGameInput = (
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleClear, handleExit, handleInput, handleSubmit, settingsOpen, status])
+  }, [handleClear, handleExit, handleInput, handleSubmit, settingsViewOpen, status])
 }

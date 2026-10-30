@@ -7,7 +7,7 @@ import GameBoard from './components/GameBoard'
 import Numpad from './components/Numpad'
 import BadgeItem from './components/BadgeItem'
 import ProgressDashboard from './components/ProgressDashboard'
-import SettingsModal from './components/SettingsModal'
+import SettingsView from './components/SettingsModal'
 import { getPlanet, PLANETS } from './utils/planetProgression'
 import { getChallengeProgress } from './utils/dailyChallenges'
 import { playCorrectSound, playIncorrectSound } from './utils/soundEffects'
@@ -32,17 +32,16 @@ const DIFFICULTY_HELP: Record<DifficultyTier, string> = {
   hard: '7 second starting timer with challenging number ranges',
 }
 function App() {
-  const [view, setView] = useState<'home' | 'progress'>('home')
+  const [view, setView] = useState<'home' | 'progress' | 'settings'>('home')
 const [initialTime, setInitialTime] = useState(() =>
     Math.min(20, Math.max(1, readStoredNonNegativeInteger(STORAGE_KEYS.TIMER, 10, 20))),
   )
 const [playerName, setPlayerName] = useState(() =>
     readStorage(STORAGE_KEYS.NAME) || 'Super Kid',
   )
-const [settingsOpen, setSettingsOpen] = useState(false)
 const [preferences, setPreferences] = useState<AccessibilityPreferences>(readAccessibilityPreferences)
 const systemReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
-const closeSettings = useCallback(() => setSettingsOpen(false), [])
+const settingsReturnViewRef = useRef<'home' | 'progress'>('home')
 const [isAdvanced, setIsAdvanced] = useState(false)
 const [roundPreset, setRoundPreset] = useState<RoundPreset>('quick')
 const [moreOptionsOpen, setMoreOptionsOpen] = useState(false)
@@ -61,12 +60,19 @@ const [selectedLevel, setSelectedLevel] = useState(1)
 const gameAreaRef = useRef<HTMLDivElement>(null)
 const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
 const startButtonRef = useRef<HTMLButtonElement>(null)
+const settingsButtonRef = useRef<HTMLButtonElement>(null)
 const restoreStartFocusRef = useRef(false)
   const { planetTransition, setPlanetTransition } = usePlanetTransition(status, currentLevel)
   const currentPlanetLevel = status === 'playing' ? currentLevel : selectedLevel
   useDocumentPreferences(currentPlanetLevel, preferences)
   useGameFocus(status, gameAreaRef, resultsHeadingRef, startButtonRef, restoreStartFocusRef)
   const lastUnlockedBadge = useBadgeUnlockNotice(unlockedBadges)
+  const openSettings = useCallback(() => {
+    if (view === 'settings') return
+    settingsReturnViewRef.current = view === 'progress' ? 'progress' : 'home'
+    setView('settings')
+  }, [view])
+  const closeSettings = useCallback(() => setView(settingsReturnViewRef.current), [])
   const handleStart = (m: GameMode) => {
     setView('home')
 setPlanetTransition(null)
@@ -170,7 +176,7 @@ setInput('')
 }
   const clearFeedback = useCallback(() => setFeedback(null), [])
   useFeedbackExpiry(feedback, status, clearFeedback)
-  useKeyboardGameInput(status, settingsOpen, { handleInput, handleSubmit, handleClear, handleExit })
+  useKeyboardGameInput(status, view === 'settings', { handleInput, handleSubmit, handleClear, handleExit })
   const shakeClass = useStreakCelebration(streak, preferences.sound, preferences.reducedMotion, systemReducedMotion)
   useBlitzSounds(timeLeft, status, mode, preferences.sound)
   const displayedDifficulty = getDifficultyAtLeast(
@@ -191,7 +197,7 @@ setInput('')
         <header>
           <div className="header-top">
             <h1>NumberRush</h1>
-            <button type="button" className="settings-btn" onClick={() => setSettingsOpen(true)} aria-label="Open settings">⚙️</button>
+            <button ref={settingsButtonRef} type="button" className="settings-btn" onClick={openSettings} aria-label="Open settings">⚙️</button>
           </div>
           {status === 'idle' && (
             <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', marginBottom: '2rem' }}>
@@ -207,6 +213,21 @@ setInput('')
         )}
 
         <div className="game-container">
+          {view === 'settings' ? (
+            <SettingsView
+              playerName={playerName}
+              initialTime={initialTime}
+              preferences={preferences}
+              onClose={closeSettings}
+              onUpdateName={updateName}
+              onUpdateTimer={updateTimer}
+              onUpdatePreferences={updatePreferences}
+              onResetStats={resetStats}
+              onExportProgress={handleExportProgress}
+              onImportProgress={handleImportProgress}
+            />
+          ) : (
+            <>
           {status === 'idle' && (
             view === 'progress' ? (
               <ProgressDashboard metrics={progressMetrics} recurringProgress={recurringProgress} onBack={() => setView('home')} />
@@ -508,22 +529,9 @@ return (
               </div>
             </div>
           )}
+            </>
+          )}
         </div>
-
-        {settingsOpen && (
-          <SettingsModal
-            playerName={playerName}
-            initialTime={initialTime}
-            preferences={preferences}
-            onClose={closeSettings}
-            onUpdateName={updateName}
-            onUpdateTimer={updateTimer}
-            onUpdatePreferences={updatePreferences}
-            onResetStats={resetStats}
-            onExportProgress={handleExportProgress}
-            onImportProgress={handleImportProgress}
-          />
-        )}
 
         {lastUnlockedBadge && (
           <div className="unlocked-toast">

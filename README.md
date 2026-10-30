@@ -153,9 +153,10 @@ digits, submit with Enter, clear with Backspace, and exit with Escape. Controls
 inside settings retain their normal browser behavior.
 
 The UI includes semantic labels, live status announcements, a labeled timer
-progress bar, visible focus handling, a settings focus trap, reduced-motion and
-high-contrast preferences, and responsive layouts. Screen readers and browser
-zoom are supported to the extent provided by the browser and the current CSS.
+progress bar, visible focus handling, a dedicated settings view with focus
+handoff, reduced-motion and high-contrast preferences, and responsive layouts.
+Screen readers and browser zoom are supported to the extent provided by the
+browser and the current CSS.
 
 ## Data storage and privacy
 

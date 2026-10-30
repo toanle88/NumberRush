@@ -30,9 +30,9 @@ const enterAnswer = async (page: Page, answer: number, method: InputMethod) => {
 
 const setTimer = async (page: Page, seconds: number) => {
   await page.getByRole('button', { name: 'Open settings' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Settings' })
-  await dialog.getByRole('button', { name: new RegExp(`^${seconds}s`) }).click()
-  await dialog.getByRole('button', { name: 'Close settings' }).click()
+  const settings = page.getByRole('region', { name: 'Settings' })
+  await settings.getByRole('button', { name: new RegExp(`^${seconds}s`) }).click()
+  await settings.getByRole('button', { name: 'Back to game' }).click()
 }
 
 test.beforeEach(async ({ page }) => {
@@ -77,21 +77,21 @@ test('waits for Blitz timer expiration and shows the completed round', async ({ 
 
 test('persists settings across a clean page reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Open settings' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Settings' })
-  await dialog.getByLabel('Your name').fill('Browser Kid')
-  await dialog.getByLabel('Theme').selectOption('light')
-  await dialog.getByLabel('High contrast').check()
-  await dialog.getByRole('button', { name: /^5s/ }).click()
-  await dialog.getByRole('button', { name: 'Close settings' }).click()
+  const settings = page.getByRole('region', { name: 'Settings' })
+  await settings.getByLabel('Your name').fill('Browser Kid')
+  await settings.getByLabel('Theme').selectOption('light')
+  await settings.getByLabel('High contrast').check()
+  await settings.getByRole('button', { name: /^5s/ }).click()
+  await settings.getByRole('button', { name: 'Back to game' }).click()
 
   await page.reload()
   await expect(page.getByText('Hey Browser Kid!')).toBeVisible()
   await page.getByRole('button', { name: 'Open settings' }).click()
-  const reloadedDialog = page.getByRole('dialog', { name: 'Settings' })
-  await expect(reloadedDialog.getByLabel('Your name')).toHaveValue('Browser Kid')
-  await expect(reloadedDialog.getByLabel('Theme')).toHaveValue('light')
-  await expect(reloadedDialog.getByLabel('High contrast')).toBeChecked()
-  await expect(reloadedDialog.getByRole('button', { name: /^5s/ })).toHaveAttribute('aria-pressed', 'true')
+  const reloadedSettings = page.getByRole('region', { name: 'Settings' })
+  await expect(reloadedSettings.getByLabel('Your name')).toHaveValue('Browser Kid')
+  await expect(reloadedSettings.getByLabel('Theme')).toHaveValue('light')
+  await expect(reloadedSettings.getByLabel('High contrast')).toBeChecked()
+  await expect(reloadedSettings.getByRole('button', { name: /^5s/ })).toHaveAttribute('aria-pressed', 'true')
 })
 
 test('records progress history after completing a round', async ({ page }) => {

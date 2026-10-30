@@ -141,7 +141,7 @@ test('measures PWA readiness, offline behavior, web vitals, and accessibility', 
   await page.waitForTimeout(250)
 
   await page.getByRole('button', { name: 'Open settings' }).click()
-  await page.getByRole('button', { name: 'Close settings' }).click()
+  await page.getByRole('button', { name: 'Back to game' }).click()
   await page.waitForTimeout(100)
 
   const browserMetrics = await page.evaluate((fallbackLcp) => {
