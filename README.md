@@ -7,7 +7,8 @@ sessions. Players can use Blitz or Practice mode, select operations and
 difficulty, build streaks, review progress, and continue offline after the app
 shell has been cached.
 
-[![Pull Request Checks](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![Static Analysis](../../actions/workflows/quality.yml/badge.svg)](../../actions/workflows/quality.yml)
 
 ## Project status
 
@@ -179,8 +180,8 @@ sensitive information into the player-name field or exported backup.
 
 Production deployment is workflow-driven:
 
-1. A push to `main` runs [Pull Request Checks](.github/workflows/ci.yml).
-2. If Pull Request Checks succeeds, `.github/workflows/deploy.yml` downloads the validated
+1. A push to `main` runs [CI](.github/workflows/ci.yml).
+2. If CI succeeds, `.github/workflows/deploy.yml` downloads the validated
    `dist/` artifact and deploys it to the protected `production` environment.
 3. Optional PR previews use `.github/workflows/preview.yml` and the protected
    `preview` environment.
@@ -193,14 +194,14 @@ pnpm build
 pnpm preview
 ```
 
-Infrastructure changes are handled separately by the Azure Infrastructure workflow. To work with the
+Infrastructure changes are validated by CI with Terraform. To work with the
 remote backend, copy `infra/backend.hcl.example` to the ignored
 `infra/backend.hcl`, fill in approved Azure state-storage coordinates, then use
 the Terraform commands in `.github/workflows/infrastructure.yml`. Do not run
 `terraform apply` without the required Azure identity, state backend, and
 production approval.
 
-## Release management
++## Release management
 
 NumberRush uses Semantic Versioning. Stable release tags are `vMAJOR.MINOR.PATCH`;
 prereleases use a SemVer suffix such as `v1.2.0-rc.1`. Build metadata is allowed
@@ -218,7 +219,7 @@ release owner remains responsible for the smoke test and rollback decision.
 2. In a pull request, set the root `package.json` `version` to the intended
    SemVer value and move the entries into `## [VERSION] - YYYY-MM-DD`.
 3. Run `pnpm release:check -- vVERSION`, `pnpm format:check`, `pnpm lint`,
-   `pnpm test -- --run`, and `pnpm build`. Merge only after Pull Request Checks is green.
+   `pnpm test -- --run`, and `pnpm build`. Merge only after CI is green.
 4. Confirm the merge commit has deployed through the `production` environment.
    Open the environment URL shown on the Deploy production workflow, load the
    app, open Settings, confirm the displayed version, and run one short round.
@@ -294,13 +295,14 @@ in the project.
 Please do not disclose security vulnerabilities in public issues. Follow
 [SECURITY.md](SECURITY.md) and use the private GitHub Security Advisory form.
 
-## Quality and automation expectations
+## Quality and CI expectations
 
-Pull Request Checks is the single application gate. It runs locked installation,
-formatting, dependency audit, lint, unit tests, the production build, browser
-end-to-end tests, Terraform syntax validation, CodeQL, and scheduled performance
-checks. Preview and production deployments consume the validated build artifact;
-Azure Infrastructure manages Terraform resources separately. A green local run
+CI currently runs locked installation, a high-severity dependency audit, lint,
+one-shot unit tests, the production build, Playwright browser tests, and
+Terraform validation. Static Analysis adds formatting, TypeScript/build, and
+CodeQL checks. The scheduled Performance workflow checks bundle budgets, PWA
+offline behavior, browser performance thresholds, and a small accessibility
+audit. These workflows report the current repository state; a green local run
 does not by itself prove a hosted deployment is live.
 
 See [docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md) for the distinction between

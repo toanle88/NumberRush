@@ -3,7 +3,7 @@ name: PR preview
 on:
   workflow_run:
     workflows:
-      - Pull Request Checks
+      - CI
     types:
       - completed
 

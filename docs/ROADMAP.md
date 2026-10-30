@@ -15,7 +15,7 @@ work. Dates and priorities can change as user feedback arrives.
       contrast preferences.
 - [x] PWA manifest, service-worker caching, and offline reload coverage.
 - [x] Versioned localStorage migration plus progress export/import.
-- [x] Pull Request Checks, browser tests, performance gates, and protected
+- [x] CI, Static Analysis, browser tests, performance gates, and protected
       Azure deployment workflows.
 
 ## Active

@@ -3,7 +3,7 @@ name: Deploy production
 on:
   workflow_run:
     workflows:
-      - Pull Request Checks
+      - CI
     types:
       - completed
     branches:
