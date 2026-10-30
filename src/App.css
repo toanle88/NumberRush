@@ -318,6 +318,10 @@
   margin-top: 1rem;
 }
 
+.progress-metric-grid + .goals-panel {
+  margin-top: 1rem;
+}
+
 @media (max-width: 768px) {
   .progress-heading {
     flex-direction: column;
@@ -730,38 +734,6 @@
   font-size: 0.7rem;
 }
 
-.planet-transition {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  background: rgba(15, 23, 42, 0.8);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--color-primary) 35%, transparent);
-  animation: planet-transition-in 0.35s ease-out;
-}
-
-.planet-transition small {
-  width: 100%;
-  color: var(--text-secondary);
-}
-
-@keyframes planet-transition-in {
-  from {
-    transform: translateY(-10px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
 .planet-stat .value {
   font-size: 1rem;
 }
@@ -1075,6 +1047,11 @@ html[data-high-contrast='true'] .settings-btn {
 .settings-heading h2:focus {
   /* This non-interactive heading receives focus to announce the view. Keep
      that focus target from looking like an editable form control. */
+  outline: none;
+}
+
+.game-area:focus,
+.results-heading:focus {
   outline: none;
 }
 

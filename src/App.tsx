@@ -16,7 +16,7 @@ import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDocumentPreferences } from './hooks/useDocumentPreferences'
 import { useGameFocus } from './hooks/useFocusTrap'
 import { useKeyboardGameInput } from './hooks/useKeyboardGameInput'
-import { useBadgeUnlockNotice, useFeedbackExpiry, usePlanetTransition } from './hooks/useTimeout'
+import { useBadgeUnlockNotice, useFeedbackExpiry } from './hooks/useTimeout'
 import { useBlitzSounds, useStreakCelebration } from './hooks/useStreakCelebration'
 import { usePlayerSettings } from './hooks/usePlayerSettings'
 import { useProgressTransfer } from './hooks/useProgressTransfer'
@@ -59,7 +59,6 @@ const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
 const startButtonRef = useRef<HTMLButtonElement>(null)
 const settingsButtonRef = useRef<HTMLButtonElement>(null)
 const restoreStartFocusRef = useRef(false)
-  const { planetTransition, setPlanetTransition } = usePlanetTransition(status, currentLevel)
   const currentPlanetLevel = status === 'playing' ? currentLevel : selectedLevel
   useDocumentPreferences(currentPlanetLevel, preferences, locale)
   useGameFocus(status, gameAreaRef, resultsHeadingRef, startButtonRef, restoreStartFocusRef)
@@ -72,7 +71,6 @@ const restoreStartFocusRef = useRef(false)
   const closeSettings = useCallback(() => setView(settingsReturnViewRef.current), [])
   const handleStart = (m: GameMode) => {
     setView('home')
-setPlanetTransition(null)
 setFeedback(null)
 const hasDifficultyOverride = selectedDifficulty !== undefined
   const timerOverride = hasStoredTimer ? initialTime : undefined
@@ -119,18 +117,16 @@ triggerHaptic(preferences.haptics, answerFeedback.isCorrect ? 20 : [50, 50, 50])
 setInput('')
 }, [input, preferences.haptics, preferences.sound, submitAnswer])
   const handleExit = useCallback(() => {
-    setPlanetTransition(null)
 setFeedback(null)
     restoreStartFocusRef.current = true
 resetGame()
 setInput('')
-}, [resetGame, setPlanetTransition])
+  }, [resetGame])
   const handleTargetedPractice = useCallback(() => {
-    setPlanetTransition(null)
 setFeedback(null)
 startTargetedPractice()
 setInput('')
-}, [setPlanetTransition, startTargetedPractice])
+  }, [startTargetedPractice])
   const clearFeedback = useCallback(() => setFeedback(null), [])
   useFeedbackExpiry(feedback, status, clearFeedback)
   useKeyboardGameInput(status, view === 'settings', { handleInput, handleSubmit, handleClear, handleExit })
@@ -379,14 +375,6 @@ setSelectedDifficulty(tier)
               tabIndex={-1}
             >
               <button type="button" className="exit-btn" onClick={handleExit} title={translate('exitGame')} aria-label={translate('exitGame')}>✕</button>
-              {planetTransition && (
-                <div className="planet-transition" role="status" aria-live="polite">
-                  <span>{getPlanet(planetTransition.from).icon} {translate(getPlanetTranslationKeys(planetTransition.from)[0])}</span>
-                  <span aria-hidden="true">→</span>
-                  <strong>{translate('nowEntering', { planet: `${getPlanet(planetTransition.to).icon} ${translate(getPlanetTranslationKeys(planetTransition.to)[0])}` })}</strong>
-                  <small>{translate('reachedPoints', { difficulty: translate(difficulty), score })}</small>
-                </div>
-              )}
               <div className="board-wrapper">
                 <GameBoard
                   question={currentQuestion}
@@ -426,7 +414,7 @@ setSelectedDifficulty(tier)
 
           {status === 'finished' && roundSummary && (
             <div className="results-screen animate-pop">
-              <h2 ref={resultsHeadingRef} tabIndex={-1}>{mode === 'blitz' ? translate('timesUp') : isTargetedPractice ? translate('missedReviewed') : translate('roundComplete')}</h2>
+              <h2 ref={resultsHeadingRef} className="results-heading" tabIndex={-1}>{mode === 'blitz' ? translate('timesUp') : isTargetedPractice ? translate('missedReviewed') : translate('roundComplete')}</h2>
               {challengeCompletedThisRound && (
                 <div className="challenge-complete-banner" role="status">
                   <strong>{translate('dailyChallengeComplete')}</strong>
