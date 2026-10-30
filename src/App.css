@@ -1145,6 +1145,66 @@ html[data-high-contrast='true'] .settings-btn {
   font-size: 1rem;
 }
 
+.file-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.file-input-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--input-bg);
+}
+
+.file-input-trigger {
+  flex: 0 0 auto;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: calc(var(--radius-md) - 0.25rem);
+  background: var(--card-bg);
+  color: var(--text-primary) !important;
+  cursor: pointer;
+  font-weight: 600 !important;
+}
+
+.file-input-trigger:hover {
+  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.file-input-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-input-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.file-input-group:focus-within .file-input-control {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
 .checkbox-setting {
   display: flex;
   align-items: center;

@@ -51,6 +51,37 @@ trigger.remove()
     renderSettings()
     expect(screen.getByRole('button', { name: 'Back to game' })).toBeInTheDocument()
 })
+  it('uses translated file-picker text and separates the import label from the control', () => {
+    const onImportProgress = vi.fn()
+    render(
+      <SettingsView
+        playerName="Super Kid"
+        initialTime={10}
+        preferences={preferences}
+        locale="vi"
+        translate={key => {
+          const translations = {
+            importProgress: 'Nhập tiến trình',
+            chooseFile: 'Chọn tệp',
+            noFileChosen: 'Chưa chọn tệp',
+          }
+          return translations[key as keyof typeof translations] ?? String(key)
+        }}
+        onClose={vi.fn()}
+        onUpdateName={vi.fn()}
+        onUpdateTimer={vi.fn()}
+        onUpdatePreferences={vi.fn()}
+        onUpdateLocale={vi.fn()}
+        onResetStats={vi.fn()}
+        onImportProgress={onImportProgress}
+      />,
+    )
+
+    expect(screen.getByText('Nhập tiến trình')).toBeInTheDocument()
+    expect(screen.getByText('Chọn tệp')).toBeInTheDocument()
+    expect(screen.getByText('Chưa chọn tệp')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nhập tiến trình')).toHaveClass('file-input-native')
+  })
   it('closes when Escape is pressed', () => {
     const onClose = vi.fn()
     renderSettings(onClose)
