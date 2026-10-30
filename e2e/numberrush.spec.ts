@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 
 type InputMethod = 'keyboard' | 'keypad'
 
-const questionGroup = (page: Page) => page.getByRole('group', { name: /current answer not entered/i })
+const questionGroup = (page: Page) => page.getByRole('group', { name: /Your current answer is not entered/i })
 
 const readAnswer = async (page: Page): Promise<number> => {
   const label = await questionGroup(page).getAttribute('aria-label')
@@ -40,6 +40,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://fonts.gstatic.com/**', route => route.abort())
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'NumberRush' })).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 })
 
 test('starts Blitz and submits correct and incorrect answers with keyboard and keypad input', async ({ page }) => {
@@ -92,6 +93,21 @@ test('persists settings across a clean page reload', async ({ page }) => {
   await expect(reloadedSettings.getByLabel('Theme')).toHaveValue('light')
   await expect(reloadedSettings.getByLabel('High contrast')).toBeChecked()
   await expect(reloadedSettings.getByRole('button', { name: /^5s/ })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('selects Vietnamese and restores the locale after reload', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open settings' }).click()
+  const settings = page.getByRole('region', { name: 'Settings' })
+  await settings.getByLabel('Language').selectOption('vi')
+  await expect(page.getByRole('region', { name: 'Cài đặt' })).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'vi')
+  await expect(page.getByRole('button', { name: 'Bắt đầu Blitz Rush! ⚡' })).toHaveCount(0)
+
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'vi')
+  await expect(page.getByRole('button', { name: 'Mở cài đặt' })).toBeVisible()
+  await page.getByRole('button', { name: 'Mở cài đặt' }).click()
+  await expect(page.getByRole('region', { name: 'Cài đặt' }).getByLabel('Ngôn ngữ')).toHaveValue('vi')
 })
 
 test('records progress history after completing a round', async ({ page }) => {

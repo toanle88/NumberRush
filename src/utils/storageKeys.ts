@@ -21,6 +21,7 @@ export const STORAGE_KEYS = {
   PROGRESS_SESSIONS: 'numberrush_progress_sessions',
   DAILY_CHALLENGES: 'numberrush_daily_challenges',
   ACCESSIBILITY: 'numberrush_accessibility',
+  LOCALE: 'numberrush_locale',
 } as const
 
 export const STORAGE_JSON_KEYS = [

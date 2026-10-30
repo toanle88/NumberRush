@@ -2,16 +2,20 @@ import { memo } from 'react'
 import type { DifficultyTier, MathQuestion } from '../utils/mathLogic'
 import { formatOperation } from '../utils/mathLogic'
 import { getPlanet } from '../utils/planetProgression'
+import { createTranslator, getPlanetTranslationKeys } from '../utils/i18n'
+import type { Translator } from '../utils/i18n'
 interface GameBoardProps {
   question: MathQuestion
-currentInput: string
-score: number
-timeLeft: number
-maxTime: number
-streak: number
-showTimer: boolean
-level: number
-difficulty?: DifficultyTier}
+  currentInput: string
+  score: number
+  timeLeft: number
+  maxTime: number
+  streak: number
+  showTimer: boolean
+  level: number
+  difficulty?: DifficultyTier
+  translate?: Translator
+}
 
 const GameBoard = memo(({
   question,
@@ -23,16 +27,18 @@ const GameBoard = memo(({
   showTimer,
   level,
   difficulty = 'easy',
+  translate = createTranslator('en'),
 }: GameBoardProps) => {
   const progress = (timeLeft / maxTime) * 100
 const planet = getPlanet(level)
+const [planetNameKey] = getPlanetTranslationKeys(level)
 const spokenOperation = (operation: MathQuestion['operation']) => {
-    if (operation === 'addition') return 'plus'
-if (operation === 'subtraction') return 'minus'
-if (operation === 'multiplication') return 'times'
-return 'divided by'
+    if (operation === 'addition') return translate('plus')
+if (operation === 'subtraction') return translate('minus')
+if (operation === 'multiplication') return translate('times')
+return translate('dividedBy')
 }
-const questionText = `${question.operandA} ${spokenOperation(question.operation)} ${question.operandB}${question.operandC === undefined ? '' : ` ${spokenOperation(question.operation2!)} ${question.operandC}`} equals`
+const questionText = `${question.operandA} ${spokenOperation(question.operation)} ${question.operandB}${question.operandC === undefined ? '' : ` ${spokenOperation(question.operation2!)} ${question.operandC}`} ${translate('questionEquals')}`
   return (
     <div className="board-content">
       {showTimer && (
@@ -40,11 +46,11 @@ const questionText = `${question.operandA} ${spokenOperation(question.operation)
           <div
             className="progress-bar"
             role="progressbar"
-            aria-label="Time remaining"
+            aria-label={translate('timeRemaining')}
             aria-valuemin={0}
             aria-valuemax={maxTime}
             aria-valuenow={timeLeft}
-            aria-valuetext={`${timeLeft} seconds remaining${timeLeft <= 3 ? ', hurry' : ''}`}
+            aria-valuetext={translate('secondsRemaining', { seconds: timeLeft, hurry: timeLeft <= 3 ? translate('hurry') : '' })}
             style={{
               width: `${Math.max(0, progress)}%`,
               backgroundColor: timeLeft <= 3 ? 'var(--color-error)' : 'var(--color-primary)',
@@ -55,33 +61,33 @@ const questionText = `${question.operandA} ${spokenOperation(question.operation)
 
       <div className="stats-header">
         <div className="stat-item planet-stat">
-          <span className="label">Planet</span>
-          <span className="value">{planet.icon} {planet.name}</span>
+          <span className="label">{translate('planet')}</span>
+          <span className="value">{planet.icon} {translate(planetNameKey)}</span>
         </div>
         <div className="stat-item">
-          <span className="label">Difficulty</span>
-          <span className="value">{difficulty[0].toUpperCase() + difficulty.slice(1)}</span>
+          <span className="label">{translate('difficulty')}</span>
+          <span className="value">{translate(difficulty)}</span>
         </div>
         <div className="stat-item">
-          <span className="label">Score</span>
+          <span className="label">{translate('score')}</span>
           <span className="value">{score}</span>
         </div>
         {streak > 0 && (
           <div className="stat-item" style={{ color: 'var(--color-secondary)' }}>
-            <span className="label">Streak</span>
+            <span className="label">{translate('streak')}</span>
             <span className="value">🔥 {streak}</span>
           </div>
         )}
         {showTimer && (
           <div className="stat-item timer" aria-live="polite">
-            <span className="label">Time</span>
-            <span className="value">{timeLeft}s{timeLeft <= 3 ? ' — hurry' : ''}</span>
+            <span className="label">{translate('time')}</span>
+            <span className="value">{timeLeft}s{timeLeft <= 3 ? translate('timerHurry') : ''}</span>
           </div>
         )}
       </div>
 
-      <div className="question-display" role="group" aria-label={`${questionText} current answer ${currentInput || 'not entered'}`}>
-        <span className="sr-only" role="status" aria-live="polite">{questionText} Your current answer is {currentInput || 'not entered'}.</span>
+      <div className="question-display" role="group" aria-label={translate('currentAnswer', { question: questionText, answer: currentInput || translate('answerNotEntered') })}>
+        <span className="sr-only" role="status" aria-live="polite">{translate('currentAnswer', { question: questionText, answer: currentInput || translate('answerNotEntered') })}</span>
         <span>{question.operandA}</span>
         <span style={{ color: 'var(--color-primary)' }}>
           {formatOperation(question.operation)}

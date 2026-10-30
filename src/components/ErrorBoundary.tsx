@@ -1,4 +1,5 @@
 import { Component, Fragment, type ErrorInfo, type ReactNode } from 'react'
+import { createTranslator, readLocale } from '../utils/i18n'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -83,26 +84,25 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     const errorType = sanitizeDiagnosticText(getErrorType(this.state.error))
     const showDevelopmentDetails = import.meta.env.DEV
+    const translate = createTranslator(readLocale())
 
     return (
       <main className="error-boundary-screen" role="alert" aria-labelledby="error-boundary-heading">
         <section className="error-boundary-card">
-          <p className="eyebrow">NumberRush needs a reset</p>
-          <h1 id="error-boundary-heading">We hit a little snag</h1>
-          <p>
-            The game could not finish loading this screen. Try again resets this screen in memory and does not clear saved progress.
-          </p>
+          <p className="eyebrow">{translate('errorEyebrow')}</p>
+          <h1 id="error-boundary-heading">{translate('errorTitle')}</h1>
+          <p>{translate('errorDescription')}</p>
           <div className="error-boundary-actions">
-            <button type="button" className="primary" onClick={this.handleRetry}>Try again</button>
-            <button type="button" onClick={this.handleReload}>Reload page</button>
+            <button type="button" className="primary" onClick={this.handleRetry}>{translate('errorTryAgain')}</button>
+            <button type="button" onClick={this.handleReload}>{translate('errorReload')}</button>
           </div>
-          <p className="error-boundary-help">If this keeps happening, reload the page and try again.</p>
+          <p className="error-boundary-help">{translate('errorHelp')}</p>
           {showDevelopmentDetails && (
             <details className="error-boundary-details">
-              <summary>Development details</summary>
-              <p>Boundary: {BOUNDARY_ID}</p>
-              <p>Error type: {errorType || 'Unknown'}</p>
-              {this.state.componentStack && <p>Component stack: {this.state.componentStack}</p>}
+              <summary>{translate('errorDetails')}</summary>
+              <p>{translate('boundary')} {BOUNDARY_ID}</p>
+              <p>{translate('errorType')} {errorType || translate('unknown')}</p>
+              {this.state.componentStack && <p>{translate('componentStack')} {this.state.componentStack}</p>}
             </details>
           )}
         </section>
