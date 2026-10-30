@@ -151,6 +151,44 @@ fireEvent.keyDown(window, { key: '4' })
 expect(screen.getByText(/Your progress story starts here/i)).toBeInTheDocument()
 expect(screen.getByRole('button', { name: /Back to home/i })).toBeInTheDocument()
 })
+  it('returns to progress when the gear is clicked again while settings is open', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /View your progress/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back to game' }))
+
+    expect(screen.getByRole('heading', { name: 'Progress' })).toBeInTheDocument()
+  })
+  it('replaces the game content with settings and restores focus to the gear', () => {
+    render(<App />)
+    const settingsButton = screen.getByRole('button', { name: 'Open settings' })
+    settingsButton.focus()
+    fireEvent.click(settingsButton)
+
+    expect(screen.getByRole('region', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.queryByText('Daily challenge')).not.toBeInTheDocument()
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Settings' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to game' }))
+    expect(screen.getByText('Daily challenge')).toBeInTheDocument()
+    expect(document.activeElement).toBe(settingsButton)
+  })
+  it('preserves an active round while settings is open', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }))
+    const question = screen.getByRole('group', { name: /current answer not entered/i })
+    const questionLabel = question.getAttribute('aria-label')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
+    expect(screen.getByRole('region', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Math game' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to game' }))
+    expect(screen.getByRole('region', { name: 'Math game' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /current answer not entered/i })).toHaveAttribute('aria-label', questionLabel)
+  })
   it('shows presets before custom controls and keeps Chaos behind More options', () => {
     render(<App />)
     openRoundCustomizer()
