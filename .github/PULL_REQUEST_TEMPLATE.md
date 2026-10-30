@@ -12,7 +12,7 @@
 
 ## Verification
 
-- [ ] `pnpm format:check`
+- [ ] `pnpm lint`
 - [ ] `pnpm lint`
 - [ ] `pnpm test -- --run`
 - [ ] `pnpm build`

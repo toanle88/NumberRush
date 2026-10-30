@@ -16,6 +16,7 @@ import type { RecurringProgress } from '../utils/dailyChallenges'
 import { ensureStorageSchema, getStorageStatus, readStoredJson, readStoredNonNegativeInteger, removeStorage, writeStorage, writeStoredJson } from '../utils/storage'
 import type { StorageStatus } from '../utils/storage'
 import { STORAGE_KEYS, STORAGE_PROGRESS_KEYS } from '../utils/storageKeys'
+import { calculateAnswerScore, calculateNextStreak } from '../utils/gameScoring'
 export type GameStatus = 'idle' | 'playing' | 'finished'
 export type GameMode = 'blitz' | 'practice'
 export interface Badge {
@@ -418,8 +419,8 @@ if (pendingSubmissionRef.current || submissionState.status !== 'playing' || !que
     }
 const answerIsCorrect = feedback.isCorrect
 const isChaos = question.operandC !== undefined
-const newScore = answerIsCorrect ? submissionState.score + (10 * (Math.floor(submissionState.streak / 5) + 1)) : submissionState.score
-const newStreak = answerIsCorrect ? submissionState.streak + 1 : 0
+const newScore = calculateAnswerScore(submissionState.score, submissionState.streak, answerIsCorrect)
+const newStreak = calculateNextStreak(submissionState.streak, answerIsCorrect)
 const newRoundBestStreak = Math.max(submissionState.roundBestStreak, newStreak)
 const responseTimeMs = Math.max(0, Date.now() - submissionState.questionStartedAt)
     const newHighScore = Math.max(submissionState.highScore, newScore)

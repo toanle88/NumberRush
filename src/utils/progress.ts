@@ -4,6 +4,7 @@ import { STORAGE_KEYS } from './storageKeys'
 export const PROGRESS_STORAGE_KEY = STORAGE_KEYS.PROGRESS_SESSIONS
 export const MAX_PROGRESS_SESSIONS = 60
 export const MAX_ANSWERS_PER_SESSION = 200
+export const MAX_PROGRESS_QUESTIONS = 10_000
 const MAX_PROGRESS_STRING_LENGTH = 128
 const MAX_PROGRESS_LEVEL = 1_000
 const MAX_RESPONSE_TIME_MS = 86_400_000
@@ -84,11 +85,22 @@ averageResponseTimeMs?: number | null}): ProgressSession => {
     .slice(-MAX_ANSWERS_PER_SESSION)
     .map(answer => ({ ...answer, operations: [...new Set(answer.operations)] }))
 const breakdown = getBreakdown(answers)
-const totalQuestions = input.totalQuestions ?? breakdown.attempts
-const correctAnswers = input.correctAnswers ?? breakdown.solved
+const requestedTotalQuestions = input.totalQuestions ?? breakdown.attempts
+const totalQuestions = Number.isSafeInteger(requestedTotalQuestions) && requestedTotalQuestions >= breakdown.attempts
+    ? Math.min(requestedTotalQuestions, MAX_PROGRESS_QUESTIONS)
+    : breakdown.attempts
+const requestedCorrectAnswers = input.correctAnswers ?? breakdown.solved
+const correctAnswers = Number.isSafeInteger(requestedCorrectAnswers) && requestedCorrectAnswers >= 0
+    ? Math.min(requestedCorrectAnswers, totalQuestions)
+    : breakdown.solved
 const averageResponseTimeMs = input.averageResponseTimeMs === undefined
     ? breakdown.averageResponseTimeMs
-    : input.averageResponseTimeMs
+    : typeof input.averageResponseTimeMs === 'number'
+      && Number.isFinite(input.averageResponseTimeMs)
+      && input.averageResponseTimeMs >= 0
+      && input.averageResponseTimeMs <= MAX_RESPONSE_TIME_MS
+      ? input.averageResponseTimeMs
+      : breakdown.averageResponseTimeMs
 return {
     id: createId(),
     completedAt: input.completedAt ?? Date.now(),
@@ -124,17 +136,26 @@ const session = value as Partial<ProgressSession>
 if (typeof session.id !== 'string' || session.id.length === 0 || session.id.length > MAX_PROGRESS_STRING_LENGTH || typeof session.completedAt !== 'number' || !Number.isSafeInteger(session.completedAt) || session.completedAt < 0 || (session.mode !== 'blitz' && session.mode !== 'practice') || typeof session.finalScore !== 'number' || !Number.isSafeInteger(session.finalScore) || session.finalScore < 0 || session.finalScore > MAX_PROGRESS_SCORE || typeof session.bestStreak !== 'number' || !Number.isSafeInteger(session.bestStreak) || session.bestStreak < 0 || session.bestStreak > MAX_PROGRESS_STREAK || !Array.isArray(session.answers)) return null
 const answers = session.answers.slice(-MAX_ANSWERS_PER_SESSION).map(parseAnswer).filter((answer): answer is ProgressAnswer => answer !== null)
 if (session.answers.length > 0 && answers.length === 0) return null
-const totalQuestions = typeof session.totalQuestions === 'number' && Number.isSafeInteger(session.totalQuestions) && session.totalQuestions >= answers.length
-    ? session.totalQuestions
-    : answers.length
-const correctAnswers = typeof session.correctAnswers === 'number' && Number.isSafeInteger(session.correctAnswers) && session.correctAnswers >= 0 && session.correctAnswers <= totalQuestions
-    ? session.correctAnswers
-    : answers.filter(answer => answer.isCorrect).length
-const averageResponseTimeMs = session.averageResponseTimeMs === null
-    ? null
-    : typeof session.averageResponseTimeMs === 'number' && Number.isFinite(session.averageResponseTimeMs) && session.averageResponseTimeMs >= 0
-      ? session.averageResponseTimeMs
-      : getBreakdown(answers).averageResponseTimeMs
+const totalQuestions = session.totalQuestions === undefined
+    ? answers.length
+    : typeof session.totalQuestions === 'number' && Number.isSafeInteger(session.totalQuestions) && session.totalQuestions >= answers.length && session.totalQuestions <= MAX_PROGRESS_QUESTIONS
+      ? session.totalQuestions
+      : null
+if (totalQuestions === null) return null
+const correctAnswers = session.correctAnswers === undefined
+    ? answers.filter(answer => answer.isCorrect).length
+    : typeof session.correctAnswers === 'number' && Number.isSafeInteger(session.correctAnswers) && session.correctAnswers >= 0 && session.correctAnswers <= totalQuestions
+      ? session.correctAnswers
+      : null
+if (correctAnswers === null) return null
+const averageResponseTimeMs = session.averageResponseTimeMs === undefined
+    ? getBreakdown(answers).averageResponseTimeMs
+    : session.averageResponseTimeMs === null
+      ? null
+      : typeof session.averageResponseTimeMs === 'number' && Number.isFinite(session.averageResponseTimeMs) && session.averageResponseTimeMs >= 0 && session.averageResponseTimeMs <= MAX_RESPONSE_TIME_MS
+        ? session.averageResponseTimeMs
+        : null
+if (session.averageResponseTimeMs !== undefined && averageResponseTimeMs === null && session.averageResponseTimeMs !== null) return null
 return {
     id: session.id,
     completedAt: session.completedAt,

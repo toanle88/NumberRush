@@ -64,12 +64,12 @@ Run these from the repository root:
 | --- | --- |
 | `pnpm dev` | Start Vite development mode with HMR. |
 | `pnpm test -- --run` | Run the one-shot Vitest unit/component suite. Use `pnpm test` for watch mode. |
-| `pnpm exec playwright install chromium` | Install the browser needed by local E2E tests. On CI, use `--with-deps`. |
+| `pnpm exec playwright install chromium firefox` | Install the browsers needed by local E2E tests. On CI, use `--with-deps`. |
 | `pnpm test:e2e` | Run the desktop and mobile Playwright suite against the dev server. |
 | `pnpm lint` | Run ESLint. |
-| `pnpm format:check` | Run the repository's formatting check. |
-| `pnpm format` | Apply ESLint's configured formatting fixes. |
+| `pnpm lint:fix` | Apply ESLint's configured fixes. |
 | `pnpm build` | Type-check and create `dist/`. |
+| `pnpm test:coverage` | Run tests with the ratcheted V8 coverage thresholds. |
 | `pnpm preview` | Serve the built `dist/` directory locally. Run `pnpm build` first. |
 | `pnpm run performance:budget` | Check generated JavaScript/CSS gzip budgets; run after `pnpm build`. |
 | `pnpm run benchmark` | Build and run the bundle budget check. |
@@ -119,6 +119,8 @@ There is no server-side application or remote progress database.
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md),
 [docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md), and
+[docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md),
+[docs/TERRAFORM.md](docs/TERRAFORM.md), and
 [docs/ROADMAP.md](docs/ROADMAP.md) for the design, measurement, quality, and
 planning records.
 
@@ -194,7 +196,8 @@ pnpm build
 pnpm preview
 ```
 
-Infrastructure changes are handled separately by the Azure Infrastructure workflow. To work with the
+Infrastructure changes are handled separately by the Azure Infrastructure workflow. See
+[docs/TERRAFORM.md](docs/TERRAFORM.md) for the reviewed-plan and rollback process. To work with the
 remote backend, copy `infra/backend.hcl.example` to the ignored
 `infra/backend.hcl`, fill in approved Azure state-storage coordinates, then use
 the Terraform commands in `.github/workflows/infrastructure.yml`. Do not run
@@ -218,8 +221,8 @@ release owner remains responsible for the smoke test and rollback decision.
 1. Add all user-visible changes to `CHANGELOG.md` under `[Unreleased]`.
 2. In a pull request, set the root `package.json` `version` to the intended
    SemVer value and move the entries into `## [VERSION] - YYYY-MM-DD`.
-3. Run `pnpm release:check -- vVERSION`, `pnpm format:check`, `pnpm lint`,
-   `pnpm test -- --run`, and `pnpm build`. Merge only after Pull Request Checks is green.
+3. Run `pnpm release:check -- vVERSION`, `pnpm lint`, `pnpm test -- --run`,
+   `pnpm test:coverage`, and `pnpm build`. Merge only after Pull Request Checks is green.
 4. Confirm the merge commit has deployed through the `production` environment.
    Open the environment URL shown on the Deploy production workflow, load the
    app, open Settings, confirm the displayed version, and run one short round.

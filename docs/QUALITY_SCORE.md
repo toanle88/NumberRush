@@ -9,10 +9,13 @@ The repository's Pull Request Checks workflow currently provides these
 repeatable checks:
 
 - locked dependency installation and high/critical dependency audit;
-- ESLint and the repository formatting check;
+- ESLint linting plus the explicitly named `lint:fix` repair command;
 - one-shot Vitest tests;
+- V8 coverage for utility and game-state/persistence modules with ratcheted
+  minimum thresholds;
 - TypeScript check plus Vite production build;
-- Playwright desktop and mobile E2E tests;
+- Playwright desktop Chromium, mobile Chromium, and desktop Firefox E2E tests;
+- axe-based accessibility checks alongside the custom accessibility audit;
 - Terraform formatting and validation;
 - CodeQL analysis;
 - scheduled production performance/PWA/accessibility gates.
@@ -21,15 +24,18 @@ repeatable checks:
 
 These are goals, not current verified values unless a linked report says so:
 
-- maintain zero lint, formatting, type-check, build, and test failures;
+- maintain zero lint, type-check, build, test, and coverage-threshold failures;
 - keep bundle and browser measurements within [PERFORMANCE.md](PERFORMANCE.md);
 - avoid high or critical dependency advisories in CI;
 - add regression coverage for user-visible and persistence behavior;
 - keep changes accessible by default and document intentional exceptions.
 
-The repository does not currently publish a coverage threshold or a durable
-weighted numeric quality score. Coverage and a letter grade must not be
-reported as facts without a retained report and methodology.
+The coverage gate currently includes `src/utils/**/*.ts` and
+`src/hooks/useGame.ts` with minimum lines, functions, and statements of 70%
+and branches of 60%. These are deliberately modest starting thresholds that
+can be raised as coverage improves. The repository does not publish a durable
+weighted numeric quality score or a coverage percentage for a specific commit
+without a retained report.
 
 ## Review expectations
 

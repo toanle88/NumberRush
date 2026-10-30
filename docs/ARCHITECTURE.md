@@ -20,9 +20,11 @@ component library.
 1. `src/main.tsx` mounts `App` inside `ErrorBoundary`.
 2. `src/App.tsx` selects the home, game, results, progress, and settings views;
    translates keypad/keyboard input into actions; and renders feedback.
-3. `src/hooks/useGame.ts` owns the round state machine, timer, scoring,
-   adaptive difficulty, progression, badges, recurring challenges, and
-   persistence retries.
+   `usePlayerSettings` owns settings state, while `useProgressTransfer` owns
+   export/import browser-file behavior.
+3. `src/hooks/useGame.ts` owns the round state machine, timer, adaptive
+   difficulty, progression, badges, recurring challenges, and persistence
+   retries. Pure score transitions live in `src/utils/gameScoring.ts`.
 4. Focused hooks in `src/hooks/` isolate browser lifecycle concerns: media
    queries, document preferences, focus management, keyboard input, timers,
    intervals, and streak/audio effects.
@@ -67,3 +69,4 @@ control.
 - [QUALITY_SCORE.md](QUALITY_SCORE.md) — quality targets versus verified checks.
 - [ROADMAP.md](ROADMAP.md) — completed, active, and planned work.
 - [SECURITY.md](../SECURITY.md) — reporting process and repository controls.
+- [SECURITY_MODEL.md](SECURITY_MODEL.md) — storage threat and data-flow model.
