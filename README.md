@@ -91,8 +91,7 @@ There are no application-specific `VITE_*` variables. The app works without a
 
 Deployment and infrastructure credentials are GitHub secrets, not browser
 runtime configuration. The workflows expect `AZURE_STATIC_WEB_APPS_API_TOKEN`
-for production, `AZURE_STATIC_WEB_APPS_PREVIEW_TOKEN` for optional PR previews,
-and `AZURE_CLIENT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, and
+for production, and `AZURE_CLIENT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, and
 `STORAGE_ACCOUNT_NAME` for the Terraform workflow. Never commit these values,
 Terraform state, `infra/backend.hcl`, or generated reports containing secrets.
 
@@ -185,8 +184,6 @@ Production deployment is workflow-driven:
 1. A push to `main` runs [Pull Request Checks](.github/workflows/ci.yml).
 2. If Pull Request Checks succeeds, `.github/workflows/deploy.yml` downloads the validated
    `dist/` artifact and deploys it to the protected `production` environment.
-3. Optional PR previews use `.github/workflows/preview.yml` and the protected
-   `preview` environment.
 
 For a local production check:
 
@@ -303,7 +300,7 @@ Please do not disclose security vulnerabilities in public issues. Follow
 Pull Request Checks is the single application gate. It runs locked installation,
 formatting, dependency audit, lint, unit tests, the production build, browser
 end-to-end tests, Terraform syntax validation, CodeQL, and scheduled performance
-checks. Preview and production deployments consume the validated build artifact;
+checks. Production deployment consumes the validated build artifact;
 Azure Infrastructure manages Terraform resources separately. A green local run
 does not by itself prove a hosted deployment is live.
 

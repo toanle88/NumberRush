@@ -43,8 +43,8 @@ component library.
 - `e2e/`: Playwright tests for user-visible behavior, PWA behavior, and the
   production preview.
 - `infra/`: Terraform configuration for Azure resources and remote state.
-- `.github/workflows/`: validation, security analysis, performance, preview,
-  and production deployment automation.
+- `.github/workflows/`: validation, security analysis, performance, and
+  production deployment automation.
 
 ## Persistence model
 
