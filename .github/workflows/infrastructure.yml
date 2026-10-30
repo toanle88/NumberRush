@@ -1,6 +1,6 @@
-name: '01 - Infrastructure (Terraform)'
+name: 'Azure Infrastructure (Terraform)'
 
-run-name: "🏗️ Infra: ${{ github.ref_name }} | @${{ github.actor }}"
+run-name: "🏗️ Azure Infra: ${{ github.ref_name }} | @${{ github.actor }}"
 
 on:
   workflow_dispatch:
@@ -37,7 +37,12 @@ jobs:
           terraform_wrapper: false
 
       - name: "📥 Initialize"
-        run: terraform init -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT_NAME }}"
+        run: >-
+          terraform init -input=false
+          -backend-config="resource_group_name=shared-rg"
+          -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT_NAME }}"
+          -backend-config="container_name=numberrush-tfstate"
+          -backend-config="key=numberrush.terraform.numberrush-tfstate"
 
       - name: "🔍 Run Plan"
         run: terraform plan -input=false
@@ -69,7 +74,12 @@ jobs:
           terraform_wrapper: false
 
       - name: "📥 Initialize"
-        run: terraform init -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT_NAME }}"
+        run: >-
+          terraform init -input=false
+          -backend-config="resource_group_name=shared-rg"
+          -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT_NAME }}"
+          -backend-config="container_name=numberrush-tfstate"
+          -backend-config="key=numberrush.terraform.numberrush-tfstate"
 
       - name: "🚀 Execute Apply"
         run: terraform apply -auto-approve -input=false
