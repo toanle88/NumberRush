@@ -8,24 +8,13 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ## [Unreleased]
 
-### Changed
-
-- Release artifacts now include a SHA-256 checksum for maintainer verification.
+No unreleased changes.
 
 ## [1.0.0] - 2026-10-30
 
 ### Added
 
-- Open-source setup, architecture, privacy, security, contribution, and
-  support documentation.
-- Standard issue and pull-request contribution templates.
-
-### Changed
-
-- Reorganized detailed project documentation under `docs/`.
-- Split browser lifecycle behavior into focused React hooks for media queries,
-  document preferences, focus management, keyboard input, timers, intervals,
-  and streak/audio effects.
+- Initial stable release of NumberRush.
 
 [Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.0
