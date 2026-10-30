@@ -314,6 +314,10 @@
   font-size: 3rem;
 }
 
+.progress-empty-state + .goals-panel {
+  margin-top: 1rem;
+}
+
 @media (max-width: 768px) {
   .progress-heading {
     flex-direction: column;
