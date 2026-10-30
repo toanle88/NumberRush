@@ -3,6 +3,7 @@ import {
   calculateProgressMetrics,
   createProgressSession,
   MAX_ANSWERS_PER_SESSION,
+  MAX_PROGRESS_QUESTIONS,
   MAX_PROGRESS_SESSIONS,
   PROGRESS_STORAGE_KEY,
   readProgressSessions,
@@ -158,4 +159,31 @@ expect(loaded).toMatchObject({
     })
 expect(calculateProgressMetrics([loaded]).questionsAttempted).toBe(MAX_ANSWERS_PER_SESSION + 10)
 })
+  it('rejects untrusted aggregate values outside their supported bounds', () => {
+    const answer = {
+      isCorrect: true,
+      operations: ['addition'],
+      difficulty: 'easy',
+      level: 1,
+      responseTimeMs: 100,
+    }
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify([
+      { id: 'too-many-questions', completedAt: 1, mode: 'practice', finalScore: 0, bestStreak: 0, totalQuestions: MAX_PROGRESS_QUESTIONS + 1, correctAnswers: 1, averageResponseTimeMs: 100, answers: [answer] },
+      { id: 'too-slow', completedAt: 2, mode: 'practice', finalScore: 0, bestStreak: 0, totalQuestions: 1, correctAnswers: 1, averageResponseTimeMs: 86_400_001, answers: [answer] },
+    ]))
+
+    expect(readProgressSessions()).toEqual([])
+  })
+  it('does not throw for fuzzed malformed session records', () => {
+    const malformedRecords = Array.from({ length: 100 }, (_, index) => ({
+      id: index % 2 === 0 ? 'valid-looking' : ['unexpected', index],
+      completedAt: index % 3 === 0 ? Number.POSITIVE_INFINITY : 'not-a-date',
+      mode: index % 2 === 0 ? 'practice' : 'unknown',
+      totalQuestions: index % 4 === 0 ? Number.MAX_SAFE_INTEGER + 1 : { value: index },
+      answers: index % 5 === 0 ? [null, {}, 'answer'] : 'not-an-array',
+    }))
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(malformedRecords))
+
+    expect(() => readProgressSessions()).not.toThrow()
+  })
 })

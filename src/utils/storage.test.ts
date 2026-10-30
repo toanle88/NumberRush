@@ -42,6 +42,23 @@ describe('versioned storage', () => {
     expect(readStoredJson(STORAGE_KEYS.BADGES)).toBeNull()
     expect(localStorage.getItem(STORAGE_KEYS.BADGES)).toBe(future)
   })
+  it('does not throw for fuzzed malformed imported JSON records', () => {
+    const malformedRecords = [
+      null,
+      [],
+      { app: 'number-rush', version: 2, data: null },
+      { app: 'number-rush', version: 2, data: { numberrush_highscore: { value: 1 } } },
+      ...Array.from({ length: 100 }, (_, index) => ({
+        app: index % 2 === 0 ? 'number-rush' : 'unknown',
+        version: index % 3 === 0 ? Number.MAX_SAFE_INTEGER + 1 : '2',
+        data: index % 4 === 0 ? { numberrush_badges: ['unexpected', index] } : 'not-an-object',
+      })),
+    ]
+
+    for (const record of malformedRecords) {
+      expect(() => importProgress(JSON.stringify(record))).not.toThrow()
+    }
+  })
 
   it('returns migrated data when writing the recovery envelope fails', () => {
     localStorage.setItem(STORAGE_KEYS.BADGES, JSON.stringify(['safe']))

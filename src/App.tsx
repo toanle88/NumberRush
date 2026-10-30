@@ -11,17 +11,15 @@ import SettingsView from './components/SettingsModal'
 import { getPlanet, PLANETS } from './utils/planetProgression'
 import { getChallengeProgress } from './utils/dailyChallenges'
 import { playCorrectSound, playIncorrectSound } from './utils/soundEffects'
-import { readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility'
-import type { AccessibilityPreferences } from './utils/accessibility'
-import { exportProgress, getStorageStatus, importProgress, MAX_IMPORT_LENGTH, readStorage, readStoredNonNegativeInteger, writeStorage } from './utils/storage'
-import { STORAGE_KEYS } from './utils/storageKeys'
-import { normalizePlayerName } from './utils/playerName'
+import { triggerHaptic } from './utils/accessibility'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDocumentPreferences } from './hooks/useDocumentPreferences'
 import { useGameFocus } from './hooks/useFocusTrap'
 import { useKeyboardGameInput } from './hooks/useKeyboardGameInput'
 import { useBadgeUnlockNotice, useFeedbackExpiry, usePlanetTransition } from './hooks/useTimeout'
 import { useBlitzSounds, useStreakCelebration } from './hooks/useStreakCelebration'
+import { usePlayerSettings } from './hooks/usePlayerSettings'
+import { useProgressTransfer } from './hooks/useProgressTransfer'
 import './App.css'
 
 type RoundPreset = 'quick' | 'challenge' | 'custom'
@@ -34,13 +32,12 @@ const DIFFICULTY_HELP: Record<DifficultyTier, string> = {
 }
 function App() {
   const [view, setView] = useState<'home' | 'progress' | 'settings'>('home')
-const [initialTime, setInitialTime] = useState(() =>
-    Math.min(20, Math.max(1, readStoredNonNegativeInteger(STORAGE_KEYS.TIMER, 10, 20))),
-  )
-const [playerName, setPlayerName] = useState(() =>
-    normalizePlayerName(readStorage(STORAGE_KEYS.NAME)),
-  )
-const [preferences, setPreferences] = useState<AccessibilityPreferences>(readAccessibilityPreferences)
+  const {
+    initialTime, hasStoredTimer, playerName, preferences, settingsPersistenceFailed,
+    updateName, updateTimer, updatePreferences,
+  } = usePlayerSettings()
+  const [dataMessage, setDataMessage] = useState<string | null>(null)
+  const { handleExportProgress, handleImportProgress } = useProgressTransfer(setDataMessage)
 const systemReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 const settingsReturnViewRef = useRef<'home' | 'progress'>('home')
 const [isAdvanced, setIsAdvanced] = useState(false)
@@ -48,8 +45,6 @@ const [roundPreset, setRoundPreset] = useState<RoundPreset>('quick')
 const [moreOptionsOpen, setMoreOptionsOpen] = useState(false)
 const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyTier | undefined>()
 const [selectedOperations, setSelectedOperations] = useState<Operation[]>(QUICK_START_OPERATIONS)
-const [settingsPersistenceFailed, setSettingsPersistenceFailed] = useState(false)
-const [dataMessage, setDataMessage] = useState<string | null>(null)
   const {
     status, score, timeLeft, streak, mode, currentQuestion,
     highScore, bestStreak, unlockedBadges, currentLevel, difficulty, maxTime, playedLevels, missedQuestions,
@@ -79,7 +74,7 @@ const restoreStartFocusRef = useRef(false)
 setPlanetTransition(null)
 setFeedback(null)
 const hasDifficultyOverride = selectedDifficulty !== undefined
-const timerOverride = readStorage(STORAGE_KEYS.TIMER) !== null ? initialTime : undefined
+  const timerOverride = hasStoredTimer ? initialTime : undefined
 startGame(selectedLevel, m, isAdvanced, selectedOperations, selectedDifficulty, timerOverride, hasDifficultyOverride, true)
 }
   const selectRoundPreset = (preset: RoundPreset) => {
@@ -135,52 +130,6 @@ setFeedback(null)
 startTargetedPractice()
 setInput('')
 }, [setPlanetTransition, startTargetedPractice])
-  const updateName = (val: string) => {
-    setPlayerName(val)
-    setSettingsPersistenceFailed(!writeStorage(STORAGE_KEYS.NAME, val))
-}
-  const updateTimer = (val: number) => {
-    setInitialTime(val)
-    setSettingsPersistenceFailed(!writeStorage(STORAGE_KEYS.TIMER, val.toString()))
-}
-  const handleExportProgress = useCallback(() => {
-    const serialized = exportProgress()
-    if (!serialized || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
-      setDataMessage(getStorageStatus() === 'unavailable'
-        ? 'Progress could not be exported because storage is unavailable on this device.'
-        : 'Progress could not be exported on this device.')
-      return
-    }
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(new Blob([serialized], { type: 'application/json' }))
-    link.download = `number-rush-progress-${new Date().toISOString().slice(0, 10)}.json`
-    link.click()
-    URL.revokeObjectURL(link.href)
-    setDataMessage('Progress exported successfully.')
-  }, [])
-  const handleImportProgress = useCallback((file: File) => {
-    if (file.size > MAX_IMPORT_LENGTH) {
-      setDataMessage('Progress file is too large to import.')
-      return
-    }
-    void file.text().then(serialized => {
-      const result = importProgress(serialized)
-      if (!result.ok) {
-        setDataMessage(result.reason === 'unsupported'
-          ? 'This progress file is from an unsupported version.'
-          : result.reason === 'too-large'
-            ? 'Progress file is too large to import.'
-            : 'Progress file could not be imported.')
-        return
-      }
-      window.location.reload()
-    }).catch(() => setDataMessage('Progress file could not be imported.'))
-  }, [])
-  const updatePreferences = (patch: Partial<AccessibilityPreferences>) => {
-    const nextPreferences = { ...preferences, ...patch }
-    setPreferences(nextPreferences)
-    setSettingsPersistenceFailed(!saveAccessibilityPreferences(nextPreferences))
-}
   const clearFeedback = useCallback(() => setFeedback(null), [])
   useFeedbackExpiry(feedback, status, clearFeedback)
   useKeyboardGameInput(status, view === 'settings', { handleInput, handleSubmit, handleClear, handleExit })

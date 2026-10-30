@@ -62,11 +62,11 @@ Before handing off a code change, run the checks relevant to its scope. The
 normal full validation sequence is:
 
 ```bash
-pnpm format:check
 pnpm lint
 pnpm test -- --run
+pnpm test:coverage
 pnpm build
-pnpm exec playwright install chromium
+  pnpm exec playwright install chromium firefox
 pnpm test:e2e
 ```
 
