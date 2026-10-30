@@ -9,15 +9,13 @@ shell has been cached.
 
 [![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 [![Static Analysis](../../actions/workflows/quality.yml/badge.svg)](../../actions/workflows/quality.yml)
-[![Production deployment](../../actions/workflows/deploy.yml/badge.svg)](../../actions/workflows/deploy.yml)
 
 ## Project status
 
-NumberRush is in active development and is not currently a versioned public
-release. The version in the root `package.json` is the single release version
-source; the build injects it into the app and release checks require it to match
-the `vMAJOR.MINOR.PATCH` Git tag. A stable hosted demo URL is not configured in
-this checkout; after starting the dev server, use the [local demo](http://localhost:5173).
+NumberRush is version `1.0.0` (`package.json`). The repository contains the
+source, tests, PWA configuration, and Azure deployment workflows. A stable
+hosted demo URL is not configured in this checkout; after starting the dev
+server, use the [local demo](http://localhost:5173).
 
 ## Features
 
@@ -37,8 +35,8 @@ this checkout; after starting the dev server, use the [local demo](http://localh
 
 ### Prerequisites
 
-- Node.js 24.x. This is the version used by CI and the dev container; other
-  major versions are not part of the supported test matrix.
+- Node.js 24.x. This is the version used by CI; other major versions are not
+  part of the supported test matrix.
 - pnpm 11.24.0. This exact version is declared in `package.json` and the
   workflows. Enable Corepack if pnpm is not already available:
 
@@ -119,9 +117,11 @@ There is no server-side application or remote progress database.
   and security headers.
 - `infra/` contains Terraform configuration for Azure resources.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md), [PERFORMANCE.md](PERFORMANCE.md),
-[QUALITY_SCORE.md](QUALITY_SCORE.md), and [ROADMAP.md](ROADMAP.md) for the
-design, measurement, quality, and planning records.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
+[docs/PERFORMANCE.md](docs/PERFORMANCE.md),
+[docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md), and
+[docs/ROADMAP.md](docs/ROADMAP.md) for the design, measurement, quality, and
+planning records.
 
 ## PWA, browsers, and offline behavior
 
@@ -201,7 +201,7 @@ the Terraform commands in `.github/workflows/infrastructure.yml`. Do not run
 `terraform apply` without the required Azure identity, state backend, and
 production approval.
 
-## Release management
++## Release management
 
 NumberRush uses Semantic Versioning. Stable release tags are `vMAJOR.MINOR.PATCH`;
 prereleases use a SemVer suffix such as `v1.2.0-rc.1`. Build metadata is allowed
@@ -305,9 +305,9 @@ offline behavior, browser performance thresholds, and a small accessibility
 audit. These workflows report the current repository state; a green local run
 does not by itself prove a hosted deployment is live.
 
-See [QUALITY_SCORE.md](QUALITY_SCORE.md) for the distinction between targets
-and verified metrics, and [PERFORMANCE.md](PERFORMANCE.md) for measurement
-provenance.
+See [docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md) for the distinction between
+targets and verified metrics, and [docs/PERFORMANCE.md](docs/PERFORMANCE.md)
+for measurement provenance.
 
 ## License and security
 

@@ -43,10 +43,10 @@ checks, generates JSON and Markdown reports, and retains them as the
 
 ## Baseline evidence
 
-This fresh local run was completed on 2026-10-29 after installing the committed
-lockfile from the existing offline pnpm store. The JSON reports were generated
-under the ignored `performance-results/` directory and are not committed or
-retained as a workflow artifact by this checkout.
+The historical browser baseline below was completed on 2026-10-29 after
+installing the committed lockfile from the existing offline pnpm store. The
+JSON reports were generated under the ignored `performance-results/` directory
+and are not committed or retained as a workflow artifact by this checkout.
 
 | Date | Environment | Measured result | Evidence status |
 | --- | --- | --- | --- |
@@ -56,3 +56,14 @@ The heading-visible value is the documented fallback because this headless
 Chromium run did not expose an LCP entry. Do not describe this table as a live
 service-level guarantee. Future baseline rows should include the workflow
 artifact or linked JSON/Markdown reports from a reproducible run.
+
+### Current bundle check
+
+A bundle-only check completed on 2026-10-30 after the current source changes:
+
+| Date | Total gzip | JavaScript gzip | CSS gzip | Result |
+| --- | ---: | ---: | ---: | --- |
+| 2026-10-30 | 102.2 KiB | 87.5 KiB | 6.7 KiB | All bundle budgets passed |
+
+Browser performance, PWA, and accessibility metrics were not rerun for this
+check, so no new browser baseline is claimed.
