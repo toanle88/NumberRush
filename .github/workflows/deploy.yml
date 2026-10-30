@@ -1,13 +1,12 @@
 name: Deploy production
 
 on:
-  workflow_run:
-    workflows:
-      - Pull Request Checks
-    types:
-      - completed
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to deploy, for example v1.0.0'
+        required: true
+        type: string
 
 permissions:
   actions: read
@@ -20,25 +19,38 @@ concurrency:
 jobs:
   deploy:
     name: Deploy to Azure Static Web Apps
-    if: >-
-      ${{
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_branch == 'main' &&
-        github.event.workflow_run.head_repository.full_name == github.repository
-      }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
       name: production
       url: ${{ steps.deploy.outputs.static_web_app_url }}
     steps:
-      - name: Download validated production bundle
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
-        with:
-          name: production-bundle
-          path: dist
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+      - name: Validate release tag
+        env:
+          DEPLOY_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ "$DEPLOY_TAG" != v* || "$DEPLOY_TAG" == */* ]]; then
+            echo "The deployment tag must look like v1.0.0."
+            exit 1
+          fi
+
+      - name: Download and verify release artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_TAG: ${{ inputs.tag }}
+        run: |
+          mkdir -p release-artifact dist
+          gh release download "$DEPLOY_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "numberrush-${DEPLOY_TAG}.zip" \
+            --pattern "numberrush-${DEPLOY_TAG}.zip.sha256" \
+            --dir release-artifact
+          (
+            cd release-artifact
+            sha256sum -c "numberrush-${DEPLOY_TAG}.zip.sha256"
+          )
+          unzip -q "release-artifact/numberrush-${DEPLOY_TAG}.zip" -d dist
+          test -f dist/index.html
 
       - name: Deploy production bundle
         id: deploy
