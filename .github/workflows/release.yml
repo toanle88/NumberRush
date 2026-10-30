@@ -5,23 +5,17 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version without the v prefix, for example 1.0.0'
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 env:
   NODE_VERSION: 24
   PNPM_VERSION: 11.24.0
-  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
 
 jobs:
   release:
@@ -47,11 +41,26 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
+      - name: Read application version
+        id: package_version
+        run: |
+          version="$(node -p "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_TAG=v$version" >> "$GITHUB_ENV"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Validate version and changelog
         run: pnpm release:check -- "$RELEASE_TAG"
+
+      - name: Verify pushed tag matches package version
+        if: github.event_name == 'push'
+        run: |
+          if [ "$GITHUB_REF_NAME" != "$RELEASE_TAG" ]; then
+            echo "Pushed tag $GITHUB_REF_NAME does not match package.json version ($RELEASE_TAG)."
+            exit 1
+          fi
 
       - name: Ensure manual release tag is unused
         if: github.event_name == 'workflow_dispatch'
