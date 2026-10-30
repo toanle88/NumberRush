@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { DAILY_CHALLENGES_STORAGE_KEY, getDailyChallenge, getLocalDateKey, getWeekStartKey } from './utils/dailyChallenges'
+import { MAX_IMPORT_LENGTH } from './utils/storage'
 const openRoundCustomizer = () => {
   fireEvent.click(screen.getByText('Customize round'))
 }
@@ -160,6 +161,25 @@ expect(screen.getByRole('button', { name: /Back to home/i })).toBeInTheDocument(
     fireEvent.click(screen.getByRole('button', { name: 'Back to game' }))
 
     expect(screen.getByRole('heading', { name: 'Progress' })).toBeInTheDocument()
+  })
+  it('normalizes an oversized stored player name to the input limit', () => {
+    localStorage.setItem('numberrush_name', ` ${'A'.repeat(25)} `)
+
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
+
+    expect(screen.getByLabelText('Your name')).toHaveValue('A'.repeat(20))
+  })
+  it('rejects oversized progress files before reading their contents', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
+    const text = vi.fn()
+    const file = { name: 'oversized.json', size: MAX_IMPORT_LENGTH + 1, text } as unknown as File
+
+    fireEvent.change(screen.getByLabelText('Import progress'), { target: { files: [file] } })
+
+    expect(text).not.toHaveBeenCalled()
+    expect(screen.getByRole('status')).toHaveTextContent('Progress file is too large to import.')
   })
   it('replaces the game content with settings and restores focus to the gear', () => {
     render(<App />)

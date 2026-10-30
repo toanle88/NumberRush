@@ -13,8 +13,9 @@ import { getChallengeProgress } from './utils/dailyChallenges'
 import { playCorrectSound, playIncorrectSound } from './utils/soundEffects'
 import { readAccessibilityPreferences, saveAccessibilityPreferences, triggerHaptic } from './utils/accessibility'
 import type { AccessibilityPreferences } from './utils/accessibility'
-import { exportProgress, getStorageStatus, importProgress, readStorage, readStoredNonNegativeInteger, writeStorage } from './utils/storage'
+import { exportProgress, getStorageStatus, importProgress, MAX_IMPORT_LENGTH, readStorage, readStoredNonNegativeInteger, writeStorage } from './utils/storage'
 import { STORAGE_KEYS } from './utils/storageKeys'
+import { normalizePlayerName } from './utils/playerName'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDocumentPreferences } from './hooks/useDocumentPreferences'
 import { useGameFocus } from './hooks/useFocusTrap'
@@ -37,7 +38,7 @@ const [initialTime, setInitialTime] = useState(() =>
     Math.min(20, Math.max(1, readStoredNonNegativeInteger(STORAGE_KEYS.TIMER, 10, 20))),
   )
 const [playerName, setPlayerName] = useState(() =>
-    readStorage(STORAGE_KEYS.NAME) || 'Super Kid',
+    normalizePlayerName(readStorage(STORAGE_KEYS.NAME)),
   )
 const [preferences, setPreferences] = useState<AccessibilityPreferences>(readAccessibilityPreferences)
 const systemReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
@@ -158,12 +159,18 @@ setInput('')
     setDataMessage('Progress exported successfully.')
   }, [])
   const handleImportProgress = useCallback((file: File) => {
+    if (file.size > MAX_IMPORT_LENGTH) {
+      setDataMessage('Progress file is too large to import.')
+      return
+    }
     void file.text().then(serialized => {
       const result = importProgress(serialized)
       if (!result.ok) {
         setDataMessage(result.reason === 'unsupported'
           ? 'This progress file is from an unsupported version.'
-          : 'Progress file could not be imported.')
+          : result.reason === 'too-large'
+            ? 'Progress file is too large to import.'
+            : 'Progress file could not be imported.')
         return
       }
       window.location.reload()

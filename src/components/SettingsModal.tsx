@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { AccessibilityPreferences } from '../utils/accessibility'
+import { MAX_PLAYER_NAME_LENGTH } from '../utils/playerName'
 import { APP_VERSION } from '../version'
 interface SettingsViewProps {
   playerName: string
@@ -63,7 +64,7 @@ const SettingsView = ({
             value={playerName}
             onChange={event => onUpdateName(event.target.value)}
             placeholder="Enter your name"
-            maxLength={20}
+            maxLength={MAX_PLAYER_NAME_LENGTH}
           />
       </div>
       <fieldset className="settings-section setting-item">
