@@ -33,8 +33,8 @@ const DIFFICULTY_HELP: Record<DifficultyTier, TranslationKey> = {
 function App() {
   const [view, setView] = useState<'home' | 'progress' | 'settings'>('home')
   const {
-    initialTime, hasStoredTimer, playerName, preferences, settingsPersistenceFailed,
-    updateName, updateTimer, updatePreferences, locale, updateLocale,
+    initialTime, hasStoredTimer, autoIncreaseDifficulty, playerName, preferences, settingsPersistenceFailed,
+    updateName, updateTimer, updateAutoIncreaseDifficulty, updatePreferences, locale, updateLocale,
   } = usePlayerSettings()
   const translate = createTranslator(locale)
   const [dataMessage, setDataMessage] = useState<string | null>(null)
@@ -74,7 +74,7 @@ const restoreStartFocusRef = useRef(false)
 setFeedback(null)
 const hasDifficultyOverride = selectedDifficulty !== undefined
   const timerOverride = hasStoredTimer ? initialTime : undefined
-startGame(selectedLevel, m, isAdvanced, selectedOperations, selectedDifficulty, timerOverride, hasDifficultyOverride, true)
+startGame(selectedLevel, m, isAdvanced, selectedOperations, selectedDifficulty, timerOverride, hasDifficultyOverride, true, autoIncreaseDifficulty)
 }
   const selectRoundPreset = (preset: RoundPreset) => {
     setRoundPreset(preset)
@@ -170,10 +170,12 @@ setInput('')
             <SettingsView
               playerName={playerName}
               initialTime={initialTime}
+              autoIncreaseDifficulty={autoIncreaseDifficulty}
               preferences={preferences}
               onClose={closeSettings}
               onUpdateName={updateName}
               onUpdateTimer={updateTimer}
+              onUpdateAutoIncreaseDifficulty={updateAutoIncreaseDifficulty}
               onUpdatePreferences={updatePreferences}
               locale={locale}
               onUpdateLocale={updateLocale}

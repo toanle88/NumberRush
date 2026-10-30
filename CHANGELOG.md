@@ -10,6 +10,13 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 No unreleased changes.
 
+## [1.0.2] - 2026-10-30
+
+### Added
+
+- Add a Settings option to keep difficulty fixed instead of increasing it
+  automatically during a round. Automatic progression remains the default.
+
 ## [1.0.1] - 2026-10-30
 
 ### Fixed
@@ -30,6 +37,7 @@ No unreleased changes.
 
 - Initial stable release of NumberRush.
 
-[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.2
 [1.0.1]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.1
 [1.0.0]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.0

@@ -149,6 +149,22 @@ expect(result.current.currentLevel).toBe(2)
 expect(result.current.difficulty).toBe('medium')
 expect(result.current.currentQuestion!.operandA).toBeLessThanOrEqual(20)
 })
+  it('keeps the selected difficulty fixed when automatic progression is disabled', () => {
+    const { result } = renderHook(() => useGame(10))
+    act(() => {
+      result.current.startGame(1, 'blitz', false, ['addition'], undefined, undefined, false, true, false)
+    })
+
+    for (let answerNumber = 0; answerNumber < 8; answerNumber += 1) {
+      act(() => {
+        result.current.submitAnswer(result.current.currentQuestion!.answer)
+      })
+    }
+
+    expect(result.current.currentLevel).toBe(2)
+    expect(result.current.difficulty).toBe('easy')
+    expect(result.current.maxTime).toBe(15)
+  })
   it('uses planet timers without treating the planet tier as a difficulty override', () => {
     const { result } = renderHook(() => useGame(10))
 act(() => {

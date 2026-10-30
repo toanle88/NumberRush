@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { readAccessibilityPreferences, saveAccessibilityPreferences } from '../utils/accessibility'
 import type { AccessibilityPreferences } from '../utils/accessibility'
-import { readStorage, readStoredNonNegativeInteger, writeStorage } from '../utils/storage'
+import { readStorage, readStoredBoolean, readStoredNonNegativeInteger, writeStorage } from '../utils/storage'
 import { STORAGE_KEYS } from '../utils/storageKeys'
 import { normalizePlayerName } from '../utils/playerName'
 import { readLocale, saveLocale } from '../utils/i18n'
@@ -12,6 +12,7 @@ export const usePlayerSettings = () => {
     Math.min(20, Math.max(1, readStoredNonNegativeInteger(STORAGE_KEYS.TIMER, 10, 20)))
   ))
   const [hasStoredTimer, setHasStoredTimer] = useState(() => readStorage(STORAGE_KEYS.TIMER) !== null)
+  const [autoIncreaseDifficulty, setAutoIncreaseDifficulty] = useState(() => readStoredBoolean(STORAGE_KEYS.AUTO_INCREASE_DIFFICULTY, true))
   const [playerName, setPlayerName] = useState(() => normalizePlayerName(readStorage(STORAGE_KEYS.NAME)))
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(readAccessibilityPreferences)
   const [locale, setLocale] = useState<Locale>(readLocale)
@@ -28,6 +29,11 @@ export const usePlayerSettings = () => {
     setSettingsPersistenceFailed(!writeStorage(STORAGE_KEYS.TIMER, value.toString()))
   }
 
+  const updateAutoIncreaseDifficulty = (value: boolean) => {
+    setAutoIncreaseDifficulty(value)
+    setSettingsPersistenceFailed(!writeStorage(STORAGE_KEYS.AUTO_INCREASE_DIFFICULTY, value.toString()))
+  }
+
   const updatePreferences = (patch: Partial<AccessibilityPreferences>) => {
     const nextPreferences = { ...preferences, ...patch }
     setPreferences(nextPreferences)
@@ -42,12 +48,14 @@ export const usePlayerSettings = () => {
   return {
     initialTime,
     hasStoredTimer,
+    autoIncreaseDifficulty,
     playerName,
     preferences,
     locale,
     settingsPersistenceFailed,
     updateName,
     updateTimer,
+    updateAutoIncreaseDifficulty,
     updatePreferences,
     updateLocale,
   }
