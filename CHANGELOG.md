@@ -16,7 +16,8 @@ No unreleased changes.
 
 - Add a Settings option to keep difficulty fixed instead of increasing it
   automatically during a round. Automatic progression remains the default.
-- Keep the in-round statistics within the game card on narrow mobile screens.
+- Keep the in-round statistics within the game card on narrow mobile screens
+  without shifting the question when streak statistics appear.
 
 ## [1.0.1] - 2026-10-30
 

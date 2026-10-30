@@ -60,11 +60,15 @@ test('starts Blitz and submits correct and incorrect answers with keyboard and k
 
 test('keeps the game stats inside the mobile game card', async ({ page }) => {
   await page.getByRole('button', { name: /Start Blitz Rush/ }).click()
+  const questionDisplay = page.locator('.question-display')
+  const initialQuestionTop = await questionDisplay.boundingBox()
   await enterAnswer(page, await readAnswer(page), 'keyboard')
 
   await expect(page.locator('.stats-header')).toBeVisible()
   expect(await page.locator('.stats-header').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
   expect(await page.locator('body').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  const nextQuestionTop = await questionDisplay.boundingBox()
+  expect(nextQuestionTop?.y).toBeCloseTo(initialQuestionTop?.y ?? 0, 0)
 })
 
 test('starts Practice mode and completes a round', async ({ page }) => {
