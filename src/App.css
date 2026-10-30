@@ -584,6 +584,22 @@
 }
 
 /* GameBoard Styles */
+.planet-indicator {
+  position: absolute;
+  top: 0.85rem;
+  left: 4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-secondary);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.planet-indicator-icon {
+  font-size: 1.15rem;
+}
+
 .stats-header {
   display: flex;
   justify-content: space-between;
@@ -791,10 +807,6 @@
   font-size: 0.7rem;
 }
 
-.planet-stat .value {
-  font-size: 1rem;
-}
-
 /* Mobile & Tablet Optimization */
 @media (max-width: 768px) {
   #root {
@@ -866,7 +878,7 @@
 
   .stats-header {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.4rem;
     align-items: start;
     min-height: 3.75rem;
@@ -893,8 +905,13 @@
     overflow-wrap: anywhere;
   }
 
-  .stats-header .planet-stat .value {
-    font-size: 0.85rem;
+  .planet-indicator {
+    left: 3.5rem;
+    font-size: 0.9rem;
+  }
+
+  .planet-indicator-icon {
+    font-size: 1rem;
   }
 
   .progress-container {

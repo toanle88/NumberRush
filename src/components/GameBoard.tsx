@@ -40,6 +40,10 @@ return translate('dividedBy')
 const questionText = `${question.operandA} ${spokenOperation(question.operation)} ${question.operandB}${question.operandC === undefined ? '' : ` ${spokenOperation(question.operation2!)} ${question.operandC}`} ${translate('questionEquals')}`
   return (
     <div className="board-content">
+      <div className="planet-indicator">
+        <span className="planet-indicator-icon" aria-hidden="true">{planet.icon}</span>
+        <span>{translate(planetNameKey)}</span>
+      </div>
       {showTimer && (
         <div className="progress-container">
           <progress
@@ -56,10 +60,6 @@ const questionText = `${question.operandA} ${spokenOperation(question.operation)
       )}
 
       <div className="stats-header">
-        <div className="stat-item planet-stat">
-          <span className="label">{translate('planet')}</span>
-          <span className="value">{planet.icon} {translate(planetNameKey)}</span>
-        </div>
         <div className="stat-item">
           <span className="label">{translate('difficulty')}</span>
           <span className="value">{translate(difficulty)}</span>
