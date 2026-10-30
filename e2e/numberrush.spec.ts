@@ -58,6 +58,15 @@ test('starts Blitz and submits correct and incorrect answers with keyboard and k
   await expect(questionGroup(page)).toBeVisible()
 })
 
+test('keeps the game stats inside the mobile game card', async ({ page }) => {
+  await page.getByRole('button', { name: /Start Blitz Rush/ }).click()
+  await enterAnswer(page, await readAnswer(page), 'keyboard')
+
+  await expect(page.locator('.stats-header')).toBeVisible()
+  expect(await page.locator('.stats-header').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  expect(await page.locator('body').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+})
+
 test('starts Practice mode and completes a round', async ({ page }) => {
   await page.getByRole('button', { name: /Practice Mode/ }).click()
   await expect(page.getByRole('region', { name: 'Math game' })).toBeVisible()
