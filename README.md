@@ -182,8 +182,11 @@ sensitive information into the player-name field or exported backup.
 Production deployment is workflow-driven:
 
 1. A push to `main` runs [Pull Request Checks](.github/workflows/ci.yml).
-2. If Pull Request Checks succeeds, `.github/workflows/deploy.yml` downloads the validated
-   `dist/` artifact and deploys it to the protected `production` environment.
+2. After a GitHub Release is published, open the **Deploy production** workflow
+   under the GitHub Actions tab, choose **Run workflow**, and enter its release
+   tag, such as `v1.0.0`.
+3. The workflow downloads and verifies the matching release ZIP and deploys it
+   to the protected `production` environment. It does not rebuild source code.
 
 For a local production check:
 
@@ -220,12 +223,12 @@ release owner remains responsible for the smoke test and rollback decision.
    SemVer value and move the entries into `## [VERSION] - YYYY-MM-DD`.
 3. Run `pnpm release:check -- vVERSION`, `pnpm lint`, `pnpm test -- --run`,
    `pnpm test:coverage`, and `pnpm build`. Merge only after Pull Request Checks is green.
-4. Confirm the merge commit has deployed through the `production` environment.
-   Open the environment URL shown on the Deploy production workflow, load the
-   app, open Settings, confirm the displayed version, and run one short round.
-   For a PWA update, reload once after the service worker activates and repeat
-   the version check in a fresh tab.
-5. From that deployed merge commit, create and push an annotated tag:
+4. From the merged `main` commit, open the **Release** workflow under the
+   GitHub Actions tab, choose **Run workflow**, and select `main`. The workflow
+   reads the version from `package.json`, runs the release checks, creates and
+   pushes the annotated `vVERSION` tag, and publishes the GitHub Release. The
+   tag-push trigger remains available for maintainers who prefer to create the
+   tag locally:
 
    ```bash
    git tag -a vVERSION -m "NumberRush vVERSION"
@@ -237,20 +240,23 @@ release owner remains responsible for the smoke test and rollback decision.
    notes, and attaches `numberrush-vVERSION.zip` plus its
    `numberrush-vVERSION.zip.sha256` checksum.
 
-6. Confirm the Release workflow is green, the GitHub Release contains the zip
-   artifact, checksum, and notes, and the production environment still reports
-   the expected URL and successful deployment. Verify the downloaded archive
-   with `sha256sum -c numberrush-vVERSION.zip.sha256`. Record any failed
-   verification in the release discussion before announcing the release.
+5. After the Release workflow is green, run **Deploy production** manually with
+   the same `vVERSION` tag. Approve the protected production environment, then
+   open the environment URL, confirm the displayed version, and run one short
+   round. For a PWA update, reload once after the service worker activates and
+   repeat the version check in a fresh tab.
+
+6. Confirm the GitHub Release contains the ZIP, checksum, and notes. Verify the
+   downloaded archive with `sha256sum -c numberrush-vVERSION.zip.sha256`.
+   Record any failed verification in the release discussion before announcing
+   the release.
 
 ### Rollback
 
 Do not move or overwrite a published tag. If production verification fails,
-the release owner marks the GitHub Release as needing rollback and the
-maintainer reverts the release commit on `main`. The normal CI and protected
-production deployment then redeploy the reverted commit. If the problem is
-limited to a deployment attempt, rerun the successful CI workflow for the
-known-good commit and verify the production environment URL again.
+run **Deploy production** with the tag of a known-good published release and
+verify the production environment URL again. Keep the failed release available
+for investigation rather than replacing its tag.
 
 Because the app uses a service worker with automatic updates, already-open PWA
 clients can retain an older shell briefly. A rollback is complete only after a

@@ -57,8 +57,9 @@ allowlisted gameplay keys and validates imported data before writing it.
 
 The production artifact is the `dist/` directory. Azure Static Web Apps uses
 `public/staticwebapp.config.json` for SPA fallback and response headers. The
-production workflow deploys only the artifact produced by a successful Pull Request Checks run;
-it does not rebuild unreviewed source during deployment. Terraform manages
+production workflow is manually started with a release tag, downloads and
+verifies the matching ZIP published by the Release workflow, and deploys that
+artifact without rebuilding source during deployment. Terraform manages
 infrastructure and uses an Azure remote backend configured outside version
 control.
 
