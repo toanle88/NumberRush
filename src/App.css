@@ -1069,9 +1069,9 @@ html[data-high-contrast='true'] .settings-btn {
 }
 
 .settings-heading h2:focus {
-  outline: 3px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
-  outline-offset: 0.35rem;
-  border-radius: var(--radius-sm);
+  /* This non-interactive heading receives focus to announce the view. Keep
+     that focus target from looking like an editable form control. */
+  outline: none;
 }
 
 .settings-back {
