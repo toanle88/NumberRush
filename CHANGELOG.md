@@ -18,6 +18,8 @@ No unreleased changes.
   automatically during a round. Automatic progression remains the default.
 - Keep the in-round statistics within the game card on narrow mobile screens
   without shifting the question when streak statistics appear.
+- Move the current planet indicator above the statistics and remove its
+  redundant label.
 
 ## [1.0.1] - 2026-10-30
 
