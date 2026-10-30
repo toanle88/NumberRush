@@ -24,7 +24,7 @@ export type ProgressImportResult =
   | { ok: true; importedKeys: number }
   | { ok: false; reason: 'malformed' | 'unsupported' | 'too-large' | 'unavailable' }
 
-const MAX_IMPORT_LENGTH = 1_500_000
+export const MAX_IMPORT_LENGTH = 1_500_000
 const getInitialStorageStatus = (): StorageStatus => {
   try {
     return typeof localStorage === 'undefined' ? 'unavailable' : 'available'
