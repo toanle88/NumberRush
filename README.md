@@ -12,9 +12,9 @@ shell has been cached.
 ## Project status
 
 NumberRush is version `1.0.2` (`package.json`). The repository contains the
-source, tests, PWA configuration, and Azure deployment workflows. A stable
-hosted demo URL is not configured in this checkout; after starting the dev
-server, use the [local demo](http://localhost:5173).
+source, tests, PWA configuration, and Azure deployment workflows. Try the
+[deployed demo](https://proud-mud-0ba6f4400.6.azurestaticapps.net), or after
+starting the dev server, use the [local demo](http://localhost:5173).
 
 ## Features
 
