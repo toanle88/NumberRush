@@ -37,7 +37,15 @@ if (operation === 'subtraction') return translate('minus')
 if (operation === 'multiplication') return translate('times')
 return translate('dividedBy')
 }
-const questionText = `${question.operandA} ${spokenOperation(question.operation)} ${question.operandB}${question.operandC === undefined ? '' : ` ${spokenOperation(question.operation2!)} ${question.operandC}`} ${translate('questionEquals')}`
+const firstQuestionText = `${question.operandA} ${spokenOperation(question.operation)} ${question.operandB}`
+const questionText = question.operandC === undefined
+  ? `${firstQuestionText} ${translate('questionEquals')}`
+  : translate('groupedQuestion', {
+    firstQuestion: firstQuestionText,
+    secondOperation: spokenOperation(question.operation2!),
+    operandC: question.operandC,
+    equals: translate('questionEquals'),
+  })
   return (
     <div className="board-content">
       <div className="planet-indicator">
@@ -82,13 +90,25 @@ const questionText = `${question.operandA} ${spokenOperation(question.operation)
 
       <div className="question-display" role="group" aria-label={translate('currentAnswer', { question: questionText, answer: currentInput || translate('answerNotEntered') })}>
         <span className="sr-only" role="status" aria-live="polite">{translate('currentAnswer', { question: questionText, answer: currentInput || translate('answerNotEntered') })}</span>
-        <span>{question.operandA}</span>
-        <span className="operation-symbol">
-          {formatOperation(question.operation)}
-        </span>
-        <span>{question.operandB}</span>
-        {question.operandC !== undefined && (
+        {question.operandC === undefined ? (
           <>
+            <span>{question.operandA}</span>
+            <span className="operation-symbol">
+              {formatOperation(question.operation)}
+            </span>
+            <span>{question.operandB}</span>
+          </>
+        ) : (
+          <>
+            <span className="grouped-expression">
+              <span aria-hidden="true">(</span>
+              <span>{question.operandA}</span>
+              <span className="operation-symbol">
+                {formatOperation(question.operation)}
+              </span>
+              <span>{question.operandB}</span>
+              <span aria-hidden="true">)</span>
+            </span>
             <span className="operation-symbol">
               {formatOperation(question.operation2!)}
             </span>
