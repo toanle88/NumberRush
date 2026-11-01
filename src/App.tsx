@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useGame, BADGES } from './hooks/useGame'
 import type { AnswerFeedback, GameMode } from './hooks/useGame'
-import type { DifficultyTier, Operation } from './utils/mathLogic'
+import type { DifficultyTier } from './utils/mathLogic'
 import { getDifficultyAtLeast, getDifficultyForLevel, SUPPORTED_OPERATIONS } from './utils/mathLogic'
 import GameBoard from './components/GameBoard'
 import Numpad from './components/Numpad'
@@ -20,13 +20,11 @@ import { useBadgeUnlockNotice, useFeedbackExpiry } from './hooks/useTimeout'
 import { useBlitzSounds, useStreakCelebration } from './hooks/useStreakCelebration'
 import { usePlayerSettings } from './hooks/usePlayerSettings'
 import { useProgressTransfer } from './hooks/useProgressTransfer'
+import { useRoundSetup } from './hooks/useRoundSetup'
 import { createTranslator, getBadgeTranslationKeys, getChallengeTranslationKeys, getPlanetTranslationKeys } from './utils/i18n'
 import type { TranslationKey } from './utils/i18n'
 import './App.css'
 
-type RoundPreset = 'quick' | 'challenge' | 'custom'
-const QUICK_START_OPERATIONS: Operation[] = ['addition', 'subtraction']
-const CHALLENGE_OPERATIONS: Operation[] = ['addition', 'subtraction', 'multiplication']
 const DIFFICULTY_HELP: Record<DifficultyTier, TranslationKey> = {
   easy: 'easyHelp', medium: 'mediumHelp', hard: 'hardHelp',
 }
@@ -41,11 +39,10 @@ function App() {
   const { handleExportProgress, handleImportProgress } = useProgressTransfer(setDataMessage, translate)
 const systemReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 const settingsReturnViewRef = useRef<'home' | 'progress'>('home')
-const [isAdvanced, setIsAdvanced] = useState(false)
-const [roundPreset, setRoundPreset] = useState<RoundPreset>('quick')
-const [moreOptionsOpen, setMoreOptionsOpen] = useState(false)
-const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyTier | undefined>()
-const [selectedOperations, setSelectedOperations] = useState<Operation[]>(QUICK_START_OPERATIONS)
+  const {
+    isAdvanced, roundPreset, moreOptionsOpen, selectedDifficulty, selectedOperations, selectedLevel,
+    selectRoundPreset, selectPlanet, toggleOperation, selectDifficulty, toggleAdvanced, toggleMoreOptions,
+  } = useRoundSetup()
   const {
     status, score, timeLeft, streak, mode, currentQuestion,
     highScore, bestStreak, unlockedBadges, currentLevel, difficulty, maxTime, playedLevels, missedQuestions,
@@ -53,7 +50,6 @@ const [selectedOperations, setSelectedOperations] = useState<Operation[]>(QUICK_
   } = useGame(initialTime)
   const [input, setInput] = useState('')
 const [feedback, setFeedback] = useState<AnswerFeedback | null>(null)
-const [selectedLevel, setSelectedLevel] = useState(1)
 const gameAreaRef = useRef<HTMLDivElement>(null)
 const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
 const startButtonRef = useRef<HTMLButtonElement>(null)
@@ -75,32 +71,6 @@ setFeedback(null)
 const hasDifficultyOverride = selectedDifficulty !== undefined
   const timerOverride = hasStoredTimer ? initialTime : undefined
 startGame(selectedLevel, m, isAdvanced, selectedOperations, selectedDifficulty, timerOverride, hasDifficultyOverride, true, autoIncreaseDifficulty)
-}
-  const selectRoundPreset = (preset: RoundPreset) => {
-    setRoundPreset(preset)
-if (preset === 'quick') {
-      setSelectedLevel(1)
-setIsAdvanced(false)
-setSelectedOperations(QUICK_START_OPERATIONS)
-setSelectedDifficulty(undefined)
-setMoreOptionsOpen(false)
-}
-    if (preset === 'challenge') {
-      setSelectedLevel(2)
-setIsAdvanced(false)
-setSelectedOperations(CHALLENGE_OPERATIONS)
-setSelectedDifficulty('medium')
-setMoreOptionsOpen(false)
-}
-  }
-  const toggleOperation = (operation: Operation) => {
-    setRoundPreset('custom')
-setSelectedOperations(previous => {
-      if (previous.includes(operation)) {
-        return previous.length === 1 ? previous : previous.filter(item => item !== operation)
-}
-      return [...previous, operation]
-})
 }
   const handleInput = useCallback((val: string) => {
     setInput(prev => (prev.length < 4 ? prev + val : prev))
@@ -282,9 +252,8 @@ setInput('')
                               key={planet.level}
                               className={selectedLevel === planet.level ? 'primary' : ''}
                               onClick={() => {
-                                setRoundPreset('custom')
-setSelectedLevel(planet.level)
-}}
+                                selectPlanet(planet.level)
+                              }}
                               aria-pressed={selectedLevel === planet.level}
                               title={`${planet.minimumScore === 0 ? translate('startingPlanetTitle') : translate('availableAfter', { points: planet.minimumScore })}. ${translate('startsAtDifficulty', { difficulty: translate(getPlanetTranslationKeys(planet.level)[1]) })}`}
                             >
@@ -321,9 +290,8 @@ return (
                               key={tier}
                               className={displayedDifficulty === tier ? 'primary' : ''}
                               onClick={() => {
-                                setRoundPreset('custom')
-setSelectedDifficulty(tier)
-}}
+                                selectDifficulty(tier)
+                              }}
                               aria-pressed={displayedDifficulty === tier}
                               title={translate(DIFFICULTY_HELP[tier])}
                             >
@@ -334,13 +302,13 @@ setSelectedDifficulty(tier)
                       </fieldset>
 
                       <details className="more-options">
-                        <summary onClick={() => setMoreOptionsOpen(previous => !previous)}>{translate('moreOptions')} <span aria-hidden="true">⌄</span></summary>
+                        <summary onClick={toggleMoreOptions}>{translate('moreOptions')} <span aria-hidden="true">⌄</span></summary>
                         <div className="more-options-content" hidden={!moreOptionsOpen}>
                           <button
                             type="button"
                             className={isAdvanced ? 'primary' : ''}
                             aria-pressed={isAdvanced}
-                            onClick={() => setIsAdvanced(!isAdvanced)}
+                            onClick={toggleAdvanced}
                           >
                             {isAdvanced ? translate('chaosOn') : translate('chaosOff')}
                           </button>

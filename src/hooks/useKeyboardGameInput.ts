@@ -16,8 +16,12 @@ export const useKeyboardGameInput = (
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (status !== 'playing' || settingsViewOpen) return
-      if (event.target instanceof Element && event.target.closest('button, input, select, textarea, a, summary, [role="button"], [contenteditable="true"]')) return
-      if ((event.key >= '0' && event.key <= '9') || (event.code.startsWith('Numpad') && event.key >= '0' && event.key <= '9')) {
+      const target = event.target instanceof Element ? event.target : null
+      const isKeypadButton = Boolean(target?.closest('.numpad button'))
+      const isDigit = (event.key >= '0' && event.key <= '9')
+        || (event.code.startsWith('Numpad') && event.key >= '0' && event.key <= '9')
+      if (target?.closest('button, input, select, textarea, a, summary, [role="button"], [contenteditable="true"]') && (!isKeypadButton || !isDigit)) return
+      if (isDigit) {
         event.preventDefault()
         handleInput(event.key)
       } else if (event.key === 'Enter' || event.key === 'NumpadEnter') {

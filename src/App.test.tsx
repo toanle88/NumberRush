@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { DAILY_CHALLENGES_STORAGE_KEY, getDailyChallenge, getLocalDateKey, getWeekStartKey } from './utils/dailyChallenges'
 import { MAX_IMPORT_LENGTH } from './utils/storage'
+import { STORAGE_KEYS } from './utils/storageKeys'
 const openRoundCustomizer = () => {
   fireEvent.click(screen.getByText('Customize round'))
 }
@@ -38,6 +39,29 @@ expect(screen.queryByText('Incorrect answer')).not.toBeInTheDocument()
     fireEvent.click(digitButton)
     expect(screen.getByRole('group', { name: /Your current answer is 12/i })).toBeInTheDocument()
 })
+  it('keeps a failed setting warning until that same setting saves', () => {
+    const originalSetItem = Storage.prototype.setItem
+    let failNameWrite = true
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function(this: Storage, key, value) {
+      if (key === STORAGE_KEYS.NAME && failNameWrite) {
+        failNameWrite = false
+        throw new Error('simulated name storage failure')
+      }
+      return originalSetItem.call(this, key, value)
+    })
+
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
+    fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Storage Kid' } })
+    expect(screen.getByRole('status')).toHaveTextContent('Progress is waiting to be saved')
+
+    fireEvent.click(screen.getByRole('button', { name: /^5s/ }))
+    expect(screen.getByRole('status')).toHaveTextContent('Progress is waiting to be saved')
+
+    fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Saved Kid' } })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    setItemSpy.mockRestore()
+  })
   it('renders correct feedback inline without covering the keypad', () => {
     render(<App />)
 fireEvent.click(screen.getByRole('button', { name: /Start Blitz Rush/ }))

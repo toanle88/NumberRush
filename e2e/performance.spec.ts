@@ -7,7 +7,9 @@ const reportPath = `${reportDirectory}/browser-performance.json`
 type BrowserPerformance = {
   lcp: number
   cls: number
-  inp: number
+  inp: number | null
+  inpSupported: boolean
+  inpMeasured: boolean
   fcp: number
   lcpSource?: string
 }
@@ -28,7 +30,7 @@ test('measures PWA readiness, offline behavior, web vitals, and accessibility', 
   await page.route('https://fonts.gstatic.com/**', route => route.abort())
 
   await page.addInitScript(() => {
-    const metrics = { lcp: 0, cls: 0, inp: 0, fcp: 0 }
+    const metrics = { lcp: 0, cls: 0, inp: null as number | null, inpSupported: false, inpMeasured: false, fcp: 0 }
     Object.assign(window, { __numberRushPerformance: metrics })
 
     try {
@@ -63,10 +65,17 @@ test('measures PWA readiness, offline behavior, web vitals, and accessibility', 
 
     try {
       new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) metrics.inp = Math.max(metrics.inp, entry.duration)
+        for (const entry of list.getEntries()) {
+          const eventEntry = entry as PerformanceEntry & { interactionId?: number }
+          if (!eventEntry.interactionId) continue
+          metrics.inpMeasured = true
+          metrics.inp = Math.max(metrics.inp ?? 0, entry.duration)
+        }
       }).observe({ type: 'event', buffered: true, durationThreshold: 16 })
+      metrics.inpSupported = true
     } catch {
-      // See the LCP note above.
+      // Event Timing is optional; the report distinguishes unsupported from an
+      // observer that saw no qualifying interaction.
     }
   })
 
@@ -142,6 +151,10 @@ test('measures PWA readiness, offline behavior, web vitals, and accessibility', 
 
   await page.getByRole('button', { name: 'Open settings' }).click()
   await page.getByRole('button', { name: 'Back to game' }).click()
+  await page.waitForFunction(() => {
+    const metrics = (window as Window & { __numberRushPerformance?: BrowserPerformance }).__numberRushPerformance
+    return metrics?.inpSupported === false || metrics?.inpMeasured === true
+  })
   await page.waitForTimeout(100)
 
   const browserMetrics = await page.evaluate((fallbackLcp) => {
@@ -152,7 +165,9 @@ test('measures PWA readiness, offline behavior, web vitals, and accessibility', 
       lcp: lcp || fallbackLcp.value,
       lcpSource: lcp ? 'largest-contentful-paint' : fallbackLcp.source,
       cls: metrics?.cls ?? 0,
-      inp: metrics?.inp ?? 0,
+      inp: metrics?.inp ?? null,
+      inpSupported: metrics?.inpSupported ?? false,
+      inpMeasured: metrics?.inpMeasured ?? false,
     }
   }, initialLcp)
 
@@ -189,7 +204,8 @@ test('measures PWA readiness, offline behavior, web vitals, and accessibility', 
   const performanceScore = Math.round([
     browserMetrics.lcp > 0 && browserMetrics.lcp <= 1200,
     browserMetrics.cls <= 0.1,
-    browserMetrics.inp === 0 || browserMetrics.inp <= 200,
+    browserMetrics.inpSupported === false
+      || (browserMetrics.inpMeasured && browserMetrics.inp !== null && browserMetrics.inp <= 200),
   ].filter(Boolean).length / 3 * 100)
 
   const report = {
@@ -208,7 +224,7 @@ test('measures PWA readiness, offline behavior, web vitals, and accessibility', 
     },
     coreWebVitals: {
       measured: browserMetrics,
-      thresholds: { lcpMs: 1200, cls: 0.1, inpMs: 200 },
+    thresholds: { lcpMs: 1200, cls: 0.1, inpMs: 200 },
       score: performanceScore,
     },
     accessibility: { checks: accessibilityAudit, score: accessibilityScore },
@@ -222,6 +238,7 @@ test('measures PWA readiness, offline behavior, web vitals, and accessibility', 
   expect(browserMetrics.lcp).toBeGreaterThan(0)
   expect(browserMetrics.lcp).toBeLessThanOrEqual(1200)
   expect(browserMetrics.cls).toBeLessThanOrEqual(0.1)
-  expect(browserMetrics.inp === 0 || browserMetrics.inp <= 200).toBe(true)
+  expect(browserMetrics.inpSupported === false || browserMetrics.inpMeasured).toBe(true)
+  expect(browserMetrics.inpSupported === false || (browserMetrics.inp !== null && browserMetrics.inp <= 200)).toBe(true)
   expect(accessibilityScore).toBe(100)
 })
