@@ -3,8 +3,8 @@ import { useCommittedGameStateRef, useInterval, usePageActivity } from './useInt
 import type { DifficultyTier, MathQuestion, Operation } from '../utils/mathLogic'
 import { DEFAULT_OPERATIONS, generateQuestion, getAdaptiveDifficulty, getDifficultyAtLeast, getDifficultyForLevel, getDifficultySettings, getQuestionExplanation, normalizeOperations } from '../utils/mathLogic'
 import { getLevelForScore } from '../utils/planetProgression'
-import { calculateProgressMetrics, createProgressSession, MAX_PROGRESS_SESSIONS, readProgressSessions, writeProgressSessions } from '../utils/progress'
-import type { ProgressMetrics, ProgressSession } from '../utils/progress'
+import { calculateProgressMetrics, createEmptyDifficultyAggregates, createEmptyOperatorAggregates, createProgressSession, MAX_PROGRESS_SESSIONS, readProgressSessions, recordProgressAnswer, writeProgressSessions } from '../utils/progress'
+import type { ProgressAnswer, ProgressMetrics, ProgressSession } from '../utils/progress'
 import {
   getDailyChallenge,
   normalizeRecurringProgress,
@@ -81,6 +81,8 @@ missedQuestions: TargetedQuestion[]
 roundTotalQuestions: number
 roundCorrectAnswers: number
 roundResponseTimeMs: number
+  operatorAggregates: ReturnType<typeof createEmptyOperatorAggregates>
+  difficultyAggregates: ReturnType<typeof createEmptyDifficultyAggregates>
 roundAllAnswersCorrect: boolean
 highScore: number
 bestStreak: number
@@ -178,6 +180,8 @@ export const useGame = (initialTime: number = 10) => {
       roundTotalQuestions: 0,
       roundCorrectAnswers: 0,
       roundResponseTimeMs: 0,
+      operatorAggregates: createEmptyOperatorAggregates(),
+      difficultyAggregates: createEmptyDifficultyAggregates(),
       roundAllAnswersCorrect: true,
       highScore: readStoredNonNegativeInteger(STORAGE_KEYS.HIGH_SCORE, 0, MAX_PERSISTED_COUNTER),
       bestStreak: readStoredNonNegativeInteger(STORAGE_KEYS.BEST_STREAK, 0, MAX_PERSISTED_COUNTER),
@@ -289,6 +293,8 @@ const progressSession = createProgressSession({
       averageResponseTimeMs: finishedState.roundTotalQuestions > 0
         ? finishedState.roundResponseTimeMs / finishedState.roundTotalQuestions
         : null,
+      operatorAggregates: finishedState.operatorAggregates,
+      difficultyAggregates: finishedState.difficultyAggregates,
     })
 finishedState.progressSessions = [...finishedState.progressSessions, progressSession].slice(-MAX_PROGRESS_SESSIONS)
 finishedState.unlockedBadges = getUnlockedBadges(finishedState)
@@ -400,6 +406,8 @@ const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(dif
       roundTotalQuestions: 0,
       roundCorrectAnswers: 0,
       roundResponseTimeMs: 0,
+      operatorAggregates: createEmptyOperatorAggregates(),
+      difficultyAggregates: createEmptyDifficultyAggregates(),
       roundAllAnswersCorrect: true,
       roundBestStreak: 0,
       roundPersonalBestScore: previousState.highScore,
@@ -438,6 +446,8 @@ const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(dif
         roundTotalQuestions: 0,
         roundCorrectAnswers: 0,
         roundResponseTimeMs: 0,
+        operatorAggregates: createEmptyOperatorAggregates(),
+        difficultyAggregates: createEmptyDifficultyAggregates(),
         roundAllAnswersCorrect: true,
         roundBestStreak: 0,
         roundPersonalBestScore: previousState.highScore,
@@ -491,6 +501,14 @@ const answerRecord = {
       difficulty: submissionState.difficulty,
       responseTimeMs,
     }
+const progressAnswer: ProgressAnswer = {
+      isCorrect: answerIsCorrect,
+      operations: [...new Set([question.operation, ...(question.operation2 ? [question.operation2] : [])])],
+      difficulty: submissionState.difficulty,
+      level: submissionState.currentLevel,
+      responseTimeMs,
+    }
+const nextProgressAggregates = recordProgressAnswer(submissionState.operatorAggregates, submissionState.difficultyAggregates, progressAnswer)
 const nextHistory = [...submissionState.history, answerRecord].slice(-MAX_LIVE_HISTORY)
 const nextRoundTotalQuestions = submissionState.roundTotalQuestions + 1
 const nextRoundCorrectAnswers = submissionState.roundCorrectAnswers + (answerIsCorrect ? 1 : 0)
@@ -528,6 +546,8 @@ const nextState: GameState = {
       roundTotalQuestions: nextRoundTotalQuestions,
       roundCorrectAnswers: nextRoundCorrectAnswers,
       roundResponseTimeMs: nextRoundResponseTimeMs,
+      operatorAggregates: nextProgressAggregates.operatorAggregates,
+      difficultyAggregates: nextProgressAggregates.difficultyAggregates,
       roundAllAnswersCorrect: submissionState.roundAllAnswersCorrect && answerIsCorrect,
       highScore: newHighScore,
       bestStreak: newBestStreak,

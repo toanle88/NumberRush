@@ -62,6 +62,23 @@ writeProgressSessions([session])
 localStorage.setItem(PROGRESS_STORAGE_KEY, '{bad json')
 expect(readProgressSessions()).toEqual([])
 })
+  it('backfills aggregates for legacy sessions without category counters', () => {
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify([{
+      id: 'legacy-session',
+      completedAt: 100,
+      mode: 'practice',
+      finalScore: 10,
+      bestStreak: 1,
+      totalQuestions: 250,
+      correctAnswers: 125,
+      averageResponseTimeMs: 100,
+      answers: [{ isCorrect: true, operations: ['addition'], difficulty: 'easy', level: 1, responseTimeMs: 100 }],
+    }]))
+
+    const session = readProgressSessions()[0]
+    expect(session.operatorAggregates.addition).toMatchObject({ attempts: 1, solved: 1, totalResponseTimeMs: 100 })
+    expect(session.difficultyAggregates.easy).toMatchObject({ attempts: 1, solved: 1, totalResponseTimeMs: 100 })
+  })
   it('limits untrusted session and answer arrays before parsing them', () => {
     const answer = {
       isCorrect: true,
@@ -158,6 +175,8 @@ expect(loaded).toMatchObject({
       averageResponseTimeMs: 100,
     })
 expect(calculateProgressMetrics([loaded]).questionsAttempted).toBe(MAX_ANSWERS_PER_SESSION + 10)
+    expect(calculateProgressMetrics([loaded]).byOperator.addition).toMatchObject({ attempts: MAX_ANSWERS_PER_SESSION + 10, solved: 105, accuracy: 50, averageResponseTimeMs: 100 })
+    expect(calculateProgressMetrics([loaded]).byDifficulty.easy).toMatchObject({ attempts: MAX_ANSWERS_PER_SESSION + 10, solved: 105, accuracy: 50, averageResponseTimeMs: 100 })
 })
   it('rejects untrusted aggregate values outside their supported bounds', () => {
     const answer = {
@@ -170,6 +189,9 @@ expect(calculateProgressMetrics([loaded]).questionsAttempted).toBe(MAX_ANSWERS_P
     localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify([
       { id: 'too-many-questions', completedAt: 1, mode: 'practice', finalScore: 0, bestStreak: 0, totalQuestions: MAX_PROGRESS_QUESTIONS + 1, correctAnswers: 1, averageResponseTimeMs: 100, answers: [answer] },
       { id: 'too-slow', completedAt: 2, mode: 'practice', finalScore: 0, bestStreak: 0, totalQuestions: 1, correctAnswers: 1, averageResponseTimeMs: 86_400_001, answers: [answer] },
+      { id: 'bad-operator-aggregate', completedAt: 3, mode: 'practice', finalScore: 0, bestStreak: 0, totalQuestions: 1, correctAnswers: 1, averageResponseTimeMs: 100, answers: [answer], operatorAggregates: { addition: { attempts: 2, solved: 1, totalResponseTimeMs: 100 }, subtraction: { attempts: 0, solved: 0, totalResponseTimeMs: 0 }, multiplication: { attempts: 0, solved: 0, totalResponseTimeMs: 0 }, division: { attempts: 0, solved: 0, totalResponseTimeMs: 0 } }, difficultyAggregates: { easy: { attempts: 1, solved: 1, totalResponseTimeMs: 100 }, medium: { attempts: 0, solved: 0, totalResponseTimeMs: 0 }, hard: { attempts: 0, solved: 0, totalResponseTimeMs: 0 } } },
+      { id: 'bad-difficulty-aggregate', completedAt: 4, mode: 'practice', finalScore: 0, bestStreak: 0, totalQuestions: 1, correctAnswers: 1, averageResponseTimeMs: 100, answers: [answer], operatorAggregates: { addition: { attempts: 1, solved: 1, totalResponseTimeMs: 100 }, subtraction: { attempts: 0, solved: 0, totalResponseTimeMs: 0 }, multiplication: { attempts: 0, solved: 0, totalResponseTimeMs: 0 }, division: { attempts: 0, solved: 0, totalResponseTimeMs: 0 } }, difficultyAggregates: { easy: { attempts: 2, solved: 1, totalResponseTimeMs: 100 }, medium: { attempts: 0, solved: 0, totalResponseTimeMs: 0 }, hard: { attempts: 0, solved: 0, totalResponseTimeMs: 0 } } },
+      { id: 'bad-aggregate-time', completedAt: 5, mode: 'practice', finalScore: 0, bestStreak: 0, totalQuestions: 1, correctAnswers: 1, averageResponseTimeMs: 100, answers: [answer], operatorAggregates: { addition: { attempts: 1, solved: 1, totalResponseTimeMs: 86_400_001 }, subtraction: { attempts: 0, solved: 0, totalResponseTimeMs: 0 }, multiplication: { attempts: 0, solved: 0, totalResponseTimeMs: 0 }, division: { attempts: 0, solved: 0, totalResponseTimeMs: 0 } }, difficultyAggregates: { easy: { attempts: 1, solved: 1, totalResponseTimeMs: 100 }, medium: { attempts: 0, solved: 0, totalResponseTimeMs: 0 }, hard: { attempts: 0, solved: 0, totalResponseTimeMs: 0 } } },
     ]))
 
     expect(readProgressSessions()).toEqual([])

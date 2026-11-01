@@ -17,6 +17,15 @@ difficulty: DifficultyTier
 level: number
 responseTimeMs: number}
 
+export interface ProgressAggregate {
+  attempts: number
+  solved: number
+  totalResponseTimeMs: number
+}
+
+export type OperatorProgressAggregates = Record<Operation, ProgressAggregate>
+export type DifficultyProgressAggregates = Record<DifficultyTier, ProgressAggregate>
+
 export interface ProgressSession {
   id: string
 completedAt: number
@@ -27,6 +36,8 @@ totalQuestions: number
 correctAnswers: number
 accuracy: number
 averageResponseTimeMs: number | null
+  operatorAggregates: OperatorProgressAggregates
+  difficultyAggregates: DifficultyProgressAggregates
 answers: ProgressAnswer[]}
 
 export interface ProgressBreakdown {
@@ -51,12 +62,53 @@ trend: ProgressTrend | null}
 
 const OPERATIONS: Operation[] = ['addition', 'subtraction', 'multiplication', 'division']
 const DIFFICULTIES: DifficultyTier[] = ['easy', 'medium', 'hard']
+const emptyAggregate = (): ProgressAggregate => ({ attempts: 0, solved: 0, totalResponseTimeMs: 0 })
+const createAggregateMap = <T extends string>(values: T[]): Record<T, ProgressAggregate> => {
+  return values.reduce((result, value) => {
+    result[value] = emptyAggregate()
+    return result
+  }, {} as Record<T, ProgressAggregate>)
+}
+export const createEmptyOperatorAggregates = (): OperatorProgressAggregates => createAggregateMap(OPERATIONS)
+export const createEmptyDifficultyAggregates = (): DifficultyProgressAggregates => createAggregateMap(DIFFICULTIES)
 const emptyBreakdown = (): ProgressBreakdown => ({
   attempts: 0,
   solved: 0,
   accuracy: 0,
   averageResponseTimeMs: null,
 })
+const addAggregate = (aggregate: ProgressAggregate, answer: ProgressAnswer): ProgressAggregate => ({
+  attempts: aggregate.attempts + 1,
+  solved: aggregate.solved + (answer.isCorrect ? 1 : 0),
+  totalResponseTimeMs: aggregate.totalResponseTimeMs + answer.responseTimeMs,
+})
+export const recordProgressAnswer = (
+  operatorAggregates: OperatorProgressAggregates,
+  difficultyAggregates: DifficultyProgressAggregates,
+  answer: ProgressAnswer,
+): { operatorAggregates: OperatorProgressAggregates; difficultyAggregates: DifficultyProgressAggregates } => {
+  const nextOperatorAggregates = { ...operatorAggregates }
+  for (const operation of new Set(answer.operations)) {
+    nextOperatorAggregates[operation] = addAggregate(operatorAggregates[operation], answer)
+  }
+  return {
+    operatorAggregates: nextOperatorAggregates,
+    difficultyAggregates: {
+      ...difficultyAggregates,
+      [answer.difficulty]: addAggregate(difficultyAggregates[answer.difficulty], answer),
+    },
+  }
+}
+const getAggregates = (answers: ProgressAnswer[]): { operatorAggregates: OperatorProgressAggregates; difficultyAggregates: DifficultyProgressAggregates } => {
+  let operatorAggregates = createEmptyOperatorAggregates()
+  let difficultyAggregates = createEmptyDifficultyAggregates()
+  for (const answer of answers) {
+    const next = recordProgressAnswer(operatorAggregates, difficultyAggregates, answer)
+    operatorAggregates = next.operatorAggregates
+    difficultyAggregates = next.difficultyAggregates
+  }
+  return { operatorAggregates, difficultyAggregates }
+}
 const getBreakdown = (answers: ProgressAnswer[]): ProgressBreakdown => {
   const attempts = answers.length
 const solved = answers.filter(answer => answer.isCorrect).length
@@ -78,13 +130,15 @@ mode: ProgressSession['mode']
 finalScore: number
 bestStreak: number
 answers: ProgressAnswer[]
+operatorAggregates?: OperatorProgressAggregates
+difficultyAggregates?: DifficultyProgressAggregates
 totalQuestions?: number
 correctAnswers?: number
 averageResponseTimeMs?: number | null}): ProgressSession => {
-  const answers = input.answers
-    .slice(-MAX_ANSWERS_PER_SESSION)
-    .map(answer => ({ ...answer, operations: [...new Set(answer.operations)] }))
-const breakdown = getBreakdown(answers)
+  const normalizedAnswers = input.answers.map(answer => ({ ...answer, operations: [...new Set(answer.operations)] }))
+  const answers = normalizedAnswers.slice(-MAX_ANSWERS_PER_SESSION)
+const breakdown = getBreakdown(normalizedAnswers)
+const derivedAggregates = getAggregates(normalizedAnswers)
 const requestedTotalQuestions = input.totalQuestions ?? breakdown.attempts
 const totalQuestions = Number.isSafeInteger(requestedTotalQuestions) && requestedTotalQuestions >= breakdown.attempts
     ? Math.min(requestedTotalQuestions, MAX_PROGRESS_QUESTIONS)
@@ -101,6 +155,8 @@ const averageResponseTimeMs = input.averageResponseTimeMs === undefined
       && input.averageResponseTimeMs <= MAX_RESPONSE_TIME_MS
       ? input.averageResponseTimeMs
       : breakdown.averageResponseTimeMs
+const operatorAggregates = parseAggregateMap(input.operatorAggregates, OPERATIONS, totalQuestions, OPERATIONS.length, false) ?? derivedAggregates.operatorAggregates
+const difficultyAggregates = parseAggregateMap(input.difficultyAggregates, DIFFICULTIES, totalQuestions, 1, true) ?? derivedAggregates.difficultyAggregates
 return {
     id: createId(),
     completedAt: input.completedAt ?? Date.now(),
@@ -111,6 +167,8 @@ return {
     correctAnswers,
     accuracy: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
     averageResponseTimeMs,
+    operatorAggregates,
+    difficultyAggregates,
     answers,
   }
 }
@@ -129,6 +187,30 @@ return {
     level: answer.level,
     responseTimeMs: answer.responseTimeMs,
   }
+}
+const parseAggregateMap = <T extends string>(value: unknown, values: T[], totalQuestions: number, maxEntriesPerQuestion: number, requireExactAttempts: boolean): Record<T, ProgressAggregate> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  if (Object.keys(record).length !== values.length || values.some(key => !Object.prototype.hasOwnProperty.call(record, key))) return null
+  const result = {} as Record<T, ProgressAggregate>
+  let totalAttempts = 0
+  for (const key of values) {
+    const aggregate = record[key]
+    if (!aggregate || typeof aggregate !== 'object' || Array.isArray(aggregate)) return null
+    const candidate = aggregate as Partial<ProgressAggregate>
+    const attempts = candidate.attempts
+    const solved = candidate.solved
+    const totalResponseTimeMs = candidate.totalResponseTimeMs
+    if (typeof attempts !== 'number' || !Number.isSafeInteger(attempts) || attempts < 0 || attempts > totalQuestions || typeof solved !== 'number' || !Number.isSafeInteger(solved) || solved < 0 || solved > attempts || typeof totalResponseTimeMs !== 'number' || !Number.isFinite(totalResponseTimeMs) || totalResponseTimeMs < 0 || totalResponseTimeMs > attempts * MAX_RESPONSE_TIME_MS) return null
+    result[key] = {
+      attempts,
+      solved,
+      totalResponseTimeMs,
+    }
+    totalAttempts += attempts
+  }
+  if (totalAttempts > totalQuestions * maxEntriesPerQuestion || (requireExactAttempts && totalAttempts !== totalQuestions)) return null
+  return result
 }
 const parseSession = (value: unknown): ProgressSession | null => {
   if (!value || typeof value !== 'object') return null
@@ -156,6 +238,14 @@ const averageResponseTimeMs = session.averageResponseTimeMs === undefined
         ? session.averageResponseTimeMs
         : null
 if (session.averageResponseTimeMs !== undefined && averageResponseTimeMs === null && session.averageResponseTimeMs !== null) return null
+const derivedAggregates = getAggregates(answers)
+const operatorAggregates = session.operatorAggregates === undefined
+    ? derivedAggregates.operatorAggregates
+    : parseAggregateMap(session.operatorAggregates, OPERATIONS, totalQuestions, OPERATIONS.length, false)
+const difficultyAggregates = session.difficultyAggregates === undefined
+    ? derivedAggregates.difficultyAggregates
+    : parseAggregateMap(session.difficultyAggregates, DIFFICULTIES, totalQuestions, 1, true)
+if (!operatorAggregates || !difficultyAggregates) return null
 return {
     id: session.id,
     completedAt: session.completedAt,
@@ -166,6 +256,8 @@ return {
     correctAnswers,
     accuracy: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
     averageResponseTimeMs,
+    operatorAggregates,
+    difficultyAggregates,
     answers,
   }
 }
@@ -200,7 +292,6 @@ return result
 }, {} as Record<T, ProgressBreakdown>)
 }
 export const calculateProgressMetrics = (sessions: ProgressSession[]): ProgressMetrics => {
-  const answers = sessions.flatMap(session => session.answers)
 const totalQuestions = sessions.reduce((total, session) => total + session.totalQuestions, 0)
 const correctAnswers = sessions.reduce((total, session) => total + session.correctAnswers, 0)
 const totalResponseTimeMs = sessions.reduce((total, session) => total + (session.averageResponseTimeMs === null ? 0 : session.averageResponseTimeMs * session.totalQuestions), 0)
@@ -212,18 +303,22 @@ const overall: ProgressBreakdown = {
   }
 const byOperator = createBreakdownMap(OPERATIONS)
 const byDifficulty = createBreakdownMap(DIFFICULTIES)
-  for (const answer of answers) {
-    for (const operation of answer.operations) {
+  for (const session of sessions) {
+    for (const operation of OPERATIONS) {
+      const aggregate = session.operatorAggregates[operation]
       const operationAnswers = byOperator[operation]
-operationAnswers.attempts += 1
-operationAnswers.solved += answer.isCorrect ? 1 : 0
-operationAnswers.averageResponseTimeMs = (operationAnswers.averageResponseTimeMs ?? 0) + answer.responseTimeMs
-}
-    const difficultyAnswers = byDifficulty[answer.difficulty]
-difficultyAnswers.attempts += 1
-difficultyAnswers.solved += answer.isCorrect ? 1 : 0
-difficultyAnswers.averageResponseTimeMs = (difficultyAnswers.averageResponseTimeMs ?? 0) + answer.responseTimeMs
-}
+      operationAnswers.attempts += aggregate.attempts
+      operationAnswers.solved += aggregate.solved
+      operationAnswers.averageResponseTimeMs = (operationAnswers.averageResponseTimeMs ?? 0) + aggregate.totalResponseTimeMs
+    }
+    for (const difficulty of DIFFICULTIES) {
+      const aggregate = session.difficultyAggregates[difficulty]
+      const difficultyAnswers = byDifficulty[difficulty]
+      difficultyAnswers.attempts += aggregate.attempts
+      difficultyAnswers.solved += aggregate.solved
+      difficultyAnswers.averageResponseTimeMs = (difficultyAnswers.averageResponseTimeMs ?? 0) + aggregate.totalResponseTimeMs
+    }
+  }
 
   for (const breakdown of [...Object.values(byOperator), ...Object.values(byDifficulty)]) {
     breakdown.accuracy = breakdown.attempts > 0 ? Math.round((breakdown.solved / breakdown.attempts) * 100) : 0

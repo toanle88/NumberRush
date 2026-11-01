@@ -8,7 +8,10 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ## [Unreleased]
 
-No unreleased changes.
+### Fixed
+
+- Preserve operator and difficulty progress aggregates for answers beyond the
+  200-answer review history limit.
 
 ## [1.0.2] - 2026-10-30
 

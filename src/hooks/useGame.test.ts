@@ -408,6 +408,17 @@ expect(result.current.progressSessions[0]).toMatchObject({
     })
 expect(result.current.progressMetrics.questionsAttempted).toBe(answerCount)
 expect(result.current.progressMetrics.questionsSolved).toBe(correctAnswers)
+expect(result.current.progressMetrics.byOperator.addition).toMatchObject({
+      attempts: answerCount,
+      solved: correctAnswers,
+      accuracy: Math.round((correctAnswers / answerCount) * 100),
+      averageResponseTimeMs: totalResponseTimeMs / answerCount,
+    })
+expect(result.current.progressSessions[0].operatorAggregates.addition).toMatchObject({
+      attempts: answerCount,
+      solved: correctAnswers,
+      totalResponseTimeMs,
+    })
 })
   it('handles game end logic', () => {
     const { result } = renderHook(() => useGame(10))
