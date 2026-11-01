@@ -8,6 +8,10 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [1.0.3] - 2026-11-01
+
 ### Fixed
 
 - Preserve operator and difficulty progress aggregates for answers beyond the
@@ -48,6 +52,7 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 - Initial stable release of NumberRush.
 
 [Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.2...HEAD
+[1.0.3]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.3
 [1.0.2]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.2
 [1.0.1]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.1
 [1.0.0]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.0
