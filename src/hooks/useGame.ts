@@ -352,7 +352,7 @@ return finishedState
     }
 
     if (remaining !== previousState.timeLeft) {
-      const nextState = { ...previousState, timeLeft: Math.min(remaining, previousState.maxTime) }
+      const nextState = { ...previousState, timeLeft: remaining }
       stateRef.current = nextState
       setState(nextState)
     }
@@ -523,11 +523,13 @@ const nextDifficulty = submissionState.isTargetedPractice
             : getDifficultyForLevel(nextQuestionLevel),
           nextQuestionLevel,
         )
-const nextMaxTime = submissionState.timerOverride ?? (
-      submissionState.useDifficultyTimer || submissionState.adaptiveDifficulty
-        ? getDifficultySettings(nextDifficulty).timerSeconds
-        : submissionState.maxTime
-    )
+const nextMaxTime = submissionState.mode === 'blitz'
+      ? submissionState.maxTime
+      : submissionState.timerOverride ?? (
+        submissionState.useDifficultyTimer || submissionState.adaptiveDifficulty
+          ? getDifficultySettings(nextDifficulty).timerSeconds
+          : submissionState.maxTime
+      )
 const hasFinishedTargetedPractice = submissionState.isTargetedPractice && !nextTargetedQuestion
 const nextRecurringProgress = recordAnswerForRecurringProgress(submissionState.recurringProgress, {
       isCorrect: answerIsCorrect,
@@ -554,7 +556,7 @@ const nextState: GameState = {
       totalCorrect: newTotalCorrect,
       totalChaosSolved: newTotalChaos,
       timeLeft: submissionState.mode === 'blitz' && blitzDeadlineRef.current !== null
-        ? Math.min(nextMaxTime, Math.max(0, Math.ceil((blitzDeadlineRef.current - now) / 1_000)))
+        ? Math.max(0, Math.ceil((blitzDeadlineRef.current - now) / 1_000))
         : nextMaxTime,
       maxTime: nextMaxTime,
       difficulty: nextDifficulty,

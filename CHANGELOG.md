@@ -8,7 +8,10 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ## [Unreleased]
 
-No unreleased changes.
+### Fixed
+
+- Keep Blitz countdowns tied to the round-level deadline when difficulty
+  increases, so the displayed time matches the actual remaining time.
 
 ## [1.0.3] - 2026-11-01
 
