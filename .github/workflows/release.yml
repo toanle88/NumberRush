@@ -16,19 +16,21 @@ concurrency:
 env:
   NODE_VERSION: 24
   PNPM_VERSION: 11.24.0
+  RELEASE_SHA: ${{ github.sha }}
 
 jobs:
   release:
     name: Validate, package, and publish release
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: write
     timeout-minutes: 15
     steps:
       - name: Check out release source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.repository.default_branch || github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
@@ -69,6 +71,19 @@ jobs:
             echo "Release tag $RELEASE_TAG already exists."
             exit 1
           fi
+
+      - name: Require successful CI for exact release commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$RELEASE_SHA&event=push&status=completed&per_page=100" \
+            > ci-runs.json
+          ci_run_id="$(node scripts/release-ci.mjs --runs ci-runs.json --sha "$RELEASE_SHA")"
+          gh api \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$ci_run_id/jobs?per_page=100" \
+            > ci-jobs.json
+          node scripts/release-ci.mjs --jobs ci-jobs.json --run-id "$ci_run_id"
 
       - name: Build release artifact
         run: pnpm build

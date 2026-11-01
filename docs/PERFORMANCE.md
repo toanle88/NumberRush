@@ -36,10 +36,14 @@ PERFORMANCE_E2E=1 \
   pnpm exec playwright test --project=desktop-chromium
 ```
 
-The scheduled performance job in `.github/workflows/ci.yml` runs the same production
-checks, generates JSON and Markdown reports, and retains them as the
-`performance-reports` artifact for 14 days. Reports are written to the ignored
-`performance-results/` directory.
+The performance job in `.github/workflows/ci.yml` runs the same production checks
+for pull requests, the weekly schedule, and manual dispatches. It intentionally
+skips pushes to `main`, so the exact-commit release gate does not depend on a
+browser benchmark that is not produced for every main commit. Release publication
+instead requires the exact source commit's successful application validation,
+browser E2E, Terraform, and CodeQL jobs. The performance job generates JSON and
+Markdown reports and retains them as the `performance-reports` artifact for 14
+days. Reports are written to the ignored `performance-results/` directory.
 
 ## Baseline evidence
 
