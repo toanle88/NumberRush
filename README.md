@@ -11,7 +11,7 @@ shell has been cached.
 
 ## Project status
 
-NumberRush is version `1.0.2` (`package.json`). The repository contains the
+NumberRush is version `1.0.3` (`package.json`). The repository contains the
 source, tests, PWA configuration, and Azure deployment workflows. Try the
 [deployed demo](https://proud-mud-0ba6f4400.6.azurestaticapps.net), or after
 starting the dev server, use the [local demo](http://localhost:5173).
@@ -142,7 +142,9 @@ Known limitations:
   NumberRush keeps the current session in memory when persistence is
   unavailable, but it cannot recover data the browser has removed.
 - Sound requires browser permission/user interaction, haptics are optional,
-  and background tabs can throttle timers.
+  and background tabs can throttle timer callbacks. Blitz does not pause while
+  hidden: its deadline is based on elapsed time and is reconciled when the page
+  becomes visible or focused again.
 - External Google Fonts are a presentation enhancement; the app remains
   usable when they are blocked or unavailable.
 

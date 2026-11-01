@@ -444,6 +444,73 @@ expect(result.current.moonGames).toBe(1)
     expect(result.current.progressSessions).toHaveLength(1)
     expect(result.current.moonGames).toBe(1)
   })
+  it('derives remaining blitz time from elapsed time when a callback is delayed', () => {
+    vi.setSystemTime(0)
+    const setIntervalSpy = vi.spyOn(window, 'setInterval')
+    const { result } = renderHook(() => useGame(5))
+    act(() => result.current.startGame(1, 'blitz', false))
+    const blitzTick = setIntervalSpy.mock.calls.at(-1)?.[0] as () => void
+
+    vi.setSystemTime(2_500)
+    act(() => blitzTick())
+
+    expect(result.current.timeLeft).toBe(3)
+    expect(result.current.status).toBe('playing')
+    setIntervalSpy.mockRestore()
+  })
+  it('finalizes once when a delayed callback observes an expired deadline', () => {
+    vi.setSystemTime(0)
+    const setItemSpy = vi.spyOn(localStorage, 'setItem')
+    const setIntervalSpy = vi.spyOn(window, 'setInterval')
+    const { result } = renderHook(() => useGame(2))
+    act(() => result.current.startGame(1, 'blitz', false))
+    const blitzTick = setIntervalSpy.mock.calls.at(-1)?.[0] as () => void
+
+    vi.setSystemTime(2_500)
+    act(() => blitzTick())
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(result.current.timeLeft).toBe(0)
+    expect(result.current.status).toBe('finished')
+    expect(result.current.progressSessions).toHaveLength(1)
+    expect(setItemSpy.mock.calls.filter(([key]) => key === 'numberrush_progress_sessions')).toHaveLength(1)
+    setItemSpy.mockRestore()
+    setIntervalSpy.mockRestore()
+  })
+  it('reconciles the deadline when a hidden page becomes visible', () => {
+    vi.setSystemTime(0)
+    const { result } = renderHook(() => useGame(5))
+    act(() => result.current.startGame(1, 'blitz', false))
+
+    vi.setSystemTime(1_500)
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+    act(() => document.dispatchEvent(new Event('visibilitychange')))
+    expect(result.current.timeLeft).toBe(5)
+
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    act(() => document.dispatchEvent(new Event('visibilitychange')))
+    expect(result.current.timeLeft).toBe(4)
+  })
+  it('rejects an answer submitted after the blitz deadline', () => {
+    vi.setSystemTime(0)
+    const { result } = renderHook(() => useGame(3))
+    act(() => result.current.startGame(1, 'blitz', false))
+    const answer = result.current.currentQuestion!.answer
+
+    vi.setSystemTime(3_001)
+    let feedback
+    act(() => {
+      feedback = result.current.submitAnswer(answer)
+    })
+
+    expect(feedback).toBeNull()
+    expect(result.current.status).toBe('finished')
+    expect(result.current.score).toBe(0)
+    expect(result.current.progressSessions).toHaveLength(1)
+  })
   it('ignores a rapid second submission after a round has finished', () => {
     const { result } = renderHook(() => useGame(10))
     act(() => result.current.startGame(1, 'practice', false, ['addition']))
@@ -651,20 +718,23 @@ expect(feedback?.isCorrect).toBe(true)
       mode: 'practice',
     })
 })
-  it('resets the blitz timer for an answer without pausing the interval', () => {
+  it('does not extend the blitz deadline after an answer', () => {
+    vi.setSystemTime(0)
+    const setIntervalSpy = vi.spyOn(window, 'setInterval')
     const { result } = renderHook(() => useGame(3))
-act(() => {
-      result.current.startGame(1, 'blitz', false)
-})
-    act(() => {
-      result.current.submitAnswer(result.current.currentQuestion!.answer + 1)
-})
-expect(result.current.timeLeft).toBe(3)
-    act(() => {
-      vi.advanceTimersByTime(1000)
-})
-expect(result.current.timeLeft).toBe(2)
-})
+    act(() => result.current.startGame(1, 'blitz', false))
+    const blitzTick = setIntervalSpy.mock.calls.at(-1)?.[0] as () => void
+
+    vi.setSystemTime(2_500)
+    act(() => result.current.submitAnswer(result.current.currentQuestion!.answer + 1))
+    expect(result.current.timeLeft).toBe(1)
+
+    vi.setSystemTime(3_001)
+    act(() => blitzTick())
+    expect(result.current.status).toBe('finished')
+    expect(result.current.timeLeft).toBe(0)
+    setIntervalSpy.mockRestore()
+  })
   it('keeps the current planet when targeted practice is exhausted', () => {
     const { result } = renderHook(() => useGame(10))
     act(() => {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useCommittedGameStateRef, useInterval, usePageActivity } from './useInterval'
 import type { DifficultyTier, MathQuestion, Operation } from '../utils/mathLogic'
 import { DEFAULT_OPERATIONS, generateQuestion, getAdaptiveDifficulty, getDifficultyAtLeast, getDifficultyForLevel, getDifficultySettings, getQuestionExplanation, normalizeOperations } from '../utils/mathLogic'
@@ -204,6 +204,7 @@ export const useGame = (initialTime: number = 10) => {
 })
   const pendingSubmissionRef = useRef(false)
   const timerRef = useRef<number | null>(null)
+  const blitzDeadlineRef = useRef<number | null>(null)
   const stateRef = useCommittedGameStateRef(state, pendingSubmissionRef)
   type PersistenceTask = { key: string; write: () => boolean }
   const pendingPersistenceRef = useRef<Map<string, PersistenceTask>>(new Map())
@@ -325,6 +326,46 @@ return finishedState
     }
     queuePersistence(STORAGE_KEYS.PROGRESS_SESSIONS, () => writeProgressSessions(finishedState.progressSessions))
   }, [persistAggregateChanges, queuePersistence])
+  const reconcileBlitzTimer = useCallback(() => {
+    const previousState = stateRef.current
+    if (previousState.status !== 'playing') return false
+    if (previousState.mode !== 'blitz') return true
+
+    const deadline = blitzDeadlineRef.current
+    if (deadline === null) return true
+
+    const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1_000))
+    if (remaining === 0) {
+      const finishedState = finalizeGameState(previousState, { timeLeft: 0 })
+      stateRef.current = finishedState
+      blitzDeadlineRef.current = null
+      setState(finishedState)
+      persistFinishedGame(previousState, finishedState)
+      if (timerRef.current) clearInterval(timerRef.current)
+      return false
+    }
+
+    if (remaining !== previousState.timeLeft) {
+      const nextState = { ...previousState, timeLeft: Math.min(remaining, previousState.maxTime) }
+      stateRef.current = nextState
+      setState(nextState)
+    }
+    return true
+  }, [finalizeGameState, persistFinishedGame, stateRef])
+  useEffect(() => {
+    const handleFocus = () => {
+      reconcileBlitzTimer()
+    }
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') reconcileBlitzTimer()
+    }
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [reconcileBlitzTimer])
   const persistAnswerAggregates = useCallback((previousState: GameState, nextState: GameState) => {
     queuePersistence(STORAGE_KEYS.SCHEMA_VERSION, ensureStorageSchema)
     persistAggregateChanges(previousState, nextState)
@@ -335,6 +376,7 @@ return finishedState
 const roundOperations = normalizeOperations(operations)
 const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(difficulty).timerSeconds : initialTime)
     const previousState = stateRef.current
+    blitzDeadlineRef.current = mode === 'blitz' ? Date.now() + maxTime * 1_000 : null
     const nextState: GameState = {
       ...previousState,
       score: 0,
@@ -376,6 +418,7 @@ const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(dif
     const previousState = stateRef.current
     const missedQuestions = previousState.missedQuestions
     if (missedQuestions.length === 0) return
+    blitzDeadlineRef.current = null
       const [firstQuestion, ...practiceQueue] = missedQuestions
     const nextState: GameState = {
         ...previousState,
@@ -409,9 +452,10 @@ const maxTime = timerOverride ?? (useDifficultyTimer ? getDifficultySettings(dif
     setState(nextState)
 }, [stateRef])
   const submitAnswer = useCallback((playerAnswer: number): AnswerFeedback | null => {
+    if (pendingSubmissionRef.current || !reconcileBlitzTimer()) return null
     const submissionState = stateRef.current
 const question = submissionState.currentQuestion
-if (pendingSubmissionRef.current || submissionState.status !== 'playing' || !question || typeof playerAnswer !== 'number' || !Number.isFinite(playerAnswer)) return null
+if (submissionState.status !== 'playing' || !question || typeof playerAnswer !== 'number' || !Number.isFinite(playerAnswer)) return null
     pendingSubmissionRef.current = true
     const feedback: AnswerFeedback = {
       question,
@@ -425,7 +469,8 @@ const isChaos = question.operandC !== undefined
 const newScore = calculateAnswerScore(submissionState.score, submissionState.streak, answerIsCorrect)
 const newStreak = calculateNextStreak(submissionState.streak, answerIsCorrect)
 const newRoundBestStreak = Math.max(submissionState.roundBestStreak, newStreak)
-const responseTimeMs = Math.max(0, Date.now() - submissionState.questionStartedAt)
+const now = Date.now()
+const responseTimeMs = Math.max(0, now - submissionState.questionStartedAt)
     const newHighScore = Math.max(submissionState.highScore, newScore)
 const newBestStreak = Math.max(submissionState.bestStreak, newStreak)
 const newTotalCorrect = answerIsCorrect ? submissionState.totalCorrect + 1 : submissionState.totalCorrect
@@ -488,7 +533,9 @@ const nextState: GameState = {
       bestStreak: newBestStreak,
       totalCorrect: newTotalCorrect,
       totalChaosSolved: newTotalChaos,
-      timeLeft: nextMaxTime,
+      timeLeft: submissionState.mode === 'blitz' && blitzDeadlineRef.current !== null
+        ? Math.min(nextMaxTime, Math.max(0, Math.ceil((blitzDeadlineRef.current - now) / 1_000)))
+        : nextMaxTime,
       maxTime: nextMaxTime,
       difficulty: nextDifficulty,
       history: nextHistory,
@@ -507,7 +554,7 @@ const nextState: GameState = {
         : submissionState.isTargetedPractice
           ? nextTargetedQuestion.question
           : generateQuestion(nextDifficulty, submissionState.isAdvanced, submissionState.operations),
-      questionStartedAt: Date.now(),
+      questionStartedAt: now,
       practiceQueue: submissionState.isTargetedPractice ? submissionState.practiceQueue.slice(1) : [],
       recurringProgress: nextRecurringProgress,
       challengeCompletedThisRound: submissionState.challengeCompletedThisRound || challengeCompletedThisAnswer,
@@ -522,11 +569,12 @@ return completedState
     if (hasFinishedTargetedPractice) persistFinishedGame(submissionState, completedState)
     else persistAnswerAggregates(submissionState, completedState)
     return feedback
-}, [finalizeGameState, getUnlockedBadges, persistAnswerAggregates, persistFinishedGame, stateRef])
+}, [finalizeGameState, getUnlockedBadges, persistAnswerAggregates, persistFinishedGame, reconcileBlitzTimer, stateRef])
   const endGame = useCallback(() => {
     const previousState = stateRef.current
     if (previousState.status !== 'playing') return
     const finishedState = finalizeGameState(previousState)
+    blitzDeadlineRef.current = null
     stateRef.current = finishedState
     setState(finishedState)
     persistFinishedGame(previousState, finishedState)
@@ -534,6 +582,7 @@ return completedState
 }, [finalizeGameState, persistFinishedGame, stateRef])
   const resetGame = useCallback(() => {
     pendingSubmissionRef.current = false
+    blitzDeadlineRef.current = null
     const nextState = { ...stateRef.current, status: 'idle' as const, timeLeft: stateRef.current.maxTime }
     stateRef.current = nextState
     setState(nextState)
@@ -565,19 +614,7 @@ if (timerRef.current) clearInterval(timerRef.current)
     setState(nextState)
 }, [refreshPersistenceStatus, stateRef])
   useInterval(() => {
-    const previousState = stateRef.current
-    if (previousState.status !== 'playing') return
-    if (previousState.timeLeft <= 1) {
-      const finishedState = finalizeGameState(previousState, { timeLeft: 0 })
-      stateRef.current = finishedState
-      setState(finishedState)
-      persistFinishedGame(previousState, finishedState)
-      if (timerRef.current) clearInterval(timerRef.current)
-      return
-    }
-    const nextState = { ...previousState, timeLeft: previousState.timeLeft - 1 }
-    stateRef.current = nextState
-    setState(nextState)
+    reconcileBlitzTimer()
   }, state.status === 'playing' && state.mode === 'blitz' ? 1_000 : null, timerRef)
   return {
     ...state,
