@@ -143,8 +143,10 @@ Known limitations:
   unavailable, but it cannot recover data the browser has removed.
 - Sound requires browser permission/user interaction, haptics are optional,
   and background tabs can throttle timer callbacks. Blitz does not pause while
-  hidden: its deadline is based on elapsed time and is reconciled when the page
-  becomes visible or focused again.
+  hidden: each Blitz Rush has one round-level deadline based on elapsed time.
+  Difficulty progression changes the questions, not that deadline or its
+  displayed remaining time. The deadline is reconciled when the page becomes
+  visible or focused again.
 - External Google Fonts are a presentation enhancement; the app remains
   usable when they are blocked or unavailable.
 

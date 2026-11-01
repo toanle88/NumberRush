@@ -165,7 +165,7 @@ expect(result.current.currentQuestion!.operandA).toBeLessThanOrEqual(20)
     expect(result.current.difficulty).toBe('easy')
     expect(result.current.maxTime).toBe(15)
   })
-  it('uses planet timers without treating the planet tier as a difficulty override', () => {
+  it('keeps the initial round timer when planet difficulty increases', () => {
     const { result } = renderHook(() => useGame(10))
 act(() => {
       result.current.startGame(1, 'blitz', false, ['addition'], undefined, undefined, false, true)
@@ -179,8 +179,8 @@ expect(result.current.maxTime).toBe(15)
 }
 
     expect(result.current.difficulty).toBe('medium')
-expect(result.current.maxTime).toBe(10)
-expect(result.current.timeLeft).toBe(10)
+expect(result.current.maxTime).toBe(15)
+expect(result.current.timeLeft).toBe(15)
 })
   it('raises an explicit easy tier to the next planet minimum at the threshold', () => {
     const { result } = renderHook(() => useGame(10))
@@ -195,7 +195,7 @@ act(() => {
 
     expect(result.current.currentLevel).toBe(2)
 expect(result.current.difficulty).toBe('medium')
-expect(result.current.maxTime).toBe(10)
+expect(result.current.maxTime).toBe(15)
 })
   it('keeps an explicit tier at or above the starting planet minimum', () => {
     const { result } = renderHook(() => useGame(10))
@@ -216,7 +216,7 @@ act(() => {
 }
 
     expect(result.current.difficulty).toBe('medium')
-expect(result.current.maxTime).toBe(10)
+expect(result.current.maxTime).toBe(15)
 })
   it('preserves a Settings timer override while adaptive difficulty changes', () => {
     const { result } = renderHook(() => useGame(20))
@@ -233,6 +233,29 @@ act(() => {
 expect(result.current.maxTime).toBe(20)
 expect(result.current.timeLeft).toBe(20)
 })
+  it('shows the actual remaining round time after difficulty increases', () => {
+    vi.setSystemTime(0)
+    const { result } = renderHook(() => useGame(20))
+
+    act(() => result.current.startGame(1, 'blitz', false, ['addition'], 'easy'))
+    vi.setSystemTime(2_500)
+    for (let answerNumber = 0; answerNumber < 3; answerNumber += 1) {
+      act(() => result.current.submitAnswer(result.current.currentQuestion!.answer))
+    }
+
+    expect(result.current.difficulty).toBe('medium')
+    expect(result.current.maxTime).toBe(15)
+    expect(result.current.timeLeft).toBe(13)
+
+    vi.setSystemTime(15_001)
+    let feedback
+    act(() => {
+      feedback = result.current.submitAnswer(result.current.currentQuestion!.answer)
+    })
+
+    expect(feedback).toBeNull()
+    expect(result.current.status).toBe('finished')
+  })
   it('keeps a Mars start at or above the selected difficulty', () => {
     const { result } = renderHook(() => useGame(10))
 act(() => {
