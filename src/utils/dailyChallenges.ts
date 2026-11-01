@@ -161,6 +161,13 @@ return {
     completionHistory,
   }
 }
+export const isValidRecurringProgress = (value: unknown): boolean => {
+  if (!parseProgress(value)) return false
+  const completionHistory = (value as Partial<RecurringProgress>).completionHistory
+  return Array.isArray(completionHistory)
+    && completionHistory.length <= 60
+    && completionHistory.every(completion => parseCompletion(completion) !== null)
+}
 export const normalizeRecurringProgress = (saved: RecurringProgress | null, date: Date = new Date()): RecurringProgress => {
   const fresh = createEmptyProgress(date)
 if (!saved) return fresh

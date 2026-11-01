@@ -169,6 +169,16 @@ return {
     answers,
   }
 }
+export const isValidProgressSessions = (value: unknown): boolean => {
+  if (!Array.isArray(value) || value.length > MAX_PROGRESS_SESSIONS) return false
+  return value.every(session => {
+    if (!parseSession(session)) return false
+    const answers = (session as Partial<ProgressSession>).answers
+    return Array.isArray(answers)
+      && answers.length <= MAX_ANSWERS_PER_SESSION
+      && answers.every(answer => parseAnswer(answer) !== null)
+  })
+}
 export const readProgressSessions = (): ProgressSession[] => {
   try {
     const parsed = readStoredJson<unknown>(PROGRESS_STORAGE_KEY)

@@ -5,6 +5,8 @@ import {
   STORAGE_PROGRESS_KEYS,
   STORAGE_SCHEMA_VERSION,
 } from './storageKeys'
+import { isValidRecurringProgress } from './dailyChallenges'
+import { isValidProgressSessions } from './progress'
 
 export type StorageStatus = 'available' | 'unavailable' | 'unsupported'
 
@@ -233,6 +235,67 @@ export const exportProgress = (): string | null => {
   }
 }
 
+type ImportedValueValidation = { ok: true } | { ok: false; reason: 'malformed' | 'unsupported' }
+
+const parseImportedStoredJson = (raw: string): { ok: true; value: unknown } | { ok: false; reason: 'malformed' | 'unsupported' } => {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return { ok: false, reason: 'malformed' }
+  }
+
+  let version = STORAGE_LEGACY_SCHEMA_VERSION
+  let value = parsed
+  if (isRecord(parsed) && ('version' in parsed || 'data' in parsed)) {
+    if (!('version' in parsed) || !('data' in parsed) || typeof parsed.version !== 'number') {
+      return { ok: false, reason: 'malformed' }
+    }
+    version = parsed.version
+    value = parsed.data
+  }
+  if (!Number.isSafeInteger(version) || version < STORAGE_LEGACY_SCHEMA_VERSION || version > STORAGE_SCHEMA_VERSION) {
+    return { ok: false, reason: 'unsupported' }
+  }
+  return { ok: true, value }
+}
+
+const isValidImportedCounter = (raw: string): boolean => {
+  const value = raw.trim()
+  if (!/^\d+$/.test(value)) return false
+  const numericValue = Number(value)
+  return Number.isSafeInteger(numericValue) && numericValue >= 0 && numericValue <= 1_000_000_000
+}
+
+const validateImportedValue = (key: string, raw: string): ImportedValueValidation => {
+  if ([
+    STORAGE_KEYS.HIGH_SCORE,
+    STORAGE_KEYS.BEST_STREAK,
+    STORAGE_KEYS.TOTAL_CORRECT,
+    STORAGE_KEYS.TOTAL_CHAOS,
+    STORAGE_KEYS.MOON_GAMES,
+    STORAGE_KEYS.MARS_GAMES,
+    STORAGE_KEYS.SPACE_GAMES,
+  ].includes(key as typeof STORAGE_KEYS.HIGH_SCORE)) {
+    return isValidImportedCounter(raw) ? { ok: true } : { ok: false, reason: 'malformed' }
+  }
+
+  const parsed = parseImportedStoredJson(raw)
+  if (!parsed.ok) return parsed
+  if (key === STORAGE_KEYS.BADGES) {
+    return Array.isArray(parsed.value) && parsed.value.every(badge => typeof badge === 'string')
+      ? { ok: true }
+      : { ok: false, reason: 'malformed' }
+  }
+  if (key === STORAGE_KEYS.PROGRESS_SESSIONS) {
+    return isValidProgressSessions(parsed.value) ? { ok: true } : { ok: false, reason: 'malformed' }
+  }
+  if (key === STORAGE_KEYS.DAILY_CHALLENGES) {
+    return isValidRecurringProgress(parsed.value) ? { ok: true } : { ok: false, reason: 'malformed' }
+  }
+  return { ok: false, reason: 'malformed' }
+}
+
 export const importProgress = (serialized: string): ProgressImportResult => {
   if (serialized.length > MAX_IMPORT_LENGTH) return { ok: false, reason: 'too-large' }
   let parsed: unknown
@@ -256,6 +319,12 @@ export const importProgress = (serialized: string): ProgressImportResult => {
     }
     if (typeof value === 'string') importedValues.set(key, value)
     else if (value === null) importedValues.set(key, '')
+  }
+
+  for (const [key, value] of importedValues) {
+    if (value === '') continue
+    const validation = validateImportedValue(key, value)
+    if (!validation.ok) return { ok: false, reason: validation.reason }
   }
 
   const snapshot = new Map<string, string | null>()
