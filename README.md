@@ -227,8 +227,10 @@ release owner remains responsible for the smoke test and rollback decision.
    `pnpm test:coverage`, and `pnpm build`. Merge only after Pull Request Checks is green.
 4. From the merged `main` commit, open the **Release** workflow under the
    GitHub Actions tab, choose **Run workflow**, and select `main`. The workflow
-   reads the version from `package.json`, runs the release checks, creates and
-   pushes the annotated `vVERSION` tag, and publishes the GitHub Release. The
+   captures that exact commit SHA, requires a successful Pull Request Checks
+   run for the same SHA (application validation, browser E2E, Terraform, and
+   CodeQL), then reads the version from `package.json`, runs the release checks,
+   creates and pushes the annotated `vVERSION` tag, and publishes the GitHub Release. The
    tag-push trigger remains available for maintainers who prefer to create the
    tag locally:
 
@@ -238,7 +240,7 @@ release owner remains responsible for the smoke test and rollback decision.
    ```
 
    The Release workflow validates the tag against `package.json` and the
-   changelog, builds the same source, creates a GitHub Release with changelog
+   changelog, builds the exact CI-validated source, creates a GitHub Release with changelog
    notes, and attaches `numberrush-vVERSION.zip` plus its
    `numberrush-vVERSION.zip.sha256` checksum.
 
@@ -307,8 +309,8 @@ Please do not disclose security vulnerabilities in public issues. Follow
 
 Pull Request Checks is the single application gate. It runs locked installation,
 formatting, dependency audit, lint, unit tests, the production build, browser
-end-to-end tests, Terraform syntax validation, CodeQL, and scheduled performance
-checks. Production deployment consumes the validated build artifact;
+end-to-end tests, Terraform syntax validation, CodeQL, and pull-request,
+scheduled, and manual performance checks. Production deployment consumes the validated build artifact;
 Azure Infrastructure manages Terraform resources separately. A green local run
 does not by itself prove a hosted deployment is live.
 

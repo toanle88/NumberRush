@@ -12,6 +12,7 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 - Preserve operator and difficulty progress aggregates for answers beyond the
   200-answer review history limit.
+- Require release publication to use an exact commit with successful CI checks.
 
 ## [1.0.2] - 2026-10-30
 

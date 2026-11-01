@@ -171,6 +171,9 @@ jobs:
           category: /language:javascript-typescript
 
   performance:
+    # Pushes to main intentionally run the required application/security checks
+    # only. Performance runs on PRs, the weekly schedule, and manual dispatch;
+    # it is not a release gate because it is not produced for every main push.
     if: >-
       ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Production performance checks
