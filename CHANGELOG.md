@@ -12,6 +12,7 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 - Keep Blitz countdowns tied to the round-level deadline when difficulty
   increases, so the displayed time matches the actual remaining time.
+- Remove correctly mastered questions from the missed-question practice backlog.
 
 ## [1.0.3] - 2026-11-01
 
