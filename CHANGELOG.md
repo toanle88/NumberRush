@@ -8,6 +8,18 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-11-01
+
+### Fixed
+
+- Preserve physical keyboard input after using the on-screen keypad while
+  retaining native keyboard activation for focused controls.
+- Keep each setting's persistence warning visible until that setting is saved.
+- Extend accessibility coverage across gameplay, results, progress, and
+  settings views, and require performance tests to measure a qualifying INP
+  interaction when Event Timing is supported.
+- Isolate round setup state and actions from the main application coordinator.
+
 ## [1.0.4] - 2026-11-01
 
 ### Fixed
@@ -57,7 +69,8 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 - Initial stable release of NumberRush.
 
-[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.5
 [1.0.4]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.4
 [1.0.3]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.3
 [1.0.2]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.2

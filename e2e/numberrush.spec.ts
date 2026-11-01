@@ -58,6 +58,15 @@ test('starts Blitz and submits correct and incorrect answers with keyboard and k
   await expect(questionGroup(page)).toBeVisible()
 })
 
+test('switches from keypad input to physical keyboard input during a round', async ({ page }) => {
+  await page.getByRole('button', { name: /Start Blitz Rush/ }).click()
+  await page.getByRole('button', { name: 'Enter 1' }).click()
+  await expect(page.locator('.question-display')).toHaveAttribute('aria-label', /Your current answer is 1/i)
+
+  await page.keyboard.type('2')
+  await expect(page.getByRole('group', { name: /Your current answer is 12/i })).toBeVisible()
+})
+
 test('keeps the game stats inside the mobile game card', async ({ page }) => {
   await page.getByRole('button', { name: /Start Blitz Rush/ }).click()
   const questionDisplay = page.locator('.question-display')
