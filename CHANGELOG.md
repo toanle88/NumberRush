@@ -8,6 +8,8 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-11-01
+
 ### Fixed
 
 - Preserve physical keyboard input after using the on-screen keypad while
@@ -67,7 +69,8 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 - Initial stable release of NumberRush.
 
-[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.5
 [1.0.4]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.4
 [1.0.3]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.3
 [1.0.2]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.2
