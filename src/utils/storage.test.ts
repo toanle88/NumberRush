@@ -131,8 +131,8 @@ describe('versioned storage', () => {
   })
 
   it('rolls back an import when a later progress write fails', () => {
-    localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, 'old-score')
-    localStorage.setItem(STORAGE_KEYS.BEST_STREAK, 'old-streak')
+    localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, '10')
+    localStorage.setItem(STORAGE_KEYS.BEST_STREAK, '20')
     const originalSetItem = Storage.prototype.setItem.bind(localStorage)
     let failed = false
     const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
@@ -147,14 +147,51 @@ describe('versioned storage', () => {
       app: 'number-rush',
       version: STORAGE_SCHEMA_VERSION,
       data: {
-        [STORAGE_KEYS.HIGH_SCORE]: 'new-score',
-        [STORAGE_KEYS.BEST_STREAK]: 'new-streak',
+        [STORAGE_KEYS.HIGH_SCORE]: '11',
+        [STORAGE_KEYS.BEST_STREAK]: '30',
       },
     }))
 
     expect(result).toEqual({ ok: false, reason: 'unavailable' })
-    expect(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE)).toBe('old-score')
-    expect(localStorage.getItem(STORAGE_KEYS.BEST_STREAK)).toBe('old-streak')
+    expect(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE)).toBe('10')
+    expect(localStorage.getItem(STORAGE_KEYS.BEST_STREAK)).toBe('20')
+    setItem.mockRestore()
+  })
+
+  it('rejects invalid progress values before changing storage', () => {
+    localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, '42')
+    localStorage.setItem(STORAGE_KEYS.PROGRESS_SESSIONS, JSON.stringify({ version: 2, data: [] }))
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    setItem.mockClear()
+
+    const invalidHighScore = importProgress(JSON.stringify({
+      app: 'number-rush',
+      version: STORAGE_SCHEMA_VERSION,
+      data: { [STORAGE_KEYS.HIGH_SCORE]: 'invalid' },
+    }))
+    expect(invalidHighScore).toEqual({ ok: false, reason: 'malformed' })
+    expect(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE)).toBe('42')
+
+    const invalidSession = importProgress(JSON.stringify({
+      app: 'number-rush',
+      version: STORAGE_SCHEMA_VERSION,
+      data: {
+        [STORAGE_KEYS.PROGRESS_SESSIONS]: JSON.stringify({
+          version: STORAGE_SCHEMA_VERSION,
+          data: [{
+            id: 'session-1',
+            completedAt: 1,
+            mode: 'blitz',
+            finalScore: 'invalid',
+            bestStreak: 0,
+            answers: [],
+          }],
+        }),
+      },
+    }))
+    expect(invalidSession).toEqual({ ok: false, reason: 'malformed' })
+    expect(localStorage.getItem(STORAGE_KEYS.PROGRESS_SESSIONS)).toBe(JSON.stringify({ version: 2, data: [] }))
+    expect(setItem).not.toHaveBeenCalled()
     setItem.mockRestore()
   })
 
