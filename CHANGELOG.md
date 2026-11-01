@@ -8,6 +8,13 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-11-01
+
+### Fixed
+
+- Keep grouped hard-difficulty equations and their answer boxes visible on
+  narrow mobile game cards.
+
 ## [1.0.5] - 2026-11-01
 
 ### Fixed
@@ -69,7 +76,8 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 - Initial stable release of NumberRush.
 
-[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.6
 [1.0.5]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.5
 [1.0.4]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.4
 [1.0.3]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.3
