@@ -81,6 +81,54 @@ test('keeps the game stats inside the mobile game card', async ({ page }) => {
   expect(nextQuestionTop?.y).toBeCloseTo(initialQuestionTop?.y ?? 0, 0)
 })
 
+test('keeps a grouped hard question inside the game card on narrow screens', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 })
+  await page.addInitScript(() => {
+    Math.random = () => 0.98
+  })
+  await page.goto('/')
+
+  await page.getByText('Customize round').click()
+  await page.getByRole('button', { name: /^Custom$/ }).click()
+  await page.getByRole('checkbox', { name: /Subtraction/ }).uncheck()
+  await page.getByRole('button', { name: /^Hard/ }).click()
+  await page.getByText('More options').click()
+  await page.getByRole('button', { name: /3-Number Chaos OFF/ }).click()
+  await page.getByRole('button', { name: /Start Blitz Rush/ }).click()
+
+  const questionDisplay = page.locator('.question-display')
+  await expect(questionDisplay.locator('.grouped-expression')).toBeVisible()
+  await expect(questionDisplay).toHaveText(/\(50\+50\)\+50=\?/)
+
+  const layout = await questionDisplay.evaluate(element => {
+    const card = element.closest('.game-container')?.getBoundingClientRect()
+    const display = element.getBoundingClientRect()
+    const answerBox = element.querySelector('.answer-box')?.getBoundingClientRect()
+    const tokens = Array.from(element.children)
+      .filter(child => !child.classList.contains('sr-only'))
+      .map(token => token.getBoundingClientRect())
+    return {
+      cardLeft: card?.left ?? 0,
+      cardRight: card?.right ?? 0,
+      displayLeft: display.left,
+      displayRight: display.right,
+      displayOverflow: element.scrollWidth > element.clientWidth,
+      answerLeft: answerBox?.left ?? 0,
+      answerRight: answerBox?.right ?? 0,
+      tokensInsideDisplay: tokens.every(token => token.left >= display.left - 1 && token.right <= display.right + 1),
+      bodyOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }
+  })
+
+  expect(layout.displayLeft).toBeGreaterThanOrEqual(layout.cardLeft - 1)
+  expect(layout.displayRight).toBeLessThanOrEqual(layout.cardRight + 1)
+  expect(layout.displayOverflow).toBe(false)
+  expect(layout.answerLeft).toBeGreaterThanOrEqual(layout.displayLeft - 1)
+  expect(layout.answerRight).toBeLessThanOrEqual(layout.displayRight + 1)
+  expect(layout.tokensInsideDisplay).toBe(true)
+  expect(layout.bodyOverflow).toBe(false)
+})
+
 test('starts Practice mode and completes a round', async ({ page }) => {
   await page.getByRole('button', { name: /Practice Mode/ }).click()
   await expect(page.getByRole('region', { name: 'Math game' })).toBeVisible()
