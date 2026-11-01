@@ -751,6 +751,39 @@ expect(feedback?.isCorrect).toBe(true)
       accuracy: 100,
       mode: 'practice',
     })
+    expect(result.current.missedQuestions).toHaveLength(0)
+  })
+  it('keeps an incorrectly reviewed question in the backlog', () => {
+    const { result } = renderHook(() => useGame(10))
+    act(() => result.current.startGame(1, 'practice', false, ['addition']))
+    const missedQuestion = result.current.currentQuestion!
+    act(() => {
+      result.current.submitAnswer(missedQuestion.answer + 1)
+      result.current.endGame()
+      result.current.startTargetedPractice()
+    })
+
+    act(() => result.current.submitAnswer(missedQuestion.answer + 1))
+
+    expect(result.current.missedQuestions).toHaveLength(1)
+    expect(result.current.missedQuestions[0].question).toEqual(missedQuestion)
+  })
+  it('removes all duplicate backlog entries for a correctly reviewed question', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { result } = renderHook(() => useGame(10))
+    act(() => result.current.startGame(1, 'practice', false, ['addition']))
+    const missedQuestion = result.current.currentQuestion!
+    act(() => result.current.submitAnswer(missedQuestion.answer + 1))
+    act(() => result.current.submitAnswer(result.current.currentQuestion!.answer + 1))
+    act(() => {
+      result.current.endGame()
+      result.current.startTargetedPractice()
+      result.current.submitAnswer(missedQuestion.answer)
+    })
+
+    expect(result.current.status).toBe('finished')
+    expect(result.current.missedQuestions).toHaveLength(0)
+    randomSpy.mockRestore()
 })
   it('does not extend the blitz deadline after an answer', () => {
     vi.setSystemTime(0)

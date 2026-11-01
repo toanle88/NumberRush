@@ -61,6 +61,10 @@ level: number
 difficulty: DifficultyTier
 operations: Operation[]}
 
+const removeQuestionById = (questions: readonly TargetedQuestion[], questionId: string): TargetedQuestion[] => (
+  questions.filter(entry => entry.question.id !== questionId)
+)
+
 interface GameState {
   score: number
 streak: number
@@ -486,7 +490,12 @@ const newBestStreak = Math.max(submissionState.bestStreak, newStreak)
 const newTotalCorrect = answerIsCorrect ? submissionState.totalCorrect + 1 : submissionState.totalCorrect
 const newTotalChaos = (answerIsCorrect && isChaos) ? submissionState.totalChaosSolved + 1 : submissionState.totalChaosSolved
     const nextLevel = getLevelForScore(newScore, submissionState.startingLevel)
-const nextTargetedQuestion = submissionState.practiceQueue[0]
+const nextPracticeQueue = submissionState.isTargetedPractice
+      ? answerIsCorrect
+        ? removeQuestionById(submissionState.practiceQueue, question.id)
+        : submissionState.practiceQueue.slice(1)
+      : []
+const nextTargetedQuestion = nextPracticeQueue[0]
 const nextQuestionLevel = submissionState.isTargetedPractice
       ? nextTargetedQuestion?.level ?? submissionState.currentLevel
       : nextLevel
@@ -561,8 +570,10 @@ const nextState: GameState = {
       maxTime: nextMaxTime,
       difficulty: nextDifficulty,
       history: nextHistory,
-      missedQuestions: answerIsCorrect || submissionState.isTargetedPractice
-        ? submissionState.missedQuestions
+      missedQuestions: submissionState.isTargetedPractice && answerIsCorrect
+        ? removeQuestionById(submissionState.missedQuestions, question.id)
+        : answerIsCorrect || submissionState.isTargetedPractice
+          ? submissionState.missedQuestions
         : [...submissionState.missedQuestions, {
           question,
           level: submissionState.currentLevel,
@@ -577,7 +588,7 @@ const nextState: GameState = {
           ? nextTargetedQuestion.question
           : generateQuestion(nextDifficulty, submissionState.isAdvanced, submissionState.operations),
       questionStartedAt: now,
-      practiceQueue: submissionState.isTargetedPractice ? submissionState.practiceQueue.slice(1) : [],
+      practiceQueue: nextPracticeQueue,
       recurringProgress: nextRecurringProgress,
       challengeCompletedThisRound: submissionState.challengeCompletedThisRound || challengeCompletedThisAnswer,
     }
