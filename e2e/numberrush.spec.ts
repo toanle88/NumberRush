@@ -58,6 +58,24 @@ test('starts Blitz and submits correct and incorrect answers with keyboard and k
   await expect(questionGroup(page)).toBeVisible()
 })
 
+test('refills the Blitz timer after a correct answer and expires at the new deadline', async ({ page }) => {
+  await page.clock.install()
+  await setTimer(page, 5)
+  await page.getByRole('button', { name: /Start Blitz Rush/ }).click()
+  const timer = page.getByRole('progressbar', { name: 'Time remaining' })
+
+  await page.clock.runFor(3_000)
+  await expect(timer).toHaveAttribute('aria-valuenow', '2')
+  await enterAnswer(page, await readAnswer(page), 'keyboard')
+  await expect(timer).toHaveAttribute('aria-valuenow', '5')
+
+  await page.clock.runFor(3_000)
+  await expect(timer).toHaveAttribute('aria-valuenow', '2')
+  await expect(page.getByRole('region', { name: 'Math game' })).toBeVisible()
+  await page.clock.runFor(2_000)
+  await expect(page.getByRole('heading', { name: "Time's Up!" })).toBeVisible()
+})
+
 test('switches from keypad input to physical keyboard input during a round', async ({ page }) => {
   await page.getByRole('button', { name: /Start Blitz Rush/ }).click()
   await page.getByRole('button', { name: 'Enter 1' }).click()

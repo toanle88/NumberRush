@@ -233,7 +233,7 @@ act(() => {
 expect(result.current.maxTime).toBe(20)
 expect(result.current.timeLeft).toBe(20)
 })
-  it('shows the actual remaining round time after difficulty increases', () => {
+  it('refills the selected timer after correct answers even when difficulty increases', () => {
     vi.setSystemTime(0)
     const { result } = renderHook(() => useGame(20))
 
@@ -245,9 +245,9 @@ expect(result.current.timeLeft).toBe(20)
 
     expect(result.current.difficulty).toBe('medium')
     expect(result.current.maxTime).toBe(15)
-    expect(result.current.timeLeft).toBe(13)
+    expect(result.current.timeLeft).toBe(15)
 
-    vi.setSystemTime(15_001)
+    vi.setSystemTime(17_501)
     let feedback
     act(() => {
       feedback = result.current.submitAnswer(result.current.currentQuestion!.answer)
@@ -785,7 +785,31 @@ expect(feedback?.isCorrect).toBe(true)
     expect(result.current.missedQuestions).toHaveLength(0)
     randomSpy.mockRestore()
 })
-  it('does not extend the blitz deadline after an answer', () => {
+  it.each([undefined, 20])('resets the blitz deadline after each correct answer (override: %s)', timerOverride => {
+    vi.setSystemTime(0)
+    const { result } = renderHook(() => useGame(10), { wrapper: StrictModeWrapper })
+    act(() => result.current.startGame(1, 'blitz', false, ['addition'], undefined, timerOverride))
+    const duration = timerOverride ?? 10
+
+    for (let answerNumber = 0; answerNumber < 2; answerNumber += 1) {
+      act(() => vi.advanceTimersByTime((duration - 1) * 1_000))
+      expect(result.current.timeLeft).toBe(1)
+      act(() => result.current.submitAnswer(result.current.currentQuestion!.answer))
+      expect(result.current.timeLeft).toBe(duration)
+      expect(result.current.status).toBe('playing')
+    }
+
+    act(() => vi.advanceTimersByTime((duration - 1) * 1_000))
+    act(() => window.dispatchEvent(new Event('focus')))
+    expect(result.current.timeLeft).toBe(1)
+    expect(result.current.status).toBe('playing')
+    act(() => vi.advanceTimersByTime(1_000))
+    expect(result.current.timeLeft).toBe(0)
+    expect(result.current.status).toBe('finished')
+    expect(result.current.roundCorrectAnswers).toBe(2)
+    expect(result.current.progressSessions).toHaveLength(1)
+  })
+  it('does not extend the blitz deadline after an incorrect answer', () => {
     vi.setSystemTime(0)
     const setIntervalSpy = vi.spyOn(window, 'setInterval')
     const { result } = renderHook(() => useGame(3))

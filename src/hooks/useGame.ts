@@ -549,6 +549,10 @@ const challengeChanged = submissionState.recurringProgress.challenge.dateKey !==
       || submissionState.recurringProgress.challenge.challengeId !== nextRecurringProgress.challenge.challengeId
 const challengeCompletedThisAnswer = nextRecurringProgress.challenge.completed
       && (challengeChanged || !submissionState.recurringProgress.challenge.completed)
+// A correct answer refills Blitz time; incorrect answers keep the current deadline.
+if (submissionState.mode === 'blitz' && answerIsCorrect) {
+  blitzDeadlineRef.current = now + nextMaxTime * 1_000
+}
 const nextState: GameState = {
       ...submissionState,
       score: newScore,
