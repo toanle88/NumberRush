@@ -8,6 +8,14 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-11-07
+
+### Fixed
+
+- Reset the Blitz countdown to the selected duration after each correct answer,
+  while preserving deadline checks and leaving incorrect answers on the current
+  countdown.
+
 ## [1.0.6] - 2026-11-01
 
 ### Fixed
@@ -76,7 +84,8 @@ section before creating its tag. Group entries under **Added**, **Changed**,
 
 - Initial stable release of NumberRush.
 
-[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/toanle88/NumberRush/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.7
 [1.0.6]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.6
 [1.0.5]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.5
 [1.0.4]: https://github.com/toanle88/NumberRush/releases/tag/v1.0.4
